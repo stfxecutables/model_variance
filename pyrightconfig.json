@@ -1,0 +1,19 @@
+{
+    // "include": ["src", "test", "scripts", "tests"],
+    "exclude": [
+        "**/__CACHE__",
+        "**/__MAPPINGS_CACHE__",
+        "**/__pycache__",
+        "**/__WAVEFORM_CACHE__",
+        "**/.venv",
+        "**/.env"
+    ],
+    "ignore": [
+        "**/__CACHE__",
+        "**/__MAPPINGS_CACHE__",
+        "**/__pycache__",
+        "**/__WAVEFORM_CACHE__",
+        "**/.venv",
+        "**/.env"
+    ]
+}
