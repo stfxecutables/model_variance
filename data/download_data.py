@@ -32,9 +32,10 @@ from numpy import ndarray
 from pandas import DataFrame, Series
 from typing_extensions import Literal
 
+DATA_DIR = ROOT / "data"
 
-def find_correct_data_versions() -> None:
-    DATA_DIR = ROOT / "data"
+
+def find_correct_data_versions() -> DataFrame:
     PAPER_TABLE = DATA_DIR / "paper_datasets.csv"
     DATA_TABLE = DATA_DIR / "datasets.csv"
 
@@ -97,7 +98,23 @@ def find_correct_data_versions() -> None:
     print(latest_matching)
     print(latest_matching.shape)
     latest_matching.to_csv(DATA_TABLE, index=True)
+    latest_matching["did"] = latest_matching.index.values
+    return latest_matching.loc[:, ["did", "version"]]
 
 
 if __name__ == "__main__":
-    find_correct_data_versions()
+    to_dl = find_correct_data_versions()
+    for dataset_id, version in zip(to_dl["did"].to_list(), to_dl["version"].to_list()):
+        ds = openml.datasets.get_dataset(dataset_id=dataset_id, version=version)
+        X: DataFrame
+        y: Series
+        X, y = ds.get_data(dataset_format="dataframe")[:2]  # ty[e: ignore]
+        df = X.copy()
+        df["__target"] = y
+
+        fname = f"{ds.dataset_id}_v{ds.version}_{ds.name}.json"
+        outdir = DATA_DIR / "json"
+        outdir.mkdir(exist_ok=True)
+        outfile = outdir / fname
+        df.to_json(outfile, indent=2)
+        print(f"Saved data to {outfile}")
