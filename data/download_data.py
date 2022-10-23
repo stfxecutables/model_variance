@@ -1,0 +1,103 @@
+# fmt: off
+import sys  # isort:skip
+from pathlib import Path  # isort: skip
+ROOT = Path(__file__).resolve().parent.parent  # isort: skip
+sys.path.append(str(ROOT))  # isort: skip
+# fmt: on
+
+from argparse import ArgumentParser, Namespace
+from dataclasses import dataclass
+from enum import Enum
+from pathlib import Path
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+    cast,
+    no_type_check,
+)
+
+import matplotlib.pyplot as plt
+import numpy as np
+import openml
+import pandas as pd
+import pytest
+from numpy import ndarray
+from pandas import DataFrame, Series
+from typing_extensions import Literal
+
+
+def find_correct_data_versions() -> None:
+    DATA_DIR = ROOT / "data"
+    PAPER_TABLE = DATA_DIR / "paper_datasets.csv"
+    DATA_TABLE = DATA_DIR / "datasets.csv"
+
+    paper = pd.read_csv(PAPER_TABLE)
+    names = paper["dataset_name"]
+    datasets = openml.datasets.list_datasets(output_format="dataframe")
+    datasets = datasets[datasets["name"].isin(names)]
+    print(datasets)
+
+    # Check for missing
+    paper_names = set(names.unique().tolist())
+    online = set(datasets.name.unique().tolist())
+    missing = paper_names.difference(online)
+    if len(missing) > 0:
+        print("Missing:", missing)
+
+    renamer = {
+        "NumberOfInstances": "n_sample",
+        "NumberOfFeatures": "n_feat",
+        "MajorityClassSize": "n_majority_cls",
+        "MinorityClassSize": "n_minority_cls",
+        "NumberOfClasses": "n_cls",
+        "NumberOfInstancesWithMissingValues": "n_nan_rows",
+        "did": "id",
+    }
+    datasets.rename(columns=renamer, inplace=True)
+    select = ["id", "name", "version", *(list(renamer.values())[:-1])]
+    df = datasets.loc[:, select]
+    df["n_sample"] = df["n_sample"].astype(int)
+    df["n_feat"] = df["n_feat"].astype(int)
+
+    pd.options.display.max_rows = None  # type: ignore
+    pd.options.display.max_info_rows = None  # type: ignore
+    pd.options.display.expand_frame_repr = True  # type: ignore
+    paper_counts = paper.loc[:, "n_samples"]
+    paper_counts.index = paper["dataset_name"].str.lower()  # type: ignore
+    paper_samples = df.name.apply(lambda name: paper_counts.loc[name.lower()])
+    df.insert(3, "paper_n_sample", paper_samples)
+
+    paper_feats = paper.loc[:, "n_features"]
+    paper_feats.index = paper["dataset_name"].str.lower()  # type: ignore
+    paper_n_feats = df.name.apply(lambda name: paper_feats.loc[name.lower()])
+    df.insert(5, "paper_n_feat", paper_n_feats)
+    print(df)
+
+    matching = df.loc[df.paper_n_sample == df.n_sample]
+    matching = matching.loc[df.paper_n_feat == df.n_feat]
+    print("\n\nMatching:")
+    print(matching)
+    print(matching.shape)
+
+    latest_matching = (
+        matching.sort_values(by=["name", "version"], ascending=True)
+        .groupby("name")
+        .apply(lambda grp: grp.nlargest(1, columns="version"))
+        .droplevel(["name"])  # type: ignore
+        .drop(columns="id")
+    )
+    latest_matching.index.name = "did"
+    print(latest_matching)
+    print(latest_matching.shape)
+    latest_matching.to_csv(DATA_TABLE, index=True)
+
+
+if __name__ == "__main__":
+    find_correct_data_versions()
