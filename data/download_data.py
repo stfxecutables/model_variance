@@ -43,7 +43,7 @@ def find_correct_data_versions() -> DataFrame:
     names = paper["dataset_name"]
     datasets = openml.datasets.list_datasets(output_format="dataframe")
     datasets = datasets[datasets["name"].isin(names)]
-    print(datasets)
+    # print(datasets)
 
     # Check for missing
     paper_names = set(names.unique().tolist())
@@ -83,9 +83,9 @@ def find_correct_data_versions() -> DataFrame:
 
     matching = df.loc[df.paper_n_sample == df.n_sample]
     matching = matching.loc[df.paper_n_feat == df.n_feat]
-    print("\n\nMatching:")
-    print(matching)
-    print(matching.shape)
+    # print("\n\nMatching:")
+    # print(matching)
+    # print(matching.shape)
 
     latest_matching = (
         matching.sort_values(by=["name", "version"], ascending=True)
@@ -95,8 +95,8 @@ def find_correct_data_versions() -> DataFrame:
         .drop(columns="id")
     )
     latest_matching.index.name = "did"
-    print(latest_matching)
-    print(latest_matching.shape)
+    # print(latest_matching)
+    # print(latest_matching.shape)
     latest_matching.to_csv(DATA_TABLE, index=True)
     latest_matching["did"] = latest_matching.index.values
     return latest_matching.loc[:, ["did", "version"]]
@@ -108,9 +108,15 @@ if __name__ == "__main__":
         ds = openml.datasets.get_dataset(dataset_id=dataset_id, version=version)
         X: DataFrame
         y: Series
-        X, y = ds.get_data(dataset_format="dataframe")[:2]  # ty[e: ignore]
+        X, y, categoricals, attributes = ds.get_data(dataset_format="dataframe")
         df = X.copy()
+        column = ds.default_target_attribute
+        if y is None:
+            y = X[column]
+            X.drop(columns=column, inplace=True)
         df["__target"] = y
+        if column in df:
+            df.drop(columns=column, inplace=True)
 
         fname = f"{ds.dataset_id}_v{ds.version}_{ds.name}.json"
         outdir = DATA_DIR / "json"
