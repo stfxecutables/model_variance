@@ -1,5 +1,4 @@
 did,name,version,paper_n_sample,n_sample,paper_n_feat,n_feat,n_majority_cls,n_minority_cls,n_cls,n_nan_rows
-41138,APSFailure,1,76000,76000,171,171,74625.0,1375.0,2.0,75244.0
 40981,Australian,4,690,690,15,15,383.0,307.0,2.0,0.0
 1219,Click_prediction_small,4,399482,399482,12,12,332393.0,67089.0,2.0,0.0
 42397,CreditCardFraudDetection,2,284807,284807,31,31,284315.0,492.0,2.0,0.0

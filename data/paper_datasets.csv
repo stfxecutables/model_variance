@@ -1,5 +1,4 @@
 task_id,dataset_name,version,n_samples,n_features,perc_majority_class,perc_minority_class
-233130,APSFailure,0,76000,171,98.19,1.81
 233115,Australian,0,690,15,55.51,44.49
 233146,Click_prediction_small,4,399482,12,83.21,16.79
 233143,CreditCardFraudDetection,2,284807,31,99.83,0.17

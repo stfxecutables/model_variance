@@ -36,6 +36,15 @@ DATA_DIR = ROOT / "data"
 
 
 def find_correct_data_versions() -> DataFrame:
+    """
+    Notes
+    -----
+    We drop the APSFailure dataset (dataset_id = 8) because it is an extreme
+    outlier with a massive amount of missing values and enormous class imbalance.
+    The number of missing values means it fundamentally cannot be treated the same
+    as the other datasets (e.g. impute missing values with median, split sanely),
+    so there is not much point including it for comparison to others.
+    """
     PAPER_TABLE = DATA_DIR / "paper_datasets.csv"
     DATA_TABLE = DATA_DIR / "datasets.csv"
 
