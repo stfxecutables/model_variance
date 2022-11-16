@@ -35,25 +35,3 @@ from pandas import DataFrame, Series
 from typing_extensions import Literal
 
 JSONS = ROOT / "data/json"
-
-class Dataset:
-    def __init__(self, path: Path) -> None:
-        self.path = path
-        stem = self.path.stem
-        res = re.search(r"([0-9])_v([0-9]+)_(.*)", stem)
-        if res is None:
-            raise ValueError("Impossible", self.path)
-        self.did = int(res[1])
-        self.version = int(res[2])
-        self.name = str(res[3]).lower()
-
-    @staticmethod
-    def load_all() -> List[Dataset]:
-        pass
-
-
-if __name__ == "__main__":
-    jsons = sorted(JSONS.rglob("*.json"))
-    for json in jsons:
-        ds = Dataset(json)
-        print(ds.did, ds.version, ds.name)
