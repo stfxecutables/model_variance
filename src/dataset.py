@@ -36,6 +36,7 @@ from tqdm.contrib.concurrent import process_map
 from typing_extensions import Literal
 
 JSONS = ROOT / "data/json"
+PARQUETS = ROOT / "data/parquet"
 
 DROP_COLS = {
     "arrhythmia": ["J"],
@@ -90,7 +91,8 @@ class Dataset:
     @property
     def data(self) -> DataFrame:
         if self.data_ is None:
-            df = pd.read_json(self.path)
+            # df = pd.read_json(self.path)
+            df = pd.read_parquet(self.path)
             self.remove_nans(df)
             self.data_ = df
         return self.data_
@@ -138,8 +140,11 @@ class Dataset:
 
     @staticmethod
     def load_all() -> List[Dataset]:
-        jsons = sorted(JSONS.rglob("*.json"))
-        return process_map(load, jsons, desc="Loading datasets")
+        # jsons = sorted(JSONS.rglob("*.json"))
+        # return process_map(load, jsons, desc="Loading datasets")
+        pqs = sorted(PARQUETS.rglob("*.parquet"))
+        return process_map(load, pqs, desc="Loading datasets")
+
 
     def __len__(self) -> int:
         return len(self.data)

@@ -22,6 +22,7 @@ from typing import (
     cast,
     no_type_check,
 )
+from warnings import simplefilter
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -112,6 +113,7 @@ def find_correct_data_versions() -> DataFrame:
 
 
 if __name__ == "__main__":
+    simplefilter("ignore", FutureWarning)
     to_dl = find_correct_data_versions()
     for dataset_id, version in zip(to_dl["did"].to_list(), to_dl["version"].to_list()):
         ds = openml.datasets.get_dataset(dataset_id=dataset_id, version=version)
@@ -119,6 +121,8 @@ if __name__ == "__main__":
         y: Series
         X, y, categoricals, attributes = ds.get_data(dataset_format="dataframe")
         df = X.copy()
+        for column_idx in np.where(categoricals)[0]:
+            df.iloc[:, column_idx] = df.iloc[:, column_idx].astype("category")
         column = ds.default_target_attribute
         if y is None:
             y = X[column]
@@ -127,9 +131,12 @@ if __name__ == "__main__":
         if column in df:
             df.drop(columns=column, inplace=True)
 
-        fname = f"{ds.dataset_id}_v{ds.version}_{ds.name}.json"
-        outdir = DATA_DIR / "json"
+        # fname = f"{ds.dataset_id}_v{ds.version}_{ds.name}.json"
+        # outdir = DATA_DIR / "json"
+        fname = f"{ds.dataset_id}_v{ds.version}_{ds.name}.parquet"
+        outdir = DATA_DIR / "parquet"
         outdir.mkdir(exist_ok=True)
         outfile = outdir / fname
-        df.to_json(outfile, indent=2)
+        # df.to_json(outfile, indent=2)
+        df.to_parquet(outfile)
         print(f"Saved data to {outfile}")
