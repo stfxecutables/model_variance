@@ -63,16 +63,17 @@ def estimate_runtime_xgb(dataset: Dataset) -> DataFrame | None:
             {"classifier": "xgb_hist", "load_secs": loadtime, "fit_minutes": elapsed},
             index=[0],
         )
-    except Exception:
+    except Exception as e:
         print_exc()
         print(f"Got error: {e}")
         return None
 
 
-
 if __name__ == "__main__":
     datasets = Dataset.load_all()
-    runtimes_xgb = process_map(estimate_runtime_xgb, desc="Timing XGBoost", max_workers=len(datasets))
+    runtimes_xgb = process_map(
+        estimate_runtime_xgb, desc="Timing XGBoost", max_workers=len(datasets)
+    )
     runtimes_xgb = [r for r in runtimes_xgb if r is not None]
     runtimes = pd.concat(runtimes_xgb, ignore_index=True, axis=0)
     outfile = ROOT / "xgb_hist_runtimes.json"
