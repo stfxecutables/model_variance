@@ -1,0 +1,221 @@
+BootStrap: docker
+From: alpine:3.16.2
+Include: apk
+
+
+%setup
+    echo "Not doing anything in %setup right now"
+
+%files
+    build_files/wheels/pip /root/.cache/pip
+    build_files/.pyenv /app/.pyenv
+    build_files/torch-1.12.1+cu113-cp310-cp310-linux_x86_64.whl /root/torch-1.12.1+cu113-cp310-cp310-linux_x86_64.whl
+    build_files/torchvision-0.13.1+cu113-cp310-cp310-linux_x86_64.whl /root/torchvision-0.13.1+cu113-cp310-cp310-linux_x86_64.whl
+    build_files/torchaudio-0.12.1+cu113-cp310-cp310-linux_x86_64.whl /root/torchaudio-0.12.1+cu113-cp310-cp310-linux_x86_64.whl
+
+%post
+    CONTAINER_CREATION_TIME=`date`
+    echo "export CONTAINER_CREATION_TIME=\"${CONTAINER_CREATION_TIME}\"" >> $APPTAINER_ENVIRONMENT
+    apk update
+    apk upgrade
+    # see https://github.com/relenteny/pyenv/blob/master/Dockerfile
+    # and https://stackoverflow.com/a/58948947 for included deps
+    apk add \
+        bash \
+        build-base \
+        bzip2-dev \
+        cmake \
+        g++ \
+        gcc \
+        gfortran \
+        git \
+        lapack-dev \
+        libedit-dev \
+        libffi-dev \
+        libressl-dev \
+        llvm11-dev \
+        make \
+        musl-dev \
+        openblas-dev \
+        openssl-dev \
+        pkgconf \
+        readline-dev \
+        rsync \
+        sqlite-dev \
+        vim \
+        wget \
+        xz-dev \
+        zlib-dev \
+        zsh
+    export LLVM_CONFIG=/usr/lib/llvm11/bin/llvm-config   # needed for Numba, llvmlite
+    export PYENV_ROOT=/app/.pyenv
+    export PATH="$PATH:$PYENV_ROOT/bin"
+    export PYTHON=/app/.pyenv/versions/3.10.4/bin/python
+    # if we want to fresh-install pyenv, will need lines below
+    # git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+    # eval "$(pyenv init -)"
+    # pyenv install 3.10.4
+    # pyenv global 3.10.4
+    # python -m pip install --upgrade pip
+    # python -m venv .venv
+    cd /app
+    $PYTHON -m venv .venv
+    source .venv/bin/activate
+    python -m pip install --upgrade pip
+    python -m pip install wheel  # needed first before Numba can install
+    python -m pip install /root/torch-1.12.1+cu113-cp310-cp310-linux_x86_64.whl
+    python -m pip install /root/torchvision-0.13.1+cu113-cp310-cp310-linux_x86_64.whl
+    python -m pip install /root/torchaudio-0.12.1+cu113-cp310-cp310-linux_x86_64.whl
+    python -m pip install \
+        absl-py==1.2.0 \
+        aiohttp==3.8.1 \
+        aiosignal==1.2.0 \
+        async-timeout==4.0.2 \
+        attrs==22.1.0 \
+        black==22.8.0 \
+        cachetools==5.2.0 \
+        certifi==2022.9.14 \
+        charset-normalizer==2.1.1 \
+        click==8.1.3 \
+        contourpy==1.0.5 \
+        cycler==0.11.0 \
+        dill==0.3.5.1 \
+        flake8==5.0.4 \
+        fonttools==4.37.3 \
+        frozenlist==1.3.1 \
+        fsspec==2022.8.2 \
+        google-auth==2.11.1 \
+        google-auth-oauthlib==0.4.6 \
+        grpcio==1.48.1 \
+        idna==3.4 \
+        imageio==2.22.0 \
+        iniconfig==1.1.1 \
+        joblib==1.2.0 \
+        kiwisolver==1.4.4 \
+        lightning-bolts==0.5.0 \
+        llvmlite==0.39.1 \
+        Markdown==3.4.1 \
+        MarkupSafe==2.1.1 \
+        matplotlib==3.6.0 \
+        mccabe==0.7.0 \
+        multidict==6.0.2 \
+        multiprocess==0.70.13 \
+        mypy==0.971 \
+        mypy-extensions==0.4.3 \
+        networkx==2.8.6 \
+        numba==0.56.2 \
+        numpy==1.23.3 \
+        oauthlib==3.2.1 \
+        openml==0.12.2 \
+        packaging==21.3 \
+        pandas==1.5.0 \
+        pathos==0.2.9 \
+        pathspec==0.10.1 \
+        patsy==0.5.2 \
+        Pillow==9.2.0 \
+        platformdirs==2.5.2 \
+        pluggy==1.0.0 \
+        pox==0.3.1 \
+        ppft==1.7.6.5 \
+        protobuf==3.19.5 \
+        py==1.11.0 \
+        pyarrow==10.0.0 \
+        pyasn1==0.4.8 \
+        pyasn1-modules==0.2.8 \
+        pycodestyle==2.9.1 \
+        pyDeprecate==0.3.2 \
+        pyflakes==2.5.0 \
+        pyparsing==3.0.9 \
+        pytest==7.1.3 \
+        python-dateutil==2.8.2 \
+        pytorch-lightning==1.7.6 \
+        pytz==2022.2.1 \
+        PyWavelets==1.4.1 \
+        PyYAML==6.0 \
+        requests==2.28.1 \
+        requests-oauthlib==1.3.1 \
+        rsa==4.9 \
+        scikit-image==0.19.3 \
+        scikit-learn==1.1.2 \
+        scipy==1.9.1 \
+        seaborn==0.12.0 \
+        six==1.16.0 \
+        statsmodels==0.13.2 \
+        tabulate==0.8.10 \
+        tensorboard==2.10.0 \
+        tensorboard-data-server==0.6.1 \
+        tensorboard-plugin-wit==1.8.1 \
+        threadpoolctl==3.1.0 \
+        tifffile==2022.8.12 \
+        tomli==2.0.1 \
+        tqdm==4.64.1 \
+        typing_extensions==4.3.0 \
+        umap-learn==0.5.3 \
+        urllib3==1.26.12 \
+        Werkzeug==2.2.2 \
+        xgboost==1.6.2 \
+        yarl==1.8.1
+    rm -rf /root/torch-1.12.1+cu113-cp310-cp310-linux_x86_64.whl
+    rm -rf /root/torchvision-0.13.1+cu113-cp310-cp310-linux_x86_64.whl
+    rm -rf /root/torchaudio-0.12.1+cu113-cp310-cp310-linux_x86_64.whl
+    # note that we *cannot* create the virtual environment in the overlay directory
+    # the overlay directory takes precedence over a directory created here
+
+
+%environment
+    export PYENV_ROOT=/app/.pyenv
+    export PATH="$PATH:$PYENV_ROOT/bin"
+    export VENV=/app/.venv
+    export ACTIVATE=$VENV/bin/activate
+    export PYTHON=$VENV/bin/python
+    unset PYTHONSTARTUP
+
+%runscript
+    # Note for local development we can manually change this after building
+    # https://stackoverflow.com/questions/67851786/edit-runscript-of-singularity-sif-container-after-building
+    echo "Running container originally created at $CONTAINER_CREATION_TIME"
+    echo "Current time: $(date)"
+    echo "Arguments received: first:$1 second:$2   all:$*"
+    echo "Activating python..."
+    cd /app
+    source $ACTIVATE
+    echo -n "Using "
+    python --version
+    /bin/bash $*
+
+
+
+###############################################################################
+#                             App: Python testing                             #
+###############################################################################
+
+%apprun cuda-test
+    echo "Activating python..."
+    source $ACTIVATE
+    echo -n "Using "
+    python --version
+    python -c "import torch; print('Successfully imported torch and detected CUDA:', torch.cuda.is_available());"
+
+%apphelp cuda-test
+    Quickly check that we can import torch, and that CUDA is avaialable.
+
+    USAGE:
+        apptainer run --app cuda-test rmt.sif
+
+
+###############################################################################
+#            App: Pass arbitrary args to 3.8.13 python installation           #
+###############################################################################
+
+%apprun python
+    echo "Activating python..."
+    source $ACTIVATE
+    echo -n "Using "
+    python --version
+    python $*
+
+%apphelp python
+    Run python using the 3.10.4 python virtual env setup with arbitrary args.
+
+    USAGE:
+        apptainer run --app python rmt.sif ARGS
