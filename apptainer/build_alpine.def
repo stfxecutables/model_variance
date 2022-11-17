@@ -76,16 +76,18 @@ Include: apk
     source .venv/bin/activate
     python -m pip install --upgrade pip
     python -m pip install wheel  # needed first before Numba can install
-    python -m pip install setuptools==59.8.0  # needed for kiwisolver
-    python -m pip install cppy
 
     python -m pip install /root/torch-1.12.1+cu113-cp310-cp310-linux_x86_64.whl
     python -m pip install /root/torchvision-0.13.1+cu113-cp310-cp310-linux_x86_64.whl
     python -m pip install /root/torchaudio-0.12.1+cu113-cp310-cp310-linux_x86_64.whl
 
     # https://github.com/pypa/setuptools/issues/2972#issuecomment-1002170813
+    # THIS ACTUALLY MAKES trash kiwitools work...
     export SETUPTOOLS_USE_DISTUTILS=stdlib
+    python -m pip install setuptools==59.8.0  # needed for kiwisolver
+    python -m pip install cppy
     python -m pip install kiwisolver==1.4.4
+
     python -m pip install \
         absl-py==1.2.0 \
         aiohttp==3.8.1 \
