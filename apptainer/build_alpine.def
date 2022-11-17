@@ -20,16 +20,26 @@ Include: apk
     apk upgrade
     # see https://github.com/relenteny/pyenv/blob/master/Dockerfile
     # and https://stackoverflow.com/a/58948947 for included deps
+    # https://stackoverflow.com/a/21530768 for pythonX-dev dependencies,
+    # needed for kiwisolver compilation:
+    # (fatal error: Python.h: No such file or directory  #include <Python.h>)
+    # the actual solution here when given an error is to search
+    # https://pkgs.alpinelinux.org/contents?file=cppy*&path=&name=&branch=edge&arch=x86
+    # for any part of the missing file / error, literally ANY part
+    # ultimately what fixed the kiwisolver install was noticing the `cppy` string
+    # in the error message
     apk add \
         bash \
         build-base \
         bzip2-dev \
         cmake \
+        cython-dev \
         g++ \
         gcc \
         gfortran \
         git \
         lapack-dev \
+        libc-dev \
         libedit-dev \
         libffi-dev \
         libressl-dev \
@@ -39,6 +49,9 @@ Include: apk
         openblas-dev \
         openssl-dev \
         pkgconf \
+        pkgconfig \
+        python3-dev \
+        py3-cppy \
         readline-dev \
         rsync \
         sqlite-dev \
@@ -63,9 +76,16 @@ Include: apk
     source .venv/bin/activate
     python -m pip install --upgrade pip
     python -m pip install wheel  # needed first before Numba can install
+    python -m pip install setuptools==59.8.0  # needed for kiwisolver
+    python -m pip install cppy
+
     python -m pip install /root/torch-1.12.1+cu113-cp310-cp310-linux_x86_64.whl
     python -m pip install /root/torchvision-0.13.1+cu113-cp310-cp310-linux_x86_64.whl
     python -m pip install /root/torchaudio-0.12.1+cu113-cp310-cp310-linux_x86_64.whl
+
+    # https://github.com/pypa/setuptools/issues/2972#issuecomment-1002170813
+    export SETUPTOOLS_USE_DISTUTILS=stdlib
+    python -m pip install kiwisolver==1.4.4
     python -m pip install \
         absl-py==1.2.0 \
         aiohttp==3.8.1 \
@@ -91,7 +111,7 @@ Include: apk
         imageio==2.22.0 \
         iniconfig==1.1.1 \
         joblib==1.2.0 \
-        kiwisolver==1.4.4 \
+        # kiwisolver==1.4.4 \
         lightning-bolts==0.5.0 \
         llvmlite==0.39.1 \
         Markdown==3.4.1 \
