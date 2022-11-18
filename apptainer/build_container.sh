@@ -5,5 +5,5 @@ PILFER="$THIS_SCRIPT_PARENT/pilfer_container_files.sh"
 # sudo apptainer build rmt.sif build_centos.def
 # sudo apptainer build --sandbox centos/ build_centos.def
 #
-# sudo apptainer build --sandbox alpine/ build_alpine.def
+# sudo apptainer build --sandbox model_variance/ build_alpine.def
 sudo apptainer build model_variance.sif build_alpine.def && bash "$PILFER"
