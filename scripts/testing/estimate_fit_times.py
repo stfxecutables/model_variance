@@ -86,7 +86,8 @@ def estimate_runtime_xgb(dataset: Dataset) -> DataFrame | None:
         y = df["__target"]
         y = LabelEncoder().fit_transform(y).astype(np.float64)
 
-        xgb = XGBClassifier(enable_categorical=True, tree_method="hist", n_jobs=1)
+        n_jobs = 1 if len(X) < 50000 else 80
+        xgb = XGBClassifier(enable_categorical=True, tree_method="hist", n_jobs=n_jobs)
         xgb.fit(X, y)
         elapsed = (time() - start) / 60
         return DataFrame(
@@ -114,13 +115,20 @@ def check_conversions(dataset: Dataset) -> None:
 
 if __name__ == "__main__":
     datasets = Dataset.load_all()
+    fast = list(filter(lambda d: len(d) < 50000, datasets))
+    slow = list(filter(lambda d: len(d) >= 50000, datasets))
+
     # process_map(check_conversions, datasets, desc="Checking conversions")
     # sys.exit()
     # runtimes_xgb = list(map(estimate_runtime_xgb, tqdm(datasets)))
-    runtimes_xgb = process_map(
-        estimate_runtime_xgb, datasets, desc="Timing XGBoost", max_workers=len(datasets)
+    runtimes_xgb_fast = process_map(
+        estimate_runtime_xgb, fast, desc="Timing XGBoost", max_workers=len(datasets)
     )
-    runtimes_xgb = [r for r in runtimes_xgb if r is not None]
+    runtimes_xgb_fast = [r for r in runtimes_xgb_fast if r is not None]
+    runtimes_xgb_slow = list(map(estimate_runtime_xgb, slow))
+    runtimes_xgb_slow = [r for r in runtimes_xgb_slow if r is not None]
+
+    runtimes_xgb = runtimes_xgb_fast.extend(runtimes_xgb_slow)
     runtimes = pd.concat(runtimes_xgb, ignore_index=True, axis=0)
     outfile = ROOT / "xgb_hist_runtimes.json"
     runtimes.to_json(outfile)
