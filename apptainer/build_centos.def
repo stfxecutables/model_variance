@@ -74,6 +74,7 @@ Include: yum
         /root/torchaudio-0.13.0+cu116-cp310-cp310-linux_x86_64.whl \
         arrow==1.2.2 \
         monai==1.0.1 \
+        pyarrow==10.0.1 \
         pytorch-lightning==1.8.1 \
         pytest==6.2.5 \
         scikit-image==0.19.3 \
