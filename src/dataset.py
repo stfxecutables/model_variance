@@ -31,7 +31,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from numpy import ndarray
-from pandas import DataFrame, Series
+from pandas import CategoricalDtype, DataFrame, Series
 from tqdm.contrib.concurrent import process_map
 from typing_extensions import Literal
 
@@ -109,8 +109,11 @@ class Dataset:
         if self.name in UNKNOWN_FILL_COLS:
             cols = UNKNOWN_FILL_COLS[self.name]
             for col in cols:
-                idx = df[col].isnull()
-                df.loc[idx, col] = "unknown"
+                if isinstance(df[col].dtype, CategoricalDtype):
+                    df[col].cat.add_categories("unknown").fillna("unknown")
+                else:
+                    idx = df[col].isnull()
+                    df.loc[idx, col] = "unknown"
         if self.name in DROP_ROWS:
             df.drop(index=DROP_ROWS[self.name], inplace=True)
 
@@ -132,6 +135,29 @@ class Dataset:
             print(f"NaNs: {nancol_counts.sum()}")
             print(f"{nancols}")
         print("")
+
+    def __str__(self) -> str:
+        df = self.data
+        nrows, ncols = df.shape
+        nan_targets = df["__target"].isnull().mean()
+        nancol_counts = df.drop(columns=["__target"]).isnull().sum()
+        nancols = nancol_counts[nancol_counts > 0]
+
+        fmt = []
+        fmt.append("=" * 80)
+        fmt.append(f"{self.name}")
+        fmt.append("=" * 80)
+        fmt.append(f"N_rows: {nrows}")
+        fmt.append(f"N_cols: {ncols}")
+        if nan_targets > 0:
+            fmt.append(f"Percent NaN Targets: {np.round(nan_targets * 100, 1)}")
+        if len(nancols > 0):
+            fmt.append(f"NaNs: {nancol_counts.sum()}")
+            fmt.append(f"{nancols}")
+        fmt.append("")
+        return "\n".join(fmt)
+
+
 
     def get_monte_carlo_splits(
         self, train_size: int | float
