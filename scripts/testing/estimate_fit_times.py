@@ -122,10 +122,18 @@ if __name__ == "__main__":
     # sys.exit()
     # runtimes_xgb = list(map(estimate_runtime_xgb, tqdm(datasets)))
     runtimes_xgb_fast = process_map(
-        estimate_runtime_xgb, fast, desc="Timing XGBoost", max_workers=len(datasets)
+        estimate_runtime_xgb,
+        fast,
+        desc="Timing XGBoost: small datasets (< 50 000 samples)",
+        max_workers=len(datasets),
     )
     runtimes_xgb_fast = [r for r in runtimes_xgb_fast if r is not None]
-    runtimes_xgb_slow = list(map(estimate_runtime_xgb, slow))
+    runtimes_xgb_slow = list(
+        map(
+            estimate_runtime_xgb,
+            tqdm(slow, desc="Timing XGBoost: large datasets (>= 50 000 samples)"),
+        )
+    )
     runtimes_xgb_slow = [r for r in runtimes_xgb_slow if r is not None]
 
     runtimes_xgb = runtimes_xgb_fast.extend(runtimes_xgb_slow)
