@@ -2,7 +2,7 @@
 # Grab pre-compiled wheels and .pyenv folder from existing .sif container and move them into
 # local files for faster build times
 APPTAINER_ROOT="$( cd -- "$( dirname -- "${BASH_SOURCE[0]:-$0}"; )" &> /dev/null && pwd 2> /dev/null; )";
-CONTAINER="$APPTAINER_ROOT/model_variance.sif"
+CONTAINER="$APPTAINER_ROOT/model_variance"
 BUILD_FILES="$APPTAINER_ROOT/build_files"
 BUILT_WHEELS="$BUILD_FILES/wheels"
 
@@ -13,7 +13,7 @@ if [ ! -d "$BUILT_WHEELS" ]; then
     mkdir -p "$BUILT_WHEELS"
 fi
 
-if [ ! -f "$CONTAINER" ]; then
+if [ ! -d "$CONTAINER" ]; then
     echo "ERROR: No container found at $CONTAINER."
     exit 1
 fi

@@ -1,0 +1,155 @@
+BootStrap: docker
+From: centos:centos7.9.2009
+# MirrorURL: http://mirror.centos.org/altarch/7.9.2009/os/aarch64/
+Include: yum
+
+# Bootstrap: yum
+# OSVersion: 7
+# MirrorURL: http://mirror.centos.org/centos-%{OSVERSION}/%{OSVERSION}/os/x86_64/
+# Include: yum
+
+%setup
+    echo "Not doing anything in %setup right now"
+
+%files
+    build_files/wheels/pip /root/.cache/pip
+    build_files/torch-1.13.0+cu116-cp310-cp310-linux_x86_64.whl /root/torch-1.13.0+cu116-cp310-cp310-linux_x86_64.whl
+    build_files/torchvision-0.14.0+cu116-cp310-cp310-linux_x86_64.whl /root/torchvision-0.14.0+cu116-cp310-cp310-linux_x86_64.whl
+    build_files/torchaudio-0.13.0+cu116-cp310-cp310-linux_x86_64.whl /root/torchaudio-0.13.0+cu116-cp310-cp310-linux_x86_64.whl
+
+%post
+    CONTAINER_CREATION_TIME=`date`
+    echo "export CONTAINER_CREATION_TIME=\"${CONTAINER_CREATION_TIME}\"" >> $APPTAINER_ENVIRONMENT
+    echo "Starting yum installs:"
+    yum -y update
+    # needed to build python
+    yum -y install \
+        bzip2 \
+        bzip2-devel \
+        gcc \
+        libffi-devel \
+        lzma-devel \
+        make \
+        ncurses-devel \
+        openssl-devel \
+        readline-devel \
+        rsync \
+        sqlite \
+        sqlite-devel \
+        tk-devel \
+        wget \
+        xz-devel \
+        yum-utils \
+        zlib-devel
+    yum install -y epel-release  # needed for below
+    yum install -y openssl11 openssl11-libs openssl11-devel
+    yum clean all  # save disk space
+    rm -rf /var/cache/yum  # be very certain we clear space
+
+    mkdir -p /app
+    cd /app
+    wget https://www.python.org/ftp/python/3.10.8/Python-3.10.8.tgz
+    tar xzf Python-3.10.8.tgz
+    cd Python-3.10.8
+    # https://stackoverflow.com/questions/65531567/on-centos-how-do-i-build-python-3-9-from-source-while-incorporating-my-openssl
+    export CFLAGS="$CFLAGS $(pkg-config --cflags openssl11)"
+    export LDFLAGS="$LDFLAGS $(pkg-config --libs openssl11)"
+    ./configure --with-system-ffi --with-computed-gotos --enable-loadable-sqlite-extensions
+    make altinstall  # is available as python3.10 now
+    export PYTHON=python3.10
+    $PYTHON --version || true
+
+    # setup .venv
+    cd /app
+    $PYTHON -m venv .venv
+    source .venv/bin/activate
+    python -m pip install --upgrade pip
+    python -m pip install wheel  # needed first before Numba can install
+    # python -m pip install /root/torch-1.13.0+cu116-cp310-cp310-linux_x86_64.whl
+    # python -m pip install /root/torchvision-0.14.0+cu116-cp310-cp310-linux_x86_64.whl
+    # python -m pip install /root/torchaudio-0.13.0+cu116-cp310-cp310-linux_x86_64.whl
+    python -m pip install  \
+        /root/torch-1.13.0+cu116-cp310-cp310-linux_x86_64.whl \
+        /root/torchvision-0.14.0+cu116-cp310-cp310-linux_x86_64.whl \
+        /root/torchaudio-0.13.0+cu116-cp310-cp310-linux_x86_64.whl \
+        arrow==1.2.2 \
+        monai==1.0.1 \
+        pytorch-lightning==1.8.1 \
+        pytest==6.2.5 \
+        scikit-image==0.19.3 \
+        scikit-learn==1.1.0 \
+        scipy==1.7.2 \
+        seaborn==0.12.0 \
+        statsmodels==0.13.5 \
+        lightning-bolts==0.6.0.post1 \
+        llvmlite==0.39.1 \
+        matplotlib==3.5.2 \
+        monai==1.0.1 \
+        numba==0.56.2 \
+        numpy==1.22.3 \
+        pandas==1.5.1 \
+        pynndescent==0.5.8 \
+        tabulate==0.8.9 \
+        tqdm==4.63.2 \
+        typing_extensions==4.2.0 \
+        umap-learn==0.5.3 \
+        xgboost=1.7.1 || true
+
+    rm -rf /root/torch-1.13.0+cu116-cp310-cp310-linux_x86_64.whl
+    rm -rf /root/torchvision-0.14.0+cu116-cp310-cp310-linux_x86_64.whl
+    rm -rf /root/torchaudio-0.13.0+cu116-cp310-cp310-linux_x86_64.whl
+
+
+
+%environment
+    export VENV=/app/.venv
+    export ACTIVATE=$VENV/bin/activate
+
+%runscript
+    # Note for local development we can manually change this after building
+    # https://stackoverflow.com/questions/67851786/edit-runscript-of-singularity-sif-container-after-building
+    echo "Running container originally created at $CONTAINER_CREATION_TIME"
+    echo "Current time: $(date)"
+    echo "Arguments received: first:$1 second:$2   all:$*"
+    echo "Activating python..."
+    cd /app
+    source $ACTIVATE
+    echo -n "Using "
+    python --version
+    /bin/bash $*
+
+
+###############################################################################
+#                             App: Python testing                             #
+###############################################################################
+
+%apprun cuda-test
+    echo "Activating python..."
+    source $ACTIVATE
+    echo -n "Using "
+    python --version
+    python -c "import torch; print('Successfully imported torch and detected CUDA:', torch.cuda.is_available());"
+
+%apphelp cuda-test
+    Quickly check that we can import torch, and that CUDA is avaialable.
+
+    USAGE:
+        apptainer run --app cuda-test green_stuff.sif
+
+
+###############################################################################
+#            App: Pass arbitrary args to 3.8.13 python installation           #
+###############################################################################
+
+%apprun python
+    echo "Activating python..."
+    source $ACTIVATE
+    echo -n "Using "
+    python --version
+    python $*
+
+%apphelp python
+    Run python using the 3.8.13 python virtual env setup with arbitrary args.
+
+    USAGE:
+        apptainer run --app python green_stuff.sif ARGS
