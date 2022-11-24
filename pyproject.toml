@@ -16,7 +16,7 @@ description = ""
 authors = ["Derek M Berger <dmberger.dev@gmail.com>"]
 license = "MIT"
 readme = "README.md"
-packages = [{include = "model_variance"}]
+packages = [{include = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
