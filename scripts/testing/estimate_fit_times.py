@@ -63,15 +63,12 @@ def get_xgboost_X(df: DataFrame) -> DataFrame:
             X.dtypes.unique().tolist(),
         )
     )
-    # TODO: Handle:
-    # TypeError: Cannot setitem on a Categorical with a new category (unknown), set the categories first
     if len(cat_dtypes) != 0:  # means some categoricals
         X_float = X.select_dtypes(exclude=cat_dtypes).astype(np.float64)
         X_float -= X_float.mean(axis=0)
         X_float /= X_float.std(axis=0)
         X_cat = X.select_dtypes(include=cat_dtypes)
         df = pd.concat([X_float, X_cat], axis=1).copy()
-        # From XGBoost: To get a de-fragmented frame, use `newframe = frame.copy()`
         return df
 
     # now must all be non-categorical
@@ -117,14 +114,12 @@ def check_conversions(dataset: Dataset) -> None:
 
 if __name__ == "__main__":
     datasets = Dataset.load_all()
-    adult = list(filter(lambda d: d.name == "adult", datasets))[0]
-    adult.data
-    process_map(check_conversions, datasets, desc="Checking conversions")
-    sys.exit()
-    runtimes_xgb = list(map(estimate_runtime_xgb, tqdm(datasets)))
-    # runtimes_xgb = process_map(
-    #     estimate_runtime_xgb, datasets, desc="Timing XGBoost", max_workers=len(datasets)
-    # )
+    # process_map(check_conversions, datasets, desc="Checking conversions")
+    # sys.exit()
+    # runtimes_xgb = list(map(estimate_runtime_xgb, tqdm(datasets)))
+    runtimes_xgb = process_map(
+        estimate_runtime_xgb, datasets, desc="Timing XGBoost", max_workers=len(datasets)
+    )
     runtimes_xgb = [r for r in runtimes_xgb if r is not None]
     runtimes = pd.concat(runtimes_xgb, ignore_index=True, axis=0)
     outfile = ROOT / "xgb_hist_runtimes.json"
