@@ -117,6 +117,7 @@ if __name__ == "__main__":
     datasets = Dataset.load_all()
     fast = list(filter(lambda d: len(d) < 50000, datasets))
     slow = list(filter(lambda d: len(d) >= 50000, datasets))
+    slow = sorted(slow, key=lambda d: -len(d))
 
     # process_map(check_conversions, datasets, desc="Checking conversions")
     # sys.exit()
@@ -136,7 +137,7 @@ if __name__ == "__main__":
     )
     runtimes_xgb_slow = [r for r in runtimes_xgb_slow if r is not None]
 
-    runtimes_xgb = runtimes_xgb_fast.extend(runtimes_xgb_slow)
+    runtimes_xgb = runtimes_xgb_fast + runtimes_xgb_slow
     runtimes = pd.concat(runtimes_xgb, ignore_index=True, axis=0)
     outfile = ROOT / "xgb_hist_runtimes.json"
     runtimes.to_json(outfile)
