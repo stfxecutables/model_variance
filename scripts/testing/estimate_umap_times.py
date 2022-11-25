@@ -104,6 +104,44 @@ def estimate_cat_embed_time(ds: Dataset) -> DataFrame | None:
         print(f"Got error: {e} for {ds.name}")
         return None
 
+def compute_estimate_categorical_embedding_times() -> None:
+    datasets = Dataset.load_all()
+    outfiles = [
+        ROOT / "cat_embed_fast_times.json",
+        ROOT / "cat_embed_mid_times.json",
+        ROOT / "cat_embed_slow_times.json",
+    ]
+    fast = [
+        Dataset(name)
+        for name in tqdm(RuntimeClass.Fast.members(), desc="Loading fast data")
+    ]
+    mid = [
+        Dataset(name)
+        for name in tqdm(RuntimeClass.Mid.members(), desc="Loading mid data")
+    ]
+    slow = [
+        Dataset(name)
+        for name in tqdm(RuntimeClass.Slow.members(), desc="Loading slow data")
+    ]
+    classes: list[list[Dataset]] = [fast, mid, slow]
+    for compute_class, outfile in zip(classes, outfiles):
+        runtimes = []
+        if outfile.exists():
+            continue
+        desc = "Computing embeddings: {ds}"
+        pbar = tqdm(compute_class, desc=desc.format(ds=""))
+        for ds in pbar:
+            if ds.name is DatasetName.Dionis:
+                continue
+            pbar.set_description(desc.format(ds=str(ds)))
+            runtime = estimate_cat_embed_time(ds)
+            if runtime is not None:
+                runtimes.append(runtime)
+        pbar.close()
+        runtimes = pd.concat(runtimes, ignore_index=True, axis=0)
+        runtimes.to_json(outfile)
+        print(f"Saved runtimes DataFrame to {outfile}")
+
 
 def get_float_X(df: DataFrame) -> DataFrame:
     X = df.drop(columns="__target").convert_dtypes(
@@ -169,39 +207,7 @@ def check_conversions(dataset: Dataset) -> None:
 
 
 if __name__ == "__main__":
-    datasets = Dataset.load_all()
-    outfiles = [
-        ROOT / "cat_embed_fast_times.json",
-        ROOT / "cat_embed_mid_times.json",
-        ROOT / "cat_embed_slow_times.json",
-    ]
-    fast = [
-        Dataset(name)
-        for name in tqdm(RuntimeClass.Fast.members(), desc="Loading fast data")
-    ]
-    mid = [
-        Dataset(name)
-        for name in tqdm(RuntimeClass.Mid.members(), desc="Loading mid data")
-    ]
-    slow = [
-        Dataset(name)
-        for name in tqdm(RuntimeClass.Slow.members(), desc="Loading slow data")
-    ]
-    classes: list[list[Dataset]] = [fast, mid, slow]
-    for compute_class, outfile in zip(classes, outfiles):
-        runtimes = []
-        desc = "Computing embeddings: {ds}"
-        pbar = tqdm(compute_class, desc=desc.format(ds=""))
-        for ds in pbar:
-            pbar.set_description(desc.format(ds=ds.name.name))
-            runtime = estimate_cat_embed_time(ds)
-            if runtime is not None:
-                runtimes.append(runtime)
-        pbar.close()
-        runtimes = pd.concat(runtimes, ignore_index=True, axis=0)
-        runtimes.to_json(outfile)
-        print(f"Saved runtimes DataFrame to {outfile}")
-
+    compute_estimate_categorical_embedding_times()
     sys.exit()
 
     outfile = ROOT / "xgb_hist_runtimes.json"
