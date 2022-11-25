@@ -46,7 +46,7 @@ def embed_categoricals(ds: Dataset) -> NDArray[np.float64] | None:
     df = ds.data.drop(columns="__target")
     cats = df.select_dtypes(include=[CategoricalDtype])
     if cats.shape[1] == 0:
-        return pd.get_dummies(cats).astype(np.float64).to_numpy()
+        return OneHotEncoder().fit_transform(cats).astype(np.float64)
     x = pd.get_dummies(cats).astype(np.float64).to_numpy()
     umap = UMAP(n_components=2, metric="jaccard")
     with catch_warnings():
