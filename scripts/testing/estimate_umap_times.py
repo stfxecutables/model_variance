@@ -73,10 +73,12 @@ def embed_categoricals(ds: Dataset) -> NDArray[np.float64] | None:
     df = ds.data
     cats = df.select_dtypes(include=[CategoricalDtype])
     if cats.shape[1] == 0:
-        return None
-
+        return pd.get_dummies(cats).astype(np.float64).to_numpy()
     x = pd.get_dummies(cats).astype(np.float64).to_numpy()
-    umap = UMAP(n_components=2, metric="jaccard")
+    if ds.name in [DatasetName.Dionis, DatasetName.Aloi]:
+        umap = UMAP(n_components=2, n_neighbors=30, metric="jaccard")
+    else:
+        umap = UMAP(n_components=2, metric="jaccard")
     with catch_warnings():
         filterwarnings("ignore", message="gradient function", category=UserWarning)
         reduced = umap.fit_transform(x)
@@ -137,7 +139,7 @@ def compute_estimate_categorical_embedding_times() -> None:
             # You might consider using find_disconnected_points() to find and
             # remove these points from your data.
 
-            if ds.name in [DatasetName.Dionis, DatasetName.Aloi]:
+            if ds.name not in [DatasetName.Dionis, DatasetName.Aloi]:
                 continue
             pbar.set_description(desc.format(ds=str(ds)))
             runtime = estimate_cat_embed_time(ds)
