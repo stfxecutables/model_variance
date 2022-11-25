@@ -125,7 +125,8 @@ def compute_estimate_categorical_embedding_times() -> None:
         Dataset(name)
         for name in tqdm(RuntimeClass.Slow.members(), desc="Loading slow data")
     ]
-    classes: list[list[Dataset]] = [fast, mid, slow]
+    # classes: list[list[Dataset]] = [fast, mid, slow]
+    classes: list[list[Dataset]] = [slow]
     for compute_class, outfile in zip(classes, outfiles):
         runtimes = []
         if outfile.exists():
