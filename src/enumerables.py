@@ -35,12 +35,13 @@ from pandas import DataFrame, Series
 from typing_extensions import Literal
 
 JSONS = ROOT / "data/json"
+PQS = ROOT / "data/parquet"
 
 
 class DatasetName(Enum):
     Arrhythmia = "arrhythmia"
     Kc1 = "kc1"
-    Click_prediction_small = "click_prediction_small"
+    ClickPrediction = "click_prediction_small"
     BankMarketing = "bank-marketing"
     BloodTransfusion = "blood-transfusion-service-center"
     Cnae9 = "cnae-9"
@@ -78,6 +79,53 @@ class DatasetName(Enum):
     MfeatFactors = "mfeat-factors"
     Vehicle = "vehicle"
 
+    def path(self) -> Path:
+        paths = {
+            DatasetName.Arrhythmia: PQS / "1017_v2_arrhythmia.parquet",
+            DatasetName.Kc1: PQS / "1067_v1_kc1.parquet",
+            DatasetName.ClickPrediction: PQS / "1219_v4_Click_prediction_small.parquet",
+            DatasetName.BankMarketing: PQS / "1461_v1_bank-marketing.parquet",
+            DatasetName.BloodTransfusion: PQS
+            / "1464_v1_blood-transfusion-service-center.parquet",
+            DatasetName.Cnae9: PQS / "1468_v1_cnae-9.parquet",
+            DatasetName.Ldpa: PQS / "1483_v1_ldpa.parquet",
+            DatasetName.Nomao: PQS / "1486_v1_nomao.parquet",
+            DatasetName.Phoneme: PQS / "1489_v1_phoneme.parquet",
+            DatasetName.SkinSegmentation: PQS / "1502_v1_skin-segmentation.parquet",
+            DatasetName.WalkingActivity: PQS / "1509_v1_walking-activity.parquet",
+            DatasetName.Adult: PQS / "1590_v2_adult.parquet",
+            DatasetName.Higgs: PQS / "23512_v2_higgs.parquet",
+            DatasetName.Numerai28_6: PQS / "23517_v2_numerai28.6.parquet",
+            DatasetName.Kr_vs_kp: PQS / "3_v1_kr-vs-kp.parquet",
+            DatasetName.Connect4: PQS / "40668_v2_connect-4.parquet",
+            DatasetName.Shuttle: PQS / "40685_v1_shuttle.parquet",
+            DatasetName.DevnagariScript: PQS / "40923_v1_Devnagari-Script.parquet",
+            DatasetName.Car: PQS / "40975_v3_car.parquet",
+            DatasetName.Australian: PQS / "40981_v4_Australian.parquet",
+            DatasetName.Segment: PQS / "40984_v3_segment.parquet",
+            DatasetName.FashionMnist: PQS / "40996_v1_Fashion-MNIST.parquet",
+            DatasetName.JungleChess: PQS
+            / "41027_v1_jungle_chess_2pcs_raw_endgame_complete.parquet",
+            DatasetName.Christine: PQS / "41142_v1_christine.parquet",
+            DatasetName.Jasmine: PQS / "41143_v1_jasmine.parquet",
+            DatasetName.Sylvine: PQS / "41146_v1_sylvine.parquet",
+            DatasetName.Miniboone: PQS / "41150_v1_MiniBooNE.parquet",
+            DatasetName.Dilbert: PQS / "41163_v1_dilbert.parquet",
+            DatasetName.Fabert: PQS / "41164_v1_fabert.parquet",
+            DatasetName.Volkert: PQS / "41166_v1_volkert.parquet",
+            DatasetName.Dionis: PQS / "41167_v1_dionis.parquet",
+            DatasetName.Jannis: PQS / "41168_v1_jannis.parquet",
+            DatasetName.Helena: PQS / "41169_v1_helena.parquet",
+            DatasetName.Aloi: PQS / "42396_v3_aloi.parquet",
+            DatasetName.CreditCardFraud: PQS
+            / "42397_v2_CreditCardFraudDetection.parquet",
+            DatasetName.Credit_g: PQS / "44096_v2_credit-g.parquet",
+            DatasetName.Anneal: PQS / "44268_v17_anneal.parquet",
+            DatasetName.MfeatFactors: PQS / "978_v2_mfeat-factors.parquet",
+            DatasetName.Vehicle: PQS / "994_v2_vehicle.parquet",
+        }
+        return paths[self]
+
 
 class RuntimeClass(Enum):
     Fast = "fast"
@@ -112,7 +160,7 @@ class RuntimeClass(Enum):
             ],
             RuntimeClass.Mid: [  # 1-20 minutes on one core
                 DatasetName.Dionis,
-                DatasetName.Click_prediction_small,
+                DatasetName.ClickPrediction,
                 DatasetName.CreditCardFraud,
                 DatasetName.SkinSegmentation,
                 DatasetName.Ldpa,

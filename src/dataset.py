@@ -35,11 +35,13 @@ from pandas import CategoricalDtype, DataFrame, Series
 from tqdm.contrib.concurrent import process_map
 from typing_extensions import Literal
 
+from src.enumerables import DatasetName
+
 JSONS = ROOT / "data/json"
 PARQUETS = ROOT / "data/parquet"
 
 DROP_COLS = {
-    "arrhythmia": ["J"],
+    DatasetName.Arrhythmia: ["J"],
 }
 
 """
@@ -56,36 +58,40 @@ max    179.000000  176.000000  166.000000  163.000000
 
 
 """
-MEDIAN_FILL_COLS: dict[str, list[str]] = {  # columns to fil lwith median column value
-    "arrhythmia": ["T", "P", "QRST", "heartrate"],
+MEDIAN_FILL_COLS: dict[
+    DatasetName, list[str]
+] = {  # columns to fil lwith median column value
+    DatasetName.Arrhythmia: ["T", "P", "QRST", "heartrate"],
 }
 
-UNKNOWN_FILL_COLS: dict[str, list[str]] = {  # categorical columns to make "unknown"
-    "adult": ["workclass", "occupation", "native-country"],
+UNKNOWN_FILL_COLS: dict[
+    DatasetName, list[str]
+] = {  # categorical columns to make "unknown"
+    DatasetName.Adult: ["workclass", "occupation", "native-country"],
 }
 
 
 DROP_ROWS = {
-    "higgs": [98049],
+    DatasetName.Higgs: [98049],
 }
 
 
-def load(json: Path) -> Dataset:
-    return Dataset(json)
+def load(name: DatasetName) -> Dataset:
+    return Dataset(name)
 
 
 class Dataset:
     """"""
 
-    def __init__(self, path: Path) -> None:
-        self.path = path
+    def __init__(self, name: DatasetName) -> None:
+        self.path = name.path()
+        self.name = name
         stem = self.path.stem
         res = re.search(r"([0-9])_v([0-9]+)_(.*)", stem)
         if res is None:
             raise ValueError("Impossible", self.path)
         self.did = int(res[1])
         self.version = int(res[2])
-        self.name = str(res[3]).lower()
         self.data_: Optional[DataFrame] = None
 
     @property
@@ -117,6 +123,35 @@ class Dataset:
         if self.name in DROP_ROWS:
             df.drop(index=DROP_ROWS[self.name], inplace=True)
 
+    @property
+    def nrows(self) -> int:
+        df = self.data
+        return int(df.shape[0])
+
+    @property
+    def n_samples(self) -> int:
+        return self.nrows
+
+    @property
+    def ncols(self) -> int:
+        df = self.data
+        return int(df.shape[1])
+
+    @property
+    def n_cats(self) -> int:
+        df = self.data
+        cat_dtypes = list(
+            filter(
+                lambda dtype: isinstance(dtype, CategoricalDtype),
+                df.dtypes.unique().tolist(),
+            )
+        )
+        return len(cat_dtypes)
+
+    @property
+    def n_categoricals(self) -> int:
+        return self.n_cats
+
     def describe(self) -> None:
         df = self.data
         nrows, ncols = df.shape
@@ -125,7 +160,7 @@ class Dataset:
         nancols = nancol_counts[nancol_counts > 0]
 
         print("=" * 80)
-        print(f"{self.name}")
+        print(f"{self.name.name}")
         print("=" * 80)
         print(f"N_rows: {nrows}")
         print(f"N_cols: {ncols}")
@@ -139,25 +174,13 @@ class Dataset:
     def __str__(self) -> str:
         df = self.data
         nrows, ncols = df.shape
-        nan_targets = df["__target"].isnull().mean()
-        nancol_counts = df.drop(columns=["__target"]).isnull().sum()
-        nancols = nancol_counts[nancol_counts > 0]
+        n_cat = self.n_cats
+        return (
+            f"{self.name.name}(N_rows: {nrows}, N_cols: {ncols}, "
+            f"N_categoricals: {n_cat}/{100 * n_cat / ncols:0.1f}%)"
+        )
 
-        fmt = []
-        fmt.append("=" * 80)
-        fmt.append(f"{self.name}")
-        fmt.append("=" * 80)
-        fmt.append(f"N_rows: {nrows}")
-        fmt.append(f"N_cols: {ncols}")
-        if nan_targets > 0:
-            fmt.append(f"Percent NaN Targets: {np.round(nan_targets * 100, 1)}")
-        if len(nancols > 0):
-            fmt.append(f"NaNs: {nancol_counts.sum()}")
-            fmt.append(f"{nancols}")
-        fmt.append("")
-        return "\n".join(fmt)
-
-
+    __repr__ = __str__
 
     def get_monte_carlo_splits(
         self, train_size: int | float
@@ -165,12 +188,9 @@ class Dataset:
         pass
 
     @staticmethod
-    def load_all() -> List[Dataset]:
-        # jsons = sorted(JSONS.rglob("*.json"))
-        # return process_map(load, jsons, desc="Loading datasets")
-        pqs = sorted(PARQUETS.rglob("*.parquet"))
-        return process_map(load, pqs, desc="Loading datasets")
-
+    def load_all() -> list[Dataset]:
+        datasets: list[Dataset] = process_map(load, DatasetName, desc="Loading datasets")
+        return datasets
 
     def __len__(self) -> int:
         return len(self.data)
