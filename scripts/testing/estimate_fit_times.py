@@ -114,10 +114,21 @@ def check_conversions(dataset: Dataset) -> None:
 
 
 if __name__ == "__main__":
+    outfile = ROOT / "xgb_hist_runtimes.json"
     datasets = Dataset.load_all()
     fast = list(filter(lambda d: len(d) < 50000, datasets))
     slow = list(filter(lambda d: len(d) >= 50000, datasets))
     slow = sorted(slow, key=lambda d: -len(d))
+    if outfile.exists():
+        df = pd.read_json(outfile)
+        df["data"] = list(map(lambda d: d.name, fast)) + list(map(lambda d: d.name, slow))
+        df["n_cores"] = [1 for _ in fast] + [80 for _ in slow]
+        df["mins_per_core"] = df["fit_minutes"] * df["n_cores"]
+        df = df[["data", "classifier", "load_secs", "fit_minutes", "n_cores", "mins_per_core"]]
+        df = df.sort_values(by=["mins_per_core", "fit_minutes"])
+        df.to_json(outfile)
+        print(df.to_markdown(tablefmt="simple"))
+        sys.exit()
 
     # process_map(check_conversions, datasets, desc="Checking conversions")
     # sys.exit()
@@ -139,6 +150,5 @@ if __name__ == "__main__":
 
     runtimes_xgb = runtimes_xgb_fast + runtimes_xgb_slow
     runtimes = pd.concat(runtimes_xgb, ignore_index=True, axis=0)
-    outfile = ROOT / "xgb_hist_runtimes.json"
     runtimes.to_json(outfile)
     print(f"Saved runtimes DataFrame to {outfile}")
