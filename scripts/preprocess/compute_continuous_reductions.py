@@ -50,9 +50,6 @@ def embed_continuous(ds_perc: tuple[Dataset, int]) -> NDArray[np.float64] | None
 
 
 def compute_continuous_embeddings(runtime: RuntimeClass, percent: int) -> None:
-    outfile = ROOT / f"cont_embed_{percent}percent_{runtime.value}_times.json"
-    if outfile.exists():
-        return
     datasets = [Dataset(name) for name in runtime.members()]
     ds_percs = [(ds, percent) for ds in datasets]
     desc = "Computing continuous embeddings: {ds}"
