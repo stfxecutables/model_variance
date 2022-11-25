@@ -4,6 +4,7 @@
 
 apptainer/build_files
 data/json
+data/parquet/*.parquet
 
 
 
