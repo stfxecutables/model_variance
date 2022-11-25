@@ -131,8 +131,8 @@ def compute_estimate_categorical_embedding_times() -> None:
     classes: list[list[Dataset]] = [slow]
     for compute_class, outfile in zip(classes, outfiles):
         runtimes = []
-        if outfile.exists():
-            continue
+        # if outfile.exists():
+        #     continue
         desc = "Computing embeddings: {ds}"
         pbar = tqdm(compute_class, desc=desc.format(ds=""))
         for ds in pbar:
