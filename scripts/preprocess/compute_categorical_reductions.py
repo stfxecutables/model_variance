@@ -17,6 +17,7 @@ import pandas as pd
 from numpy.typing import NDArray
 from pandas import CategoricalDtype
 from pandas.errors import PerformanceWarning
+from sklearn.preprocessing import OneHotEncoder
 from tqdm import tqdm
 from umap import UMAP
 
