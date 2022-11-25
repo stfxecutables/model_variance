@@ -98,7 +98,7 @@ def embed_continuous(ds_perc: tuple[Dataset, int]) -> NDArray[np.float64] | None
 
     n_components = ceil((percent / 100) * X_float.shape[1])
     umap = UMAP(n_components=n_components)
-    reduced = umap.fit_transform(x)
+    reduced = umap.fit_transform(X_float)
     np.save(outfile, reduced)
     return reduced
 
