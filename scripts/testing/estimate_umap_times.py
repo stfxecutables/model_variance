@@ -66,11 +66,11 @@ def embed_categoricals(ds: Dataset) -> NDArray[np.float64] | None:
 
     in spirit, but just embed all dummified categoricals to two dimensions.
     """
-    outfile = CAT_REDUCED / f"{ds.name}.npy"
+    outfile = CAT_REDUCED / f"{ds.name.name}.npy"
     if outfile.exists():
         reduced: NDArray = np.load(outfile)
         return reduced
-    df = ds.data
+    df = ds.data.drop(columns="__target")
     cats = df.select_dtypes(include=[CategoricalDtype])
     if cats.shape[1] == 0:
         return pd.get_dummies(cats).astype(np.float64).to_numpy()
@@ -107,49 +107,29 @@ def estimate_cat_embed_time(ds: Dataset) -> DataFrame | None:
         return None
 
 
-def compute_estimate_categorical_embedding_times() -> None:
-    outfiles = [
-        # ROOT / "cat_embed_fast_times.json",
-        # ROOT / "cat_embed_mid_times.json",
-        ROOT
-        / "cat_embed_slow_times.json",
-    ]
-    fast = [
-        Dataset(name)
-        for name in tqdm(RuntimeClass.Fast.members(), desc="Loading fast data")
-    ]
-    mid = [
-        Dataset(name)
-        for name in tqdm(RuntimeClass.Mid.members(), desc="Loading mid data")
-    ]
-    # slow = [
-    #     Dataset(name)
-    #     for name in tqdm(RuntimeClass.Slow.members(), desc="Loading slow data")
-    # ]
-    slow = [Dataset(DatasetName.Dionis), Dataset(DatasetName.Aloi)]
-    # classes: list[list[Dataset]] = [fast, mid, slow]
-    classes: list[list[Dataset]] = [slow]
-    for compute_class, outfile in zip(classes, outfiles):
-        runtimes = []
-        # if outfile.exists():
-        #     continue
-        desc = "Computing embeddings: {ds}"
-        pbar = tqdm(compute_class, desc=desc.format(ds=""))
-        for ds in pbar:
-            # /gpfs/fs0/scratch/j/jlevman/dberger/model_variance/.venv/lib/python3.9/site-packages/umap/umap_.py:132:
-            # UserWarning: A large number of your vertices were disconnected
-            # from the manifold.
-            # You might consider using find_disconnected_points() to find and
-            # remove these points from your data.
+def compute_estimate_categorical_embedding_times(runtime: RuntimeClass) -> None:
+    outfile = ROOT / f"cat_embed_{runtime.value}_times.json"
+    if outfile.exists():
+        return
+    datasets = [Dataset(name) for name in runtime.members()]
+    runtimes = []
+    desc = "Computing embeddings: {ds}"
+    pbar = tqdm(datasets, desc=desc.format(ds=""))
+    for ds in pbar:
+        # /gpfs/fs0/scratch/j/jlevman/dberger/model_variance/.venv/lib/python3.9/site-packages/umap/umap_.py:132:
+        # UserWarning: A large number of your vertices were disconnected
+        # from the manifold.
+        # You might consider using find_disconnected_points() to find and
+        # remove these points from your data.
 
-            pbar.set_description(desc.format(ds=str(ds)))
-            runtime = estimate_cat_embed_time(ds)
-            if runtime is not None:
-                runtimes.append(runtime)
-        pbar.close()
-        runtimes = pd.concat(runtimes, ignore_index=True, axis=0)
-        runtimes.to_json(outfile)
-        print(f"Saved runtimes DataFrame to {outfile}")
+        pbar.set_description(desc.format(ds=str(ds)))
+        runtime = estimate_cat_embed_time(ds)
+        if runtime is not None:
+            runtimes.append(runtime)
+    pbar.close()
+    runtimes = pd.concat(runtimes, ignore_index=True, axis=0)
+    runtimes.to_json(outfile)
+    print(f"Saved runtimes DataFrame to {outfile}")
 
 
 def get_float_X(df: DataFrame) -> DataFrame:
@@ -216,42 +196,6 @@ def check_conversions(dataset: Dataset) -> None:
 
 
 if __name__ == "__main__":
-    compute_estimate_categorical_embedding_times()
-    sys.exit()
-
-    outfile = ROOT / "xgb_hist_runtimes.json"
-    fast = list(filter(lambda d: len(d) < 50000, datasets))
-    slow = list(filter(lambda d: len(d) >= 50000, datasets))
-    slow = sorted(slow, key=lambda d: -len(d))
-    if outfile.exists():
-        df = pd.read_json(outfile)
-        df["data"] = list(map(lambda d: d.name, fast)) + list(map(lambda d: d.name, slow))
-        df["n_cores"] = [1 for _ in fast] + [80 for _ in slow]
-        df["mins_per_core"] = df["fit_minutes"] * df["n_cores"]
-        df = df[
-            ["data", "classifier", "load_secs", "fit_minutes", "n_cores", "mins_per_core"]
-        ]
-        df = df.sort_values(by=["mins_per_core", "fit_minutes"])
-        df.to_json(outfile)
-        print(df.to_markdown(tablefmt="simple"))
-        sys.exit()
-
-    runtimes_xgb_fast = process_map(
-        estimate_runtime_xgb,
-        fast,
-        desc="Timing XGBoost: small datasets (< 50 000 samples)",
-        max_workers=len(datasets),
-    )
-    runtimes_xgb_fast = [r for r in runtimes_xgb_fast if r is not None]
-    runtimes_xgb_slow = list(
-        map(
-            estimate_runtime_xgb,
-            tqdm(slow, desc="Timing XGBoost: large datasets (>= 50 000 samples)"),
-        )
-    )
-    runtimes_xgb_slow = [r for r in runtimes_xgb_slow if r is not None]
-
-    runtimes_xgb = runtimes_xgb_fast + runtimes_xgb_slow
-    runtimes = pd.concat(runtimes_xgb, ignore_index=True, axis=0)
-    runtimes.to_json(outfile)
-    print(f"Saved runtimes DataFrame to {outfile}")
+    compute_estimate_categorical_embedding_times(RuntimeClass.Fast)
+    compute_estimate_categorical_embedding_times(RuntimeClass.Mid)
+    compute_estimate_categorical_embedding_times(RuntimeClass.Slow)

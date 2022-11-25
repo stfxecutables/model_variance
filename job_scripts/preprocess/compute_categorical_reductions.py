@@ -43,7 +43,7 @@ def embed_categoricals(ds: Dataset) -> NDArray[np.float64] | None:
     if outfile.exists():
         reduced: NDArray = np.load(outfile)
         return reduced
-    df = ds.data
+    df = ds.data.drop(columns="__target")
     cats = df.select_dtypes(include=[CategoricalDtype])
     if cats.shape[1] == 0:
         return pd.get_dummies(cats).astype(np.float64).to_numpy()
