@@ -121,10 +121,11 @@ def compute_estimate_categorical_embedding_times() -> None:
         Dataset(name)
         for name in tqdm(RuntimeClass.Mid.members(), desc="Loading mid data")
     ]
-    slow = [
-        Dataset(name)
-        for name in tqdm(RuntimeClass.Slow.members(), desc="Loading slow data")
-    ]
+    # slow = [
+    #     Dataset(name)
+    #     for name in tqdm(RuntimeClass.Slow.members(), desc="Loading slow data")
+    # ]
+    slow = [Dataset(DatasetName.Dionis), Dataset(DatasetName.Aloi)]
     # classes: list[list[Dataset]] = [fast, mid, slow]
     classes: list[list[Dataset]] = [slow]
     for compute_class, outfile in zip(classes, outfiles):
@@ -140,8 +141,6 @@ def compute_estimate_categorical_embedding_times() -> None:
             # You might consider using find_disconnected_points() to find and
             # remove these points from your data.
 
-            if ds.name not in [DatasetName.Dionis, DatasetName.Aloi]:
-                continue
             pbar.set_description(desc.format(ds=str(ds)))
             runtime = estimate_cat_embed_time(ds)
             if runtime is not None:
