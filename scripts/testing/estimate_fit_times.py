@@ -124,7 +124,9 @@ if __name__ == "__main__":
         df["data"] = list(map(lambda d: d.name, fast)) + list(map(lambda d: d.name, slow))
         df["n_cores"] = [1 for _ in fast] + [80 for _ in slow]
         df["mins_per_core"] = df["fit_minutes"] * df["n_cores"]
-        df = df[["data", "classifier", "load_secs", "fit_minutes", "n_cores", "mins_per_core"]]
+        df = df[
+            ["data", "classifier", "load_secs", "fit_minutes", "n_cores", "mins_per_core"]
+        ]
         df = df.sort_values(by=["mins_per_core", "fit_minutes"])
         df.to_json(outfile)
         print(df.to_markdown(tablefmt="simple"))
