@@ -104,8 +104,8 @@ def estimate_cat_embed_time(ds: Dataset) -> DataFrame | None:
         print(f"Got error: {e} for {ds.name}")
         return None
 
+
 def compute_estimate_categorical_embedding_times() -> None:
-    datasets = Dataset.load_all()
     outfiles = [
         ROOT / "cat_embed_fast_times.json",
         ROOT / "cat_embed_mid_times.json",
@@ -131,7 +131,13 @@ def compute_estimate_categorical_embedding_times() -> None:
         desc = "Computing embeddings: {ds}"
         pbar = tqdm(compute_class, desc=desc.format(ds=""))
         for ds in pbar:
-            if ds.name is DatasetName.Dionis:
+            # /gpfs/fs0/scratch/j/jlevman/dberger/model_variance/.venv/lib/python3.9/site-packages/umap/umap_.py:132:
+            # UserWarning: A large number of your vertices were disconnected
+            # from the manifold.
+            # You might consider using find_disconnected_points() to find and
+            # remove these points from your data.
+
+            if ds.name in [DatasetName.Dionis, DatasetName.Aloi]:
                 continue
             pbar.set_description(desc.format(ds=str(ds)))
             runtime = estimate_cat_embed_time(ds)
