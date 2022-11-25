@@ -40,9 +40,9 @@ def embed_categoricals(ds: Dataset) -> NDArray[np.float64] | None:
     in spirit, but just embed all dummified categoricals to two dimensions.
     """
     outfile = CAT_REDUCED / f"{ds.name.name}.npy"
-    if outfile.exists():
-        reduced: NDArray = np.load(outfile)
-        return reduced
+    # if outfile.exists():
+    #     reduced: NDArray = np.load(outfile)
+    #     return reduced
     df = ds.data.drop(columns="__target")
     cats = df.select_dtypes(include=[CategoricalDtype])
     if cats.shape[1] == 0:
