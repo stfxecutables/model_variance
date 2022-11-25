@@ -40,7 +40,7 @@ from pandas import CategoricalDtype, DataFrame, Series
 from pandas.errors import PerformanceWarning
 from sklearn.ensemble import GradientBoostingClassifier as GBC
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
 from tqdm import tqdm
 from tqdm.contrib.concurrent import process_map
 from typing_extensions import Literal
@@ -73,7 +73,7 @@ def embed_categoricals(ds: Dataset) -> NDArray[np.float64] | None:
     df = ds.data.drop(columns="__target")
     cats = df.select_dtypes(include=[CategoricalDtype])
     if cats.shape[1] == 0:
-        return pd.get_dummies(cats).astype(np.float64).to_numpy()
+        return OneHotEncoder().fit_transform(cats).astype(np.float64)
     x = pd.get_dummies(cats).astype(np.float64).to_numpy()
     if ds.name in [DatasetName.Dionis, DatasetName.Aloi]:
         umap = UMAP(n_components=2, n_neighbors=30, metric="jaccard")
