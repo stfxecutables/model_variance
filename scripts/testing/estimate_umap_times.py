@@ -262,14 +262,21 @@ if __name__ == "__main__":
     compute_estimate_categorical_embedding_times(RuntimeClass.Fast)
     compute_estimate_categorical_embedding_times(RuntimeClass.Mid)
     compute_estimate_categorical_embedding_times(RuntimeClass.Slow)
+
+    # problem datasets:
+    # Kr_vs_kp (after dropping const, all categorical, useless )
+    # Car (all categorical, needs dropping)
     compute_estimate_continuous_embedding_times(RuntimeClass.Fast, percent=25)
     compute_estimate_continuous_embedding_times(RuntimeClass.Fast, percent=50)
     compute_estimate_continuous_embedding_times(RuntimeClass.Fast, percent=75)
 
+    # problem datasets:
+    # Vehice ???
     compute_estimate_continuous_embedding_times(RuntimeClass.Mid, percent=25)
     compute_estimate_continuous_embedding_times(RuntimeClass.Mid, percent=50)
     compute_estimate_continuous_embedding_times(RuntimeClass.Mid, percent=75)
 
+    # problem datasets:
     compute_estimate_continuous_embedding_times(RuntimeClass.Slow, percent=25)
     compute_estimate_continuous_embedding_times(RuntimeClass.Slow, percent=50)
     compute_estimate_continuous_embedding_times(RuntimeClass.Slow, percent=75)
