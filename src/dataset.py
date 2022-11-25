@@ -100,6 +100,7 @@ class Dataset:
             # df = pd.read_json(self.path)
             df = pd.read_parquet(self.path)
             self.remove_nans(df)
+            self.remove_constant(df)
             self.data_ = df
         return self.data_
 
@@ -122,6 +123,13 @@ class Dataset:
                     df.loc[idx, col] = "unknown"
         if self.name in DROP_ROWS:
             df.drop(index=DROP_ROWS[self.name], inplace=True)
+
+    def remove_constant(self, df: DataFrame) -> None:
+        cont = df.select_dtypes(exclude=[CategoricalDtype])
+        cols = cont.columns.to_numpy()
+        sds = cont.std(axis=0).to_numpy()
+        drop = cols[sds == 0]
+        df.drop(columns=drop, inplace=True)
 
     @property
     def nrows(self) -> int:

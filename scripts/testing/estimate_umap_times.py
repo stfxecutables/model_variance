@@ -259,9 +259,9 @@ def check_conversions(dataset: Dataset) -> None:
 
 
 if __name__ == "__main__":
-    # compute_estimate_categorical_embedding_times(RuntimeClass.Fast)
-    # compute_estimate_categorical_embedding_times(RuntimeClass.Mid)
-    # compute_estimate_categorical_embedding_times(RuntimeClass.Slow)
+    compute_estimate_categorical_embedding_times(RuntimeClass.Fast)
+    compute_estimate_categorical_embedding_times(RuntimeClass.Mid)
+    compute_estimate_categorical_embedding_times(RuntimeClass.Slow)
     compute_estimate_continuous_embedding_times(RuntimeClass.Fast, percent=25)
     compute_estimate_continuous_embedding_times(RuntimeClass.Fast, percent=50)
     compute_estimate_continuous_embedding_times(RuntimeClass.Fast, percent=75)
