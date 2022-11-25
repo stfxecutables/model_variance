@@ -109,9 +109,10 @@ def estimate_cat_embed_time(ds: Dataset) -> DataFrame | None:
 
 def compute_estimate_categorical_embedding_times() -> None:
     outfiles = [
-        ROOT / "cat_embed_fast_times.json",
-        ROOT / "cat_embed_mid_times.json",
-        ROOT / "cat_embed_slow_times.json",
+        # ROOT / "cat_embed_fast_times.json",
+        # ROOT / "cat_embed_mid_times.json",
+        ROOT
+        / "cat_embed_slow_times.json",
     ]
     fast = [
         Dataset(name)
