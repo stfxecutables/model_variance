@@ -12,6 +12,7 @@ import sys
 from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass
 from enum import Enum
+from math import ceil
 from pathlib import Path
 from time import time
 from traceback import print_exc
@@ -47,7 +48,7 @@ from typing_extensions import Literal
 from umap import UMAP
 from xgboost import XGBClassifier
 
-from src.constants import CAT_REDUCED
+from src.constants import CAT_REDUCED, CONT_REDUCED
 from src.dataset import Dataset
 from src.enumerables import DatasetName, RuntimeClass
 
@@ -83,6 +84,25 @@ def embed_categoricals(ds: Dataset) -> NDArray[np.float64] | None:
     return reduced
 
 
+def embed_continuous(ds_perc: tuple[Dataset, int]) -> NDArray[np.float64] | None:
+    ds, percent = ds_perc
+    outfile = CONT_REDUCED / f"{ds.name.name}_{percent}percent.npy"
+    if outfile.exists():
+        reduced: NDArray = np.load(outfile)
+        return reduced
+
+    df = ds.data.drop(columns="__target")
+    X_float = df.select_dtypes(exclude=[CategoricalDtype]).astype(np.float64)
+    X_float -= X_float.mean(axis=0)
+    X_float /= X_float.std(axis=0)
+
+    n_components = ceil((percent / 100) * X_float.shape[1])
+    umap = UMAP(n_components=n_components)
+    reduced = umap.fit_transform(x)
+    np.save(outfile, reduced)
+    return reduced
+
+
 def estimate_cat_embed_time(ds: Dataset) -> DataFrame | None:
     try:
         start = time()
@@ -90,9 +110,32 @@ def estimate_cat_embed_time(ds: Dataset) -> DataFrame | None:
         embed_time = time() - start
         return DataFrame(
             {
-                "dataset": ds.name,
+                "dataset": ds.name.name,
                 "n_samples": ds.n_samples,
                 "n_cats": ds.n_cats,
+                "embed_time": embed_time,
+            },
+            index=[0],
+        )
+
+    except Exception as e:
+        print_exc()
+        print(f"Got error: {e} for {ds.name}")
+        return None
+
+
+def estimate_continuous_embed_time(ds_perc: tuple[Dataset, int]) -> DataFrame | None:
+    try:
+        ds, percent = ds_perc
+        start = time()
+        embed_continuous(ds_perc)
+        embed_time = time() - start
+        return DataFrame(
+            {
+                "dataset": ds.name.name,
+                "n_samples": ds.n_samples,
+                "n_cats": ds.n_cats,
+                "percent": percent,
                 "embed_time": embed_time,
             },
             index=[0],
@@ -127,6 +170,29 @@ def compute_estimate_categorical_embedding_times(runtime: RuntimeClass) -> None:
     runtimes = pd.concat(runtimes, ignore_index=True, axis=0)
     runtimes.to_json(outfile)
     print(f"Saved runtimes DataFrame to {outfile}")
+
+
+def compute_estimate_continuous_embedding_times(
+    runtime: RuntimeClass, percent: int
+) -> None:
+    outfile = ROOT / f"cont_embed_{percent}percent_{runtime.value}_times.json"
+    if outfile.exists():
+        return
+    datasets = [Dataset(name) for name in runtime.members()]
+    ds_percs = [(ds, percent) for ds in datasets]
+    runtimes = []
+    desc = "Computing continuous embeddings: {ds}"
+    pbar = tqdm(ds_percs, desc=desc.format(ds=""))
+    for ds_perc in pbar:
+        ds, perc = ds_perc
+        pbar.set_description(desc.format(ds=f"{ds}@{perc}%"))
+        runtime = estimate_continuous_embed_time(ds_perc)
+        if runtime is not None:
+            runtimes.append(runtime)
+    pbar.close()
+    runtimes = pd.concat(runtimes, ignore_index=True, axis=0)
+    runtimes.to_json(outfile)
+    print(f"Saved continuous embedding runtimes DataFrame to {outfile}")
 
 
 def get_float_X(df: DataFrame) -> DataFrame:
@@ -193,6 +259,17 @@ def check_conversions(dataset: Dataset) -> None:
 
 
 if __name__ == "__main__":
-    compute_estimate_categorical_embedding_times(RuntimeClass.Fast)
-    compute_estimate_categorical_embedding_times(RuntimeClass.Mid)
-    compute_estimate_categorical_embedding_times(RuntimeClass.Slow)
+    # compute_estimate_categorical_embedding_times(RuntimeClass.Fast)
+    # compute_estimate_categorical_embedding_times(RuntimeClass.Mid)
+    # compute_estimate_categorical_embedding_times(RuntimeClass.Slow)
+    compute_estimate_continuous_embedding_times(RuntimeClass.Fast, percent=25)
+    compute_estimate_continuous_embedding_times(RuntimeClass.Fast, percent=50)
+    compute_estimate_continuous_embedding_times(RuntimeClass.Fast, percent=75)
+
+    compute_estimate_continuous_embedding_times(RuntimeClass.Mid, percent=25)
+    compute_estimate_continuous_embedding_times(RuntimeClass.Mid, percent=50)
+    compute_estimate_continuous_embedding_times(RuntimeClass.Mid, percent=75)
+
+    compute_estimate_continuous_embedding_times(RuntimeClass.Slow, percent=25)
+    compute_estimate_continuous_embedding_times(RuntimeClass.Slow, percent=50)
+    compute_estimate_continuous_embedding_times(RuntimeClass.Slow, percent=75)
