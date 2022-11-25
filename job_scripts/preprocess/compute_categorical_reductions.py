@@ -48,10 +48,7 @@ def embed_categoricals(ds: Dataset) -> NDArray[np.float64] | None:
     if cats.shape[1] == 0:
         return pd.get_dummies(cats).astype(np.float64).to_numpy()
     x = pd.get_dummies(cats).astype(np.float64).to_numpy()
-    if ds.name in [DatasetName.Dionis, DatasetName.Aloi]:
-        umap = UMAP(n_components=2, n_neighbors=30, metric="jaccard")
-    else:
-        umap = UMAP(n_components=2, metric="jaccard")
+    umap = UMAP(n_components=2, metric="jaccard")
     with catch_warnings():
         filterwarnings("ignore", message="gradient function", category=UserWarning)
         reduced = umap.fit_transform(x)
@@ -70,6 +67,6 @@ def compute_categorical_embeddings(runtime: RuntimeClass) -> None:
 
 
 if __name__ == "__main__":
-    compute_categorical_embeddings(RuntimeClass.Fast)
-    compute_categorical_embeddings(RuntimeClass.Mid)
+    # compute_categorical_embeddings(RuntimeClass.Fast)
+    # compute_categorical_embeddings(RuntimeClass.Mid)
     compute_categorical_embeddings(RuntimeClass.Slow)
