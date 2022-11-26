@@ -32,7 +32,8 @@ filterwarnings("ignore", category=PerformanceWarning)
 def embed_continuous(ds_perc: tuple[Dataset, int]) -> NDArray[np.float64] | None:
     try:
         ds, percent = ds_perc
-        if ds.name in [DatasetName.Kr_vs_kp, DatasetName.Car]:
+        # do not bother with all-categorical data here
+        if ds.name in [DatasetName.Kr_vs_kp, DatasetName.Car, DatasetName.Connect4]:
             return None
         outfile = CONT_REDUCED / f"{ds.name.name}_{percent}percent.npy"
         if outfile.exists():
@@ -86,7 +87,8 @@ if __name__ == "__main__":
     #     solver failed. This is likely due to too small an eigengap. Consider
     #     adding some noise or jitter to your data.  Falling back to random
     #     initialisation!
-
+    # Connect4: All categorical
+    #     ValueError: at least one array or dtype is required
     compute_continuous_embeddings(RuntimeClass.Slow, percent=25)
     compute_continuous_embeddings(RuntimeClass.Slow, percent=50)
     compute_continuous_embeddings(RuntimeClass.Slow, percent=75)
