@@ -2,9 +2,18 @@
 #                           Project-specific ignores                           #
 ################################################################################
 
-apptainer/build_files
+apptainer/build_files/wheels
+apptainer/build_files/.pyenv
+apptainer/build_files/*.whl
+apptainer/model_variance
+apptainer/model_variance.sif
+
 data/json
 data/parquet/*.parquet
+data/parquet/continuous_reductions/DevnagariScript_50percent.npy
+data/parquet/continuous_reductions/DevnagariScript_75percent.npy
+data/parquet/continuous_reductions/FashionMnist_50percent.npy
+data/parquet/continuous_reductions/FashionMnist_75percent.npy
 
 
 
