@@ -10,50 +10,28 @@ sys.path.append(str(ROOT))  # isort: skip
 
 import sys
 import traceback
-from math import ceil
 from pathlib import Path
-from warnings import catch_warnings, filterwarnings
+from warnings import filterwarnings
 
 import numpy as np
-import pandas as pd
 from numpy.typing import NDArray
-from pandas import CategoricalDtype
 from pandas.errors import PerformanceWarning
 from tqdm import tqdm
-from umap import UMAP
 
-from src.constants import CONT_REDUCED
 from src.dataset import Dataset
-from src.enumerables import DatasetName, RuntimeClass
+from src.enumerables import RuntimeClass
+from src.reduction import reduce_continuous
 
-filterwarnings("ignore", category=PerformanceWarning)
 
-
-def embed_continuous(ds_perc: tuple[Dataset, int]) -> NDArray[np.float64] | None:
+def reduce_continous_failsafe(ds_perc: tuple[Dataset, int]) -> NDArray[np.float64] | None:
     try:
         ds, percent = ds_perc
-        # do not bother with all-categorical data here
-        if ds.name in [DatasetName.Kr_vs_kp, DatasetName.Car, DatasetName.Connect4]:
-            return None
-        outfile = CONT_REDUCED / f"{ds.name.name}_{percent}percent.npy"
-        if outfile.exists():
-            reduced: NDArray = np.load(outfile)
-            return reduced
-
-        df = ds.data.drop(columns="__target")
-        X_float = df.select_dtypes(exclude=[CategoricalDtype]).astype(np.float64)
-        X_float -= X_float.mean(axis=0)
-        X_float /= X_float.std(axis=0)
-
-        n_components = ceil((percent / 100) * X_float.shape[1])
-        umap = UMAP(n_components=n_components)
-        reduced = umap.fit_transform(X_float)
-        np.save(outfile, reduced)
-        return reduced
+        return reduce_continuous(ds, percent)  # type: ignore
     except Exception as e:
         traceback.print_exc()
         print(f"Got error: {e} for dataset: {ds_perc[0].name.name}")
         print(ds_perc[0])
+        return None
 
 
 def compute_continuous_embeddings(runtime: RuntimeClass, percent: int) -> None:
@@ -64,11 +42,12 @@ def compute_continuous_embeddings(runtime: RuntimeClass, percent: int) -> None:
     for ds_perc in pbar:
         ds, perc = ds_perc
         pbar.set_description(desc.format(ds=f"{ds}@{perc}%"))
-        embed_continuous(ds_perc)
+        reduce_continous_failsafe(ds_perc)
     pbar.close()
 
 
 if __name__ == "__main__":
+    filterwarnings("ignore", category=PerformanceWarning)
     # problem datasets:
     # Kr_vs_kp (after dropping const, all categorical, useless )
     # Car (all categorical, needs dropping)

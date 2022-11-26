@@ -9,52 +9,26 @@ sys.path.append(str(ROOT))  # isort: skip
 
 
 import sys
+import traceback
 from pathlib import Path
-from warnings import catch_warnings, filterwarnings
+from warnings import filterwarnings
 
-import numpy as np
-import pandas as pd
-from numpy.typing import NDArray
-from pandas import CategoricalDtype
 from pandas.errors import PerformanceWarning
-from sklearn.preprocessing import OneHotEncoder
 from tqdm import tqdm
-from umap import UMAP
 
-from src.constants import CAT_REDUCED
 from src.dataset import Dataset
-from src.enumerables import DatasetName, RuntimeClass
+from src.enumerables import RuntimeClass
+from src.reduction import reduce_categoricals
 
-filterwarnings("ignore", category=PerformanceWarning)
 
-
-def embed_categoricals(ds: Dataset) -> NDArray[np.float64] | None:
-    """
-    Notes
-    -----
-    We follow the guides:
-
-        https://github.com/lmcinnes/umap/issues/58
-        https://github.com/lmcinnes/umap/issues/104
-        https://github.com/lmcinnes/umap/issues/241
-
-    in spirit, but just embed all dummified categoricals to two dimensions.
-    """
-    outfile = CAT_REDUCED / f"{ds.name.name}.npy"
-    # if outfile.exists():
-    #     reduced: NDArray = np.load(outfile)
-    #     return reduced
-    df = ds.data.drop(columns="__target")
-    cats = df.select_dtypes(include=[CategoricalDtype])
-    if cats.shape[1] == 0:
-        return OneHotEncoder().fit_transform(cats).astype(np.float64)
-    x = pd.get_dummies(cats).astype(np.float64).to_numpy()
-    umap = UMAP(n_components=2, metric="jaccard")
-    with catch_warnings():
-        filterwarnings("ignore", message="gradient function", category=UserWarning)
-        reduced = umap.fit_transform(x)
-    np.save(outfile, reduced)
-    return reduced
+def reduce_categoricals_failsafe(ds: Dataset) -> None:
+    try:
+        reduce_categoricals(ds)
+    except Exception as e:
+        traceback.print_exc()
+        print(f"Got error: {e} for dataset {ds.name.name}")
+        print(ds)
+        return None
 
 
 def compute_categorical_embeddings(runtime: RuntimeClass) -> None:
@@ -63,11 +37,12 @@ def compute_categorical_embeddings(runtime: RuntimeClass) -> None:
     pbar = tqdm(datasets, desc=desc.format(ds=""))
     for ds in pbar:
         pbar.set_description(desc.format(ds=str(ds)))
-        embed_categoricals(ds)
+        reduce_categoricals_failsafe(ds)
     pbar.close()
 
 
 if __name__ == "__main__":
-    # compute_categorical_embeddings(RuntimeClass.Fast)
-    # compute_categorical_embeddings(RuntimeClass.Mid)
+    filterwarnings("ignore", category=PerformanceWarning)
+    compute_categorical_embeddings(RuntimeClass.Fast)
+    compute_categorical_embeddings(RuntimeClass.Mid)
     compute_categorical_embeddings(RuntimeClass.Slow)
