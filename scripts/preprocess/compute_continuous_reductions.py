@@ -9,6 +9,7 @@ sys.path.append(str(ROOT))  # isort: skip
 
 
 import sys
+import traceback
 from math import ceil
 from pathlib import Path
 from warnings import catch_warnings, filterwarnings
@@ -29,24 +30,29 @@ filterwarnings("ignore", category=PerformanceWarning)
 
 
 def embed_continuous(ds_perc: tuple[Dataset, int]) -> NDArray[np.float64] | None:
-    ds, percent = ds_perc
-    if ds.name in [DatasetName.Kr_vs_kp, DatasetName.Car]:
-        return None
-    outfile = CONT_REDUCED / f"{ds.name.name}_{percent}percent.npy"
-    if outfile.exists():
-        reduced: NDArray = np.load(outfile)
+    try:
+        ds, percent = ds_perc
+        if ds.name in [DatasetName.Kr_vs_kp, DatasetName.Car]:
+            return None
+        outfile = CONT_REDUCED / f"{ds.name.name}_{percent}percent.npy"
+        if outfile.exists():
+            reduced: NDArray = np.load(outfile)
+            return reduced
+
+        df = ds.data.drop(columns="__target")
+        X_float = df.select_dtypes(exclude=[CategoricalDtype]).astype(np.float64)
+        X_float -= X_float.mean(axis=0)
+        X_float /= X_float.std(axis=0)
+
+        n_components = ceil((percent / 100) * X_float.shape[1])
+        umap = UMAP(n_components=n_components)
+        reduced = umap.fit_transform(X_float)
+        np.save(outfile, reduced)
         return reduced
-
-    df = ds.data.drop(columns="__target")
-    X_float = df.select_dtypes(exclude=[CategoricalDtype]).astype(np.float64)
-    X_float -= X_float.mean(axis=0)
-    X_float /= X_float.std(axis=0)
-
-    n_components = ceil((percent / 100) * X_float.shape[1])
-    umap = UMAP(n_components=n_components)
-    reduced = umap.fit_transform(X_float)
-    np.save(outfile, reduced)
-    return reduced
+    except Exception as e:
+        traceback.print_exc()
+        print(f"Got error: {e} for dataset: {ds_perc[0].name.name}")
+        print(ds_perc[0])
 
 
 def compute_continuous_embeddings(runtime: RuntimeClass, percent: int) -> None:
@@ -75,6 +81,12 @@ if __name__ == "__main__":
     compute_continuous_embeddings(RuntimeClass.Mid, percent=75)
 
     # problem datasets:
+    # SkinSegmentation: But still produces file?
+    #     UserWarning: WARNING: spectral initialisation failed! The eigenvector
+    #     solver failed. This is likely due to too small an eigengap. Consider
+    #     adding some noise or jitter to your data.  Falling back to random
+    #     initialisation!
+
     compute_continuous_embeddings(RuntimeClass.Slow, percent=25)
     compute_continuous_embeddings(RuntimeClass.Slow, percent=50)
     compute_continuous_embeddings(RuntimeClass.Slow, percent=75)
