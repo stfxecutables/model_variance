@@ -16,9 +16,8 @@ from warnings import filterwarnings
 from pandas.errors import PerformanceWarning
 from tqdm import tqdm
 
-from src.dataset import Dataset
+from src.dataset import Dataset, reduce_categoricals
 from src.enumerables import RuntimeClass
-from src.reduction import reduce_categoricals
 
 
 def reduce_categoricals_failsafe(ds: Dataset) -> None:

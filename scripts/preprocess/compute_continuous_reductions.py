@@ -18,9 +18,8 @@ from numpy.typing import NDArray
 from pandas.errors import PerformanceWarning
 from tqdm import tqdm
 
-from src.dataset import Dataset
+from src.dataset import Dataset, reduce_continuous
 from src.enumerables import RuntimeClass
-from src.reduction import reduce_continuous
 
 
 def reduce_continous_failsafe(ds_perc: tuple[Dataset, int]) -> NDArray[np.float64] | None:

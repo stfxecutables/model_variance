@@ -7,10 +7,13 @@ ROOT = Path(__file__).resolve().parent.parent  # isort: skip
 sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
+
 import re
+import sys
 from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass
 from enum import Enum
+from math import ceil
 from pathlib import Path
 from typing import (
     Any,
@@ -25,16 +28,23 @@ from typing import (
     cast,
     no_type_check,
 )
+from warnings import catch_warnings, filterwarnings
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytest
 from numpy import ndarray
+from numpy.typing import NDArray
 from pandas import CategoricalDtype, DataFrame, Series
+from pandas.errors import PerformanceWarning
+from sklearn.preprocessing import OneHotEncoder
+from tqdm import tqdm
 from tqdm.contrib.concurrent import process_map
 from typing_extensions import Literal
+from umap import UMAP
 
+from src.constants import CAT_REDUCED, CONT_REDUCED
 from src.enumerables import DatasetName
 
 JSONS = ROOT / "data/json"
@@ -80,6 +90,58 @@ def load(name: DatasetName) -> Dataset:
     return Dataset(name)
 
 
+def reduce_continuous(dataset: Dataset, percent: int) -> NDArray[np.float64] | None:
+    # do not bother with all-categorical data here
+    if dataset.name in [DatasetName.Kr_vs_kp, DatasetName.Car, DatasetName.Connect4]:
+        return None
+    outfile = CONT_REDUCED / f"{dataset.name.name}_{percent}percent.npy"
+    if outfile.exists():
+        reduced: NDArray = np.load(outfile)
+        return reduced
+
+    df = dataset.data.drop(columns="__target")
+    X_float = df.select_dtypes(exclude=[CategoricalDtype]).astype(np.float64)
+    X_float -= X_float.mean(axis=0)
+    X_float /= X_float.std(axis=0)
+
+    n_components = ceil((percent / 100) * X_float.shape[1])
+    umap = UMAP(n_components=n_components)
+    filterwarnings("ignore", category=PerformanceWarning)
+    reduced = umap.fit_transform(X_float)
+    np.save(outfile, reduced)
+    return reduced
+
+
+def reduce_categoricals(dataset: Dataset) -> NDArray[np.float64] | None:
+    """
+    Notes
+    -----
+    We follow the guides:
+
+        https://github.com/lmcinnes/umap/issues/58
+        https://github.com/lmcinnes/umap/issues/104
+        https://github.com/lmcinnes/umap/issues/241
+
+    in spirit, but just embed all dummified categoricals to two dimensions.
+    """
+    outfile = CAT_REDUCED / f"{dataset.name.name}.npy"
+    if outfile.exists():
+        reduced: NDArray[np.float64] = np.load(outfile)
+        return reduced
+    df = dataset.data.drop(columns="__target")
+    cats = df.select_dtypes(include=[CategoricalDtype])
+    if cats.shape[1] == 0:
+        return OneHotEncoder(sparse=False).fit_transform(cats).astype(np.float64)  # type: ignore
+    x = pd.get_dummies(cats).astype(np.float64).to_numpy()
+    filterwarnings("ignore", category=PerformanceWarning)
+    umap = UMAP(n_components=2, metric="jaccard")
+    with catch_warnings():
+        filterwarnings("ignore", message="gradient function", category=UserWarning)
+        reduced = umap.fit_transform(x)
+    np.save(outfile, reduced)
+    return reduced
+
+
 class Dataset:
     """"""
 
@@ -103,6 +165,23 @@ class Dataset:
             self.remove_constant(df)
             self.data_ = df
         return self.data_
+
+    def X_reduced(self, percent: int) -> ndarray | None:
+        if percent not in [25, 50, 75]:
+            raise ValueError("`percent` must be in [25, 50, 75]")
+        X_cont = reduce_continuous(self, percent)
+        if X_cont is None:
+            return None
+        if X_cont.ndim == 0:
+            X_cont = X_cont.reshape(-1, 1)
+
+        X_cat = reduce_categoricals(self)
+        if X_cat is None:  # fine, reduct is just continues vars
+            return X_cont
+        if X_cat.ndim == 0:
+            X_cat = X_cat.reshape(-1, 1)
+        X = np.concatenate([X_cat, X_cont], axis=1)
+        return X
 
     def remove_nans(self, df: DataFrame) -> None:
         if self.name in DROP_COLS:
@@ -206,7 +285,17 @@ class Dataset:
 
 if __name__ == "__main__":
     datasets = Dataset.load_all()
+    count = 0
     for dataset in datasets:
-        if dataset.name not in ["higgs", "apsfailure"]:
-            continue
-        dataset.describe()
+        print(dataset)
+        x = dataset.X_reduced(25)
+        if x is not None:
+            print(x.shape)
+            count += 1
+        x = dataset.X_reduced(50)
+        if x is not None:
+            print(x.shape)
+        x = dataset.X_reduced(75)
+        if x is not None:
+            print(x.shape)
+    print(f"{count} usable reduced datasets.")  # 36
