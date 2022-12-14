@@ -31,6 +31,45 @@ in the paper). Simulating datasets with known separation / noise can also
 strongly aid in interpreting the meaning of the various PPSMs, and reveal
 advantages / disadvantages of particular choices of similarity metrics.
 
+## Data Perturbation
+
+Probably best to consider this in the context of *robustness* research (e.g.
+adversarial robustness), where we have a perturbation maximum
+$\mathbf{\ell}_{\infty} = (\ell^{\;1}_{\infty}, \dots, \ell^{\;p}_{\infty})$
+for each feature $x_i$, $i \in \{1, \dots, p\}$, and where we examine the
+performance (loss $\mathcal{L}$) of our classifier $f$ on perturbed features:
+
+$$ \mathcal{L}(f(\bm{x + \bm{\delta}}, \bm{y})) $$
+
+where $\bm{\delta} = (\delta_1, \dots, \delta_p)$ and $\delta_i \sim
+\text{Uniform}(0, \ell^{\;i}_{\infty} = \epsilon_i)$.
+
+This reduces the perturbation problem to finding a suitable algorithm for
+choosing $\ell^{\;i}_{\infty}$ across all datasets.
+
+As this
+
+- could be relative ($x = r \cdot x$ for  $r \sim \text{Uniform}(1- \epsilon ,
+  1)$ for each sample $x$)
+-
+
+### "Safe" Data Perturbation Methods
+
+KNN and Voronoi
+One natural choice for perturbation is to perturb each sample to a random
+location within its Voronoi cell, i.e. as https://arxiv.org/pdf/1905.01019.pdf
+
+There are three possible forms for the function $h$ determining the maximum
+perturbation $\epsilon_i$ given data $\bm{X} \in \mathbb{R}^{n \times p}$, s.t.
+$\bm{X} = (\bm{x}_1, \dots, \bm{x}_p)$:
+
+- $\epsilon_i = h_i(\bm{x}_i)$:
+  - $h_i$ determines the max perturbation from the distribution of the feature in isolation
+- $\epsilon_i = h_i(\bm{X})$:
+  - $h_i$ determines the max perturbation from the entire dataset
+
+
+
 ## Feature Selection is a Bad Idea
 
 There is no good way to do it.
