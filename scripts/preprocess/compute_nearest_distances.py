@@ -43,7 +43,7 @@ def compute_distances(runtime: RuntimeClass) -> None:
     pbar = tqdm(ds_reductions, desc=desc.format(ds="", red="?"))
     for ds_reduction in pbar:
         ds, red = ds_reduction
-        if red == 50 and ds.name is ds.name.name == "Dionis":
+        if red == 50 and ds.name.name == "Dionis":
             continue
         pbar.set_description(desc.format(ds=str(ds), red=red))
         compute_distances_failsafe(ds_reduction)
