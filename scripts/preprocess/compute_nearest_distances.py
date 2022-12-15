@@ -36,8 +36,8 @@ def compute_distances_failsafe(ds_reduction: tuple[Dataset, int | None]) -> None
 def compute_distances(runtime: RuntimeClass) -> None:
     datasets = [Dataset(name) for name in runtime.members()]
     ds_reductions = []
-    for ds in datasets:
-        for reduction in [None, 25, 50, 75]:
+    for reduction in [None, 25, 50, 75]:
+        for ds in datasets:
             ds_reductions.append((ds, reduction))
     desc = "Computing distances: {ds}(reduction={red})"
     pbar = tqdm(ds_reductions, desc=desc.format(ds="", red="?"))
