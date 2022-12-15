@@ -43,6 +43,7 @@ def compute_distances(runtime: RuntimeClass) -> None:
     pbar = tqdm(ds_reductions, desc=desc.format(ds="", red="?"))
     for ds_reduction in pbar:
         ds, red = ds_reduction
+        # CreditCardFraud and red=75 also very slow
         if red in [50, 75] and ds.name.name == "Dionis":
             continue
         pbar.set_description(desc.format(ds=str(ds), red=red))
