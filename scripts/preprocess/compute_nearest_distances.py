@@ -11,6 +11,7 @@ sys.path.append(str(ROOT))  # isort: skip
 import sys
 import traceback
 from pathlib import Path
+from time import sleep
 from warnings import filterwarnings
 
 from pandas.errors import PerformanceWarning
@@ -43,6 +44,7 @@ def compute_distances(runtime: RuntimeClass) -> None:
         ds, red = ds_reduction
         pbar.set_description(desc.format(ds=str(ds), red=red))
         compute_distances_failsafe(ds_reduction)
+        sleep(2)  # ????
     pbar.close()
 
 
