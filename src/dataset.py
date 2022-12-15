@@ -284,10 +284,10 @@ class Dataset:
 
         cluster = str(os.environ.get("CC_CLUSTER")).lower()
         n_jobs = {"none": -1, "niagara": 40, "cedar": 32}[cluster]
-        if self.name is DatasetName.DevnagariScript:
-            n_jobs = 6
-        if cluster is not None:
-            os.environ["OPENBLAS_NUM_THREADS"] = str(n_jobs)
+        # if self.name is DatasetName.DevnagariScript:
+        #     n_jobs = 6
+        # if cluster is not None:
+        #     os.environ["OPENBLAS_NUM_THREADS"] = str(n_jobs)
 
         nn = NearestNeighbors(n_neighbors=2, n_jobs=n_jobs)
         nn.fit(X)
