@@ -7,6 +7,15 @@ ROOT = Path(__file__).resolve().parent.parent.parent  # isort: skip
 sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
+# fmt: off
+# NEEDED for Niagara and Neighbors it seems
+import os
+
+CLUSTER = str(os.environ.get("CC_CLUSTER")).lower()
+N_JOBS = {"none": -1, "niagara": 40, "cedar": 32}[CLUSTER]
+if CLUSTER == "niagara":
+    os.environ["OPENBLAS_NUM_THREADS"] = str(N_JOBS)
+# fmt: off
 
 import sys
 import traceback
