@@ -55,6 +55,7 @@ As this
 
 ### Label-Preserving Data Perturbation Methods
 
+#### "Half-Neighbout" Perturbation
 
 For a data point $\bm{x} \in \mathbb{R}^p$, a label-preserving perturbation
 $\mathcal{P}(\bm{x}) = \tilde{\bm{x}} \in \mathbb{R}^p$ is a point that satisfies both:
@@ -80,45 +81,106 @@ However, we also do not know $d$ in general, nor do we know the direction of $d$
 We cannot even in general say that for a sample $\bm{x}$, and nearest-neighbour
 $\bm{x}_{\text{nn}}$, that $\bm{x}_{\text{nn}}$ belongs to the same class as $\bm{x}$.
 
-However, consider the open ball $B(\bm{x}, \delta)$, where $\delta < \lVert \bm{x} - \tilde{\bm{x}} \rVert / 2 $. By the triangle inequality, any sample drawn from this open ball is closer to
-$\bm{x}$ than to $\bm{x}_{\text{nn}}$. That is, this ball is contained within the Voronoi
-cell of $\bm{x}$.
+However, consider the open ball $B(\bm{x}, \delta)$, where $\delta < \lVert
+\bm{x} - \tilde{\bm{x}} \rVert / 2 $. By the triangle inequality, any sample
+drawn from this open ball is closer to $\bm{x}$ than to $\bm{x}_{\text{nn}}$.
+That is, this ball is contained within the Voronoi cell of $\bm{x}$.
+There are only four possibilities within this open ball:
 
-However, there are only three possibilities for the neighbour $\bm{x}_{\text{nn}}$. Let
-$V(\bm{x})$ denote the Voronoi cell
+1. $f(\bm{x}_{\text{nn}}) = f(\bm{x})$ and $f(\bm{x}^{\prime}) = f(\bm{x})$ for
+   any $\bm{x}^{\prime}$ in $B(\bm{x}, \delta)$ (including unsampled $\bm{x}^{\prime}$)
+1. $f(\bm{x}_{\text{nn}}) \ne f(\bm{x})$ but still $f(\bm{x}^{\prime}) = f(\bm{x})$ for
+   any $\bm{x}^{\prime}$ in $B(\bm{x}, \delta)$
+1. $f(\bm{x}_{\text{nn}}) = f(\bm{x})$ but $f(\bm{x}^{\prime}) \ne f(\bm{x})$ for
+   some unsampled $\bm{x}^{\prime}$ in $B(\bm{x}, \delta)$
+   - this means the data is insufficiently sampled between $\bm{x}$ and $\bm{x}_{\text{nn}}$
+   - equivalently, this means that if the data reside on some lower-dimensional manifold,
+     then that manifold is somewhat ill-behaved near these two points
+1. $f(\bm{x}_{\text{nn}}) \ne f(\bm{x})$ but $f(\bm{x}^{\prime}) \ne f(\bm{x})$ for
+   some unsampled $\bm{x}^{\prime}$ in $B(\bm{x}, \delta)$
+   - this is caused by largely the same issues as in case (2)
 
-1. $f(\bm{x}_{\text{nn}}) = f(\bm{x})$
-2.
+Thus, if we assume our data is not too badly undersampled, the "half-neighbour"
+ball around each sample represents a viable perturbation space. Arguably, this
+is quite a conservative perturbation space relative to the entire Voronoi cell
+(see https://arxiv.org/pdf/1905.01019.pdf).
+
+We thus consider two perturbation methods: full-strength "half-neighbour"
+perturbation, which takes the open ball as above, and half-strength half-neighbour
+perturbation, which takes the open ball with $\delta/2$ instead.
+
+#### Significant Digit Perturbation
+
+A typical measurement has some error. The measurement error may be absolute
+(non-heteroscedastic) or relative (heteroscedastic). Without repeated measurements,
+estimating such error is not generally possible. However, we can exploit a fact of
+human psychology that most measurements will come from devices designed by humans,
+and that we will tend to calibrate devices and define measurement scales such that
+*when measurements are recorded* meaningfully-different numbers can be represented with just
+a small handful of significant digits (say, 3-5).
+
+That is, if some measurement procedure produces measurements of the form
+$[1.000000023, 1.000000056, 1.000000059]$, and these represent meaningful
+differences, we will tend to subtract 1 (or the mean) and rewrite these as $1 +
+[2.3e-8, 5.6e-8, 5.9e-8]$, or define a new measurement unit or scale that otherwise
+allows for the differences to be written or displayed with a small number of digits.
+Even if a set of values has not been prepared in this manner, subtracting the mean
+will then tend to make the values follow this rule.
+
+An exception is for data that is distributed exponentially, or according to some power law.
+However, for the datasets here, this does not appear to be the case (there are only in <1%
+of values for each dataset, extreme outliers, which may or may not indicate power-law
+distributions, but at the least, no distributions seem to be visually obviously exponential).
+
+Thus, we can define perturbation of $n > 0$ significant digits as
+
+$$
+\tilde{x} = x + r \cdot \delta \quad \text{where} \quad
+\delta = 10^{ \cdot \big\lfloor \log_{10} |x| \big\rfloor \cdot 10^{-n} }
+\quad \text{and} \quad r \sim \text{U}(-1, 1)
+$$
+
+```python
+def sig_perturb(x: ndarray, n_digits: int = 1) -> ndarray:
+    delta = 10 ** (np.floor(np.log10(np.abs(x))) / 10 ** n_digits)
+    return x + delta * np.random.uniform(-1, 1, x.shape)
+```
 
 
-that can be observed
 
-a point also the point
-$\tilde{\bm{x}} = \bm{x} + \bm{\delta}$ for some $\bm{\delta} \in \mathbb{R}^p$,
-which has the property that $\lVert\tilde{\bm{x}} - \bm{x}\rVert < \epsilon(\bm{x})$
-A *random perturbation method* $\mathcal{P}$ is
-an algorithm that produces such a $\bm{\delta}$ for a given $\bm{x}$ i.e.
-$\mathcal{P}(\bm{x}) = \bm{\delta}$, and we can define the set of perturbations
-of $\bm{x}$ to be $\mathcal{P}_{\bm{x}} = \{\bm{x} + \mathcal{P}(\bm{x})\} : $
-i
-set of all
 
-if
-A perturbation $\bm{\delta}$ is "safe"
+Simulating relative
+error is quite straightforward: for a sample from any feature, $x \in \mathbb{R}$,
+we can simply define relative perturbation to be
 
-One natural choice for perturbation is to perturb each sample to a random
-location within its Voronoi cell, i.e. as in https://arxiv.org/pdf/1905.01019.pdf.
-However, this is computationally expensive, and assumes that
+$$\tilde{x}  = x \cdot r, \qquad r \sim U(1 - \delta, 1 + \delta)$$
 
-There are three possible forms for the function $h$ determining the maximum
-perturbation $\epsilon_i$ given data $\bm{X} \in \mathbb{R}^{n \times p}$, s.t.
-$\bm{X} = (\bm{x}_1, \dots, \bm{x}_p)$:
+where we take $\epsilon \in \{0.1, 0.05, 0.01\}$, to simulate relative
+measurement errors of 10%, 5%, and 1%, respectively. Note that a $\delta$ of
+$0.1$ means that in scientific notation with one significant digit, if e.g.
+$x = 5 \times 10^k$ for $k \in \mathbb{Z}$, then $x \cdot r$
 
-- $\epsilon_i = h_i(\bm{x}_i)$:
-  - $h_i$ determines the max perturbation from the distribution of the feature in isolation
-- $\epsilon_i = h_i(\bm{X})$:
-  - $h_i$ determines the max perturbation from the entire dataset
+This type of
+perturbation will tend to be class-preserving when
+between the samples and class labels grows exceedingly quickly, since
 
+$$
+\begin{align}
+f(\tilde{\bm{x}}) &= f(r \cdot{\bm{x}})   \\
+\nabla_x \left( f(\tilde{\bm{x}}) \right) &= \nabla_x \left(f(r \cdot{\bm{x}})\right)   \\
+                           &= \nabla_x f(r \cdot{\bm{x}}) \cdot \nabla_x (r \cdot \bm{x})   \\
+                           &= r \cdot \nabla_x f(r \cdot{\bm{x}}) \cdot \nabla_x (\bm{x})   \\
+                           &= r \cdot \nabla_x f(r \cdot{\bm{x}}) \cdot \mathbf{1}   \\
+                           &= r \cdot \nabla_x f(r \cdot{\bm{x}})    \\
+\end{align}
+$$
+
+assumptions
+
+
+
+In the absolute case, the
+variance (or other robust measure of scale, like the IQR) is
 
 
 ## Feature Selection is a Bad Idea

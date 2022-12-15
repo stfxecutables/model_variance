@@ -22,6 +22,7 @@ def ensure_dir(path: Path) -> Path:
 
 
 ROOT = Path(__file__).resolve().parent.parent
+RESULTS = ensure_dir(ROOT / "results")
 DATA = ensure_dir(ROOT / "data")
 PQS = ensure_dir(DATA / "parquet")
 CAT_REDUCED = ensure_dir(PQS / "categorical_reductions")

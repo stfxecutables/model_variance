@@ -34,6 +34,7 @@ statsmodels = "^0.13.2"
 tqdm = "^4.64.1"
 umap-learn = "^0.5.3"
 pyarrow = "^10.0.0"
+pyqt5 = "^5.15.7"
 
 
 [tool.poetry.group.dev.dependencies]
