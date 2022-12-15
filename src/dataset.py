@@ -283,7 +283,7 @@ class Dataset:
             return np.load(outfile).get("distances").astype(np.float64)
 
         cluster = str(os.environ.get("CC_CLUSTER")).lower()
-        n_jobs = {"none": -1, "niagara": 32, "cedar": 32}[cluster]
+        n_jobs = {"none": -1, "niagara": 16, "cedar": 32}[cluster]
         nn = NearestNeighbors(n_neighbors=2, n_jobs=n_jobs)
         nn.fit(X)
         dists: ndarray = nn.kneighbors(X, n_neighbors=2, return_distance=True)[0][:, 1]
