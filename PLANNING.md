@@ -53,11 +53,62 @@ As this
   1)$ for each sample $x$)
 -
 
-### "Safe" Data Perturbation Methods
+### Label-Preserving Data Perturbation Methods
 
-KNN and Voronoi
+
+For a data point $\bm{x} \in \mathbb{R}^p$, a label-preserving perturbation
+$\mathcal{P}(\bm{x}) = \tilde{\bm{x}} \in \mathbb{R}^p$ is a point that satisfies both:
+
+1. If there is a function $f: \mathbb{R}^p \mapsto \mathbb{R}$ such that $f(\bm{x}) = y$
+   returns the correct label $y$ for $\bm{x}$, then $f(\bm{x}) = f(\tilde{\bm{x}})$
+2. $\lVert \bm{x} - \tilde{\bm{x}} \rVert$ is "small"
+
+In general, unless we know the true $f$, we cannot necessarily say if condition (1)
+actually holds, unless we can define $\mathcal{P}$ in such a way that it is clear
+that condition (1) is satisfied. For example, in the case adversarial attacks on images with
+$\ell_{\infty} = 1 / 255$, then since such an intensity perturbation is human-imperceptible,
+we can confidently say that it will not alter the human-ascribed image label $y$.
+
+However, for arbitrary tabular data, or even embedded tabular data, we cannot
+so easily say whether a perturbation is label-preserving. In particular,
+perturbation of a categorical predictor (by switch it to another class label,
+for example) may not ever be label-preserving in many datasets. Likewise, where
+class manifolds are separated by Hausdorff distance $d$, any perturbation in
+the wrong direction, and slightly larger than $d$ will not be label-preserving.
+
+However, we also do not know $d$ in general, nor do we know the direction of $d$.
+We cannot even in general say that for a sample $\bm{x}$, and nearest-neighbour
+$\bm{x}_{\text{nn}}$, that $\bm{x}_{\text{nn}}$ belongs to the same class as $\bm{x}$.
+
+However, consider the open ball $B(\bm{x}, \delta)$, where $\delta < \lVert \bm{x} - \tilde{\bm{x}} \rVert / 2 $. By the triangle inequality, any sample drawn from this open ball is closer to
+$\bm{x}$ than to $\bm{x}_{\text{nn}}$. That is, this ball is contained within the Voronoi
+cell of $\bm{x}$.
+
+However, there are only three possibilities for the neighbour $\bm{x}_{\text{nn}}$. Let
+$V(\bm{x})$ denote the Voronoi cell
+
+1. $f(\bm{x}_{\text{nn}}) = f(\bm{x})$
+2.
+
+
+that can be observed
+
+a point also the point
+$\tilde{\bm{x}} = \bm{x} + \bm{\delta}$ for some $\bm{\delta} \in \mathbb{R}^p$,
+which has the property that $\lVert\tilde{\bm{x}} - \bm{x}\rVert < \epsilon(\bm{x})$
+A *random perturbation method* $\mathcal{P}$ is
+an algorithm that produces such a $\bm{\delta}$ for a given $\bm{x}$ i.e.
+$\mathcal{P}(\bm{x}) = \bm{\delta}$, and we can define the set of perturbations
+of $\bm{x}$ to be $\mathcal{P}_{\bm{x}} = \{\bm{x} + \mathcal{P}(\bm{x})\} : $
+i
+set of all
+
+if
+A perturbation $\bm{\delta}$ is "safe"
+
 One natural choice for perturbation is to perturb each sample to a random
-location within its Voronoi cell, i.e. as https://arxiv.org/pdf/1905.01019.pdf
+location within its Voronoi cell, i.e. as in https://arxiv.org/pdf/1905.01019.pdf.
+However, this is computationally expensive, and assumes that
 
 There are three possible forms for the function $h$ determining the maximum
 perturbation $\epsilon_i$ given data $\bm{X} \in \mathbb{R}^{n \times p}$, s.t.
