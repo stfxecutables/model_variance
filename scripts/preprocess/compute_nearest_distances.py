@@ -29,6 +29,7 @@ def compute_distances_failsafe(ds_reduction: tuple[Dataset, int | None]) -> None
         traceback.print_exc()
         print(f"Got error: {e} for dataset {ds_reduction[0].name.name}")
         print(ds_reduction[0])
+        sleep(2)
         return None
 
 
@@ -44,7 +45,6 @@ def compute_distances(runtime: RuntimeClass) -> None:
         ds, red = ds_reduction
         pbar.set_description(desc.format(ds=str(ds), red=red))
         compute_distances_failsafe(ds_reduction)
-        sleep(2)  # ????
     pbar.close()
 
 
