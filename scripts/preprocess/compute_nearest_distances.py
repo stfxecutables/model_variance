@@ -52,6 +52,6 @@ def compute_distances(runtime: RuntimeClass) -> None:
 
 if __name__ == "__main__":
     filterwarnings("ignore", category=PerformanceWarning)
-    compute_distances(RuntimeClass.Fast)
-    compute_distances(RuntimeClass.Mid)
+    # compute_distances(RuntimeClass.Fast)
+    # compute_distances(RuntimeClass.Mid)
     compute_distances(RuntimeClass.Slow)
