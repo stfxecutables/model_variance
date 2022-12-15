@@ -8,6 +8,7 @@ sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
 
+import os
 import re
 import sys
 from argparse import ArgumentParser, Namespace
@@ -38,13 +39,13 @@ from numpy import ndarray
 from numpy.typing import NDArray
 from pandas import CategoricalDtype, DataFrame, Series
 from pandas.errors import PerformanceWarning
+from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import OneHotEncoder
 from tqdm import tqdm
 from tqdm.contrib.concurrent import process_map
 from typing_extensions import Literal
-from umap import UMAP
 
-from src.constants import CAT_REDUCED, CONT_REDUCED
+from src.constants import CAT_REDUCED, CONT_REDUCED, DISTANCES
 from src.enumerables import DatasetName
 
 JSONS = ROOT / "data/json"
@@ -92,6 +93,10 @@ def load(name: DatasetName) -> Dataset:
 
 def reduce_continuous(dataset: Dataset, percent: int) -> NDArray[np.float64] | None:
     # do not bother with all-categorical data here
+    from umap import UMAP
+
+    # import here to avoid container caching issue
+
     if dataset.name in [DatasetName.Kr_vs_kp, DatasetName.Car, DatasetName.Connect4]:
         return None
     outfile = CONT_REDUCED / f"{dataset.name.name}_{percent}percent.npy"
@@ -124,6 +129,8 @@ def reduce_categoricals(dataset: Dataset) -> NDArray[np.float64] | None:
 
     in spirit, but just embed all dummified categoricals to two dimensions.
     """
+    from umap import UMAP
+
     outfile = CAT_REDUCED / f"{dataset.name.name}.npy"
     if outfile.exists():
         reduced: NDArray[np.float64] = np.load(outfile)
@@ -165,6 +172,58 @@ class Dataset:
             self.remove_constant(df)
             self.data_ = df
         return self.data_
+
+    def get_X_continuous(self, reduction: int | None = None) -> ndarray | None:
+        if reduction not in [None, 25, 50, 75]:
+            raise ValueError("`percent` must be in [None, 25, 50, 75]")
+
+        if reduction is None:
+            df = self.data.drop(columns="__target")
+            X_f: ndarray = np.asarray(
+                df.select_dtypes(exclude=[CategoricalDtype]).astype(np.float64)
+            )
+            X_f -= X_f.mean(axis=0)
+            X_f /= X_f.std(axis=0)
+            return X_f
+
+        X: ndarray | None = reduce_continuous(self, percent=reduction)
+        if X is None:
+            return None
+        if X.ndim == 0:
+            X = X.reshape(-1, 1)
+        return X
+
+    def get_X_categorical(self, reduction: int | None = None) -> ndarray | None:
+        """
+        Returns
+        -------
+        categoricals: ndarray
+            If `reduction` is None, returns a concatenation of all one-hot
+            encoded matrices of all categoricals, i.e. the equivalent of
+            `pd.get_dummies(X_cat)` where X_cat is the categorical variables of
+            the data.
+
+            If `reduction` in [25, 50, 75], then returns the UMAP categorical
+            reduction using the one-hot concatenation above, with the Jaccard
+            distance metric, and thus the matrix is NOT sparsely populated as
+            it is in the `None` case above.
+        """
+        if reduction not in [None, 25, 50, 75]:
+            raise ValueError("`percent` must be in [None, 25, 50, 75]")
+
+        if reduction is None:
+            df = self.data.drop(columns="__target")
+            cats = df.select_dtypes(include=[CategoricalDtype])
+            if cats.shape[1] == 0:
+                return OneHotEncoder(sparse=False).fit_transform(cats).astype(np.float64)  # type: ignore
+            return pd.get_dummies(cats).astype(np.float64).to_numpy()  # type: ignore
+
+        X = reduce_categoricals(self)
+        if X is None:  # fine, reduct is just continues vars
+            return None
+        if X.ndim == 0:
+            X = X.reshape(-1, 1)
+        return X
 
     def X_reduced(self, percent: int) -> ndarray | None:
         if percent not in [25, 50, 75]:
@@ -209,6 +268,30 @@ class Dataset:
         sds = cont.std(axis=0).to_numpy()
         drop = cols[sds == 0]
         df.drop(columns=drop, inplace=True)
+
+    def nearest_distances(self, reduction: int | None) -> ndarray | None:
+        if reduction not in [None, 25, 50, 75]:
+            raise ValueError("`percent` must be in [25, 50, 75]")
+        label = "" if reduction is None else f"_reduce={int(reduction):02d}"
+        outfile = DISTANCES / f"{self.name.name}{label}_distances.npz"
+
+        X = self.get_X_continuous(reduction)
+        if X is None:
+            return None
+
+        if outfile.exists():
+            return np.load(outfile).get("distances").astype(np.float64)
+
+        cluster = str(os.environ.get("CC_CLUSTER")).lower()
+        n_jobs = {"none": -1, "niagara": 40, "cedar": 32}[cluster]
+        nn = NearestNeighbors(n_neighbors=2, n_jobs=n_jobs)
+        nn.fit(X)
+        dists: ndarray = nn.kneighbors(X, n_neighbors=2, return_distance=True)[0][:, 1]
+        np.savez_compressed(outfile, distances=dists.astype(np.float32))
+        print(
+            f"Saved precomputed distances for {self.name.name}@reduction={reduction} to {outfile}"
+        )
+        return dists
 
     @property
     def nrows(self) -> int:
