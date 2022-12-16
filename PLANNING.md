@@ -170,9 +170,15 @@ that will tend to be "human-invisible" for most naive data printing.
 
 #### Smallest Bin Perturbation
 
-Given a feature vector of $n$ samples, $x \in \mathbb{R}^n$, and the 5th
-percentile $x_{0.05}$, then less than or equal to 5% of samples fall within
-the range $[x_{\min}, x_{0.05}]$.
+Given a feature vector of $n$ samples, $x \in \mathbb{R}^n$, and the pth
+percentile $x_p$, then less than or equal to p% of samples fall within
+the range $[x_{\min}, x_p]$ (i.e. less than or equal to 5% of samples are in
+$[x_{\min}, x_{0.05}]$). Define $\delta = x_p$, and define *the smallest bin
+perturbation of size $p$* to be $\tilde{x}$ such that
+
+$$\tilde{x}_i = \min(x_{\min}, x_i + r*\delta), \quad r \sim \text{U}(-1, 1)$$
+
+
 
 ## Hyperparameter Sensitivity
 
