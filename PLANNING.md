@@ -11,7 +11,7 @@ of datasets, and with various typical classifiers and/or regressors. There
 would be five main sources of (model) variance:
 
 1. data downsampling
-1. feature selection [questionable]
+1. dimension reduction
 1. training sample perturbation
 1. test sample perturbation
 1. hyperparameter perturbation
@@ -55,7 +55,7 @@ As this
 
 ### Label-Preserving Data Perturbation Methods
 
-#### "Half-Neighbout" Perturbation
+#### "Half-Neighbour" Perturbation
 
 For a data point $\bm{x} \in \mathbb{R}^p$, a label-preserving perturbation
 $\mathcal{P}(\bm{x}) = \tilde{\bm{x}} \in \mathbb{R}^p$ is a point that satisfies both:
@@ -146,41 +146,30 @@ def sig_perturb(x: ndarray, n_digits: int = 1) -> ndarray:
     return x + delta * np.random.uniform(-1, 1, x.shape)
 ```
 
+E.g. from `scratch.py` (note that in scientific notation X.abc... the digit
+in "X" we consider the "zeroth" significant digit:
+
+```
+Original x value: 2.4382e+02
+Showing / perturbing at first significant digit
+              x: [[2.4e+02]]
+perturbed range:  [2.4e+02 2.5e+02]
+
+Showing / perturbing at second significant digit
+              x: [[2.44e+02]]
+perturbed range:  [2.43e+02 2.45e+02]
+
+Showing / perturbing at third significant digit
+              x: [[2.438e+02]]
+perturbed range:  [2.428e+02 2.448e+02]
+```
+
+That is, most of the time, the perturbed value will appear to be the same as the
+original value when viewed with the original precision, i.e. these are perturbations
+that will tend to be "human-invisible" for most naive data printing.
 
 
 
-Simulating relative
-error is quite straightforward: for a sample from any feature, $x \in \mathbb{R}$,
-we can simply define relative perturbation to be
-
-$$\tilde{x}  = x \cdot r, \qquad r \sim U(1 - \delta, 1 + \delta)$$
-
-where we take $\epsilon \in \{0.1, 0.05, 0.01\}$, to simulate relative
-measurement errors of 10%, 5%, and 1%, respectively. Note that a $\delta$ of
-$0.1$ means that in scientific notation with one significant digit, if e.g.
-$x = 5 \times 10^k$ for $k \in \mathbb{Z}$, then $x \cdot r$
-
-This type of
-perturbation will tend to be class-preserving when
-between the samples and class labels grows exceedingly quickly, since
-
-$$
-\begin{align}
-f(\tilde{\bm{x}}) &= f(r \cdot{\bm{x}})   \\
-\nabla_x \left( f(\tilde{\bm{x}}) \right) &= \nabla_x \left(f(r \cdot{\bm{x}})\right)   \\
-                           &= \nabla_x f(r \cdot{\bm{x}}) \cdot \nabla_x (r \cdot \bm{x})   \\
-                           &= r \cdot \nabla_x f(r \cdot{\bm{x}}) \cdot \nabla_x (\bm{x})   \\
-                           &= r \cdot \nabla_x f(r \cdot{\bm{x}}) \cdot \mathbf{1}   \\
-                           &= r \cdot \nabla_x f(r \cdot{\bm{x}})    \\
-\end{align}
-$$
-
-assumptions
-
-
-
-In the absolute case, the
-variance (or other robust measure of scale, like the IQR) is
 
 
 ## Feature Selection is a Bad Idea

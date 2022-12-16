@@ -73,11 +73,11 @@ def sig_perturb_demo() -> None:
         }[N_DIGITS]
         print(f"Showing / perturbing at {nth} significant digit")
         print("              x:", x[0][0].reshape(-1, 1))
+        # N2 = N_DIGITS if N_DIGITS > 1 else N_DIGITS + 1
+        N2 = N_DIGITS
         np.set_printoptions(
             formatter={
-                "float": lambda x: np.format_float_scientific(
-                    x, precision=N_DIGITS, trim="k"
-                )
+                "float": lambda x: np.format_float_scientific(x, precision=N2, trim="k")
             }
         )
         print("perturbed range: ", ps)
