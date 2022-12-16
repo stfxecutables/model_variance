@@ -169,6 +169,91 @@ original value when viewed with the original precision, i.e. these are perturbat
 that will tend to be "human-invisible" for most naive data printing.
 
 
+## Hyperparameter Sensitivity
+
+Any generally useful algorithm $f$ which learns a mapping $f(x) = y$ from data
+samples $x \sim \mathcal{X}$ and targets $y$ will be useful in part because it
+has hyperparameters that allow it to be tuned to different distributions and/or
+tasks. That is, it will in fact be that $f(x) = f(x; \theta)$ for some $\theta
+\in \Theta \subset \mathbb{R}^m$. Supposing such an algorithm also has tunable parameters or "weights"
+$w \in \mathbb{R}^q$, we can also write $f(x) = f(x; w, \theta)$, and most optimization
+or fitting routines for $f$ will optimize only $w$ (usually because estimation of
+$\nabla_{\theta}f$ is not computationally efficient or tractable).
+
+For some algorithms, the choice of $\theta$ (or of most values of theta) will
+not have a large impact on the performance most problems. In this case,
+intuitively, for continuous hyperparmeters, $\nabla_{\theta}f$ or
+$\frac{\partial f}{\partial \theta_i}$ is usually small for most $i$, and for
+ordinal (e.g. polynomial fitting degree) or categorical (e.g. choice between
+Adam vs SGD optimizer) hyperparameters, the differences between these
+ordinal/categorical choices is also small.
+
+However, for other algorithms, the choice of $\theta$ is significiant. Choosing
+a bad initial learning rate and/or weight decay can reduce some neural networks
+performance no better than guessing (or even training failure, due to NaNs
+resulting from under/overflows). Even within a "good" region of hyperparameter
+space, careful tuning of $\theta$ can mean the difference between SOTA and
+results that are half a decade out-of-date.
+
+All other considerations being equal, greater sensitivity to $\theta$ means more
+time must be spent exploring the hyperparameter space $\Theta$.
+
+In addition, most hyperparameter tuning procedures assume a fixed data $X$
+sampled from some fixed distribution $\mathcal{X}$. However, most real-world
+deployed models instead are trained on growing data $X_0 \subset X_1 \dots $ or
+sequences of datasets in which the training set may overlap with past training
+sets to varying degrees. The frequency and importance of re-tuning will largely
+depend on a combination of the sensitivity of the fitting + tuning procedure to
+the data $X$ and and the hyperparmater sensitivity:
+
+For example, if an algorithm is highly insensitive to the data (e.g.
+regularized linear regression like LASSO or or Ridge Regression), one should
+expect consistent model performance with updated data *if* $\theta$ is
+unchanged. Rather, it is $\theta$ that should be expected to have larger impacts
+on future performance. Roughly $|\nabla_X \mathcal{L}_T(X) | < |\nabla_\theta \mathcal{L}_T(X)| $ for tuning
+procedure T and tuning loss function $\mathcal{L_T}$.
+
+By contrast, we have strong reason to beleive that deep CNNs should be able to
+perform well on most image classification tasks that most human beings do not
+find to be too difficult (e.g. ImageNet and CIFAR-100 classification). In fact,
+it is likely such models perform well on tasks humans find more difficult
+(person recogntion, tumor identification, etc), and that it is not
+*unreasonable* to assume that if you have an image classification task that
+humans or expert humans can perform, and which does not require extensive image
+pre-processing, then a CNN ought to be able to perform extremely well *provided
+there is sufficient data and/or augmentation*.
+
+That is, deep learning models $f_{\theta}$ are such that we have very strong
+reasons to believe that, for *most* problems, there is a $\theta^{\star}$ such
+that $f_{\theta^{\star}}$ will outperform almost all classical or custom
+approaches. I.e. *regardless of the data $X$*, we can probably tune to some performance greater than the best performance of some classical model.
+
+**HOWEVER** the cost of this tuning (and the relative gain) might be such that it is more
+econmically / resource efficient to simply use the classical model that does not need
+regular re-tuning with incoming data (or needs it only once a year), even if it loses
+some negligible amount of performance.
+
+However, for some deep models (e.g. GANs) training is known to be highly temperamental.
+If training data $X_2$ differs enough from $X_1$, it is possible your previously-working
+GAN might not even converge at all, or just might produce unacceptable resutls in $X_2$.
+
+However, supposing one has a family of models (e.g. WideResNets) deployed, then
+as data rolls in, the sensitivity of performance to $\theta$ (e.g. WideResNet depth and width, augmentation, learning rate, weight decay)
+
+ If an algorithm is known to be sensitive to choice of
+$\theta$, then it will necessarily be the case that
+data.
+
+In the above case, if a tuning procedure $T(\mathcal{F}, X, \theta) = \theta^{\star}$,
+where $\mathcal{F} = \{f_{\theta}: \theta \in \Theta\}$. Or equivalently,
+$T(\mathcal{F}, X, \theta) = f_{\theta^{\star}}$. This means the tuning procedure
+has a performance:
+
+$$
+\mathcal{L}(f_{\theta^{\star}}(X_{\text{test}}, y_{\text{test}}))
+$$
+
+$$ |\theta_1^{\star} - \theta_2^{\star}|$$
 
 
 
@@ -186,31 +271,24 @@ to know if differences across runs are just due to the feature subsets.
 
 Number of features varies from 4 - 2001:
 ```
-  0  -   9  |   7
- 10  -  19  |   6
- 20  -  49  |  11
- 50 -   99  |   3
-100 -  499  |   6
-500 -  999  |   3
-      1000+ |   3
+    n_features |   n_datasets
+ --------------+-------------
+    0  -   9   |    7
+   10  -  19   |    6
+   20  -  49   |   11
+   50 -   99   |    3
+  100 -  499   |    6
+  500 -  999   |    3
+        1000+  |    3
 ```
 
-Supposing we reduce to 25%, 50%, 75%, and 100% of original dataset with UMAP, then we
-can technically look at a feature-reduced version of each dataset, and can easily plot
-the four choices.
+### Non-Linear Reductions
 
-If we limit these analyses to a subset (say, all datasets with n_features > 10, or > 50),
-then we could do more fine-grained reductions (e.g. every 20%, every 10%). Based on
-https://umap-learn.readthedocs.io/en/latest/performance.html, UMAP is extremely fast.
-Our worst dataset is devnagari-script (920 000 samples, 1025 features). With 8 cores
-on the precision, this is:
+We reduce datasets to 25%, 50%, 75%, and 100% of original dataset dimensionalities with
+[UMAP](https://arxiv.org/abs/1802.03426). There is no point in using e.g. linear
+reduction methods which are dated and harmful in almost all real-world prediction problems.
 
-```
-Took 525.9128837585449 seconds for ndim=256 (~9 minutes)
-Took 1467.2435109615326 seconds for ndim=512 (~25 minutes)
-```
 
-so likely with the 40/80 cores on Niagara is very fast even in worst case.
 
 # Specifics / ALternatives
 
