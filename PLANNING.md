@@ -168,6 +168,11 @@ That is, most of the time, the perturbed value will appear to be the same as the
 original value when viewed with the original precision, i.e. these are perturbations
 that will tend to be "human-invisible" for most naive data printing.
 
+#### Smallest Bin Perturbation
+
+Given a feature vector of $n$ samples, $x \in \mathbb{R}^n$, and the 5th
+percentile $x_{0.05}$, then less than or equal to 5% of samples fall within
+the range $[x_{\min}, x_{0.05}]$.
 
 ## Hyperparameter Sensitivity
 
