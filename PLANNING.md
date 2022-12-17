@@ -1,3 +1,4 @@
+
 # Original Plan
 
 I believe the right approach for a paper given the easy swappablity of the
@@ -176,7 +177,21 @@ the range $[x_{\min}, x_p]$ (i.e. less than or equal to 5% of samples are in
 $[x_{\min}, x_{0.05}]$). Define $\delta = x_p$, and define *the smallest bin
 perturbation of size $p$* to be $\tilde{x}$ such that
 
-$$\tilde{x}_i = \min(x_{\min}, x_i + r*\delta), \quad r \sim \text{U}(-1, 1)$$
+$$\tilde{x}_i = \min(x_{\min}, x_i + r_i \cdot \delta), \quad r_i \sim \text{U}(-1, 1)$$
+
+
+#### Perturbation of Categorical Variables
+
+Given a categorical feature $x$ which is a vector of values from the $c$ class
+labels $\mathcal{C} = \{0, 1, \dots, c - 1\}$, it is possible to "perturb" $x$
+by replacing each label (with some low probability $p$) with a different random label
+in $\mathcal{C}$. This would typically be called *label noise* when this kind of
+perturbation is on the classification targets, and see  [this
+paper](https://doi.org/10.1109/TNNLS.2013.2292894) for an excellent review of
+the impacts on all the usual ML classifiers.
+
+However, the impact of *predictor* "label noise" is perhaps less studied. We
+thus test all perturbations with 0%, 5%, and 10% predictor label noise.
 
 
 
@@ -201,72 +216,199 @@ ordinal/categorical choices is also small.
 
 However, for other algorithms, the choice of $\theta$ is significiant. Choosing
 a bad initial learning rate and/or weight decay can reduce some neural networks
-performance no better than guessing (or even training failure, due to NaNs
+performance to no better than guessing (or even training failure, due to NaNs
 resulting from under/overflows). Even within a "good" region of hyperparameter
 space, careful tuning of $\theta$ can mean the difference between SOTA and
 results that are half a decade out-of-date.
 
 All other considerations being equal, greater sensitivity to $\theta$ means more
-time must be spent exploring the hyperparameter space $\Theta$.
+time must be spent exploring the hyperparameter space $\Theta$, but that there is
+more likely be values in $\Theta$ that lead to increased performance.
 
-In addition, most hyperparameter tuning procedures assume a fixed data $X$
+### Most Tuning Procedures Assume Fixed Data
+
+Most hyperparameter tuning procedures assume a fixed data $X$
 sampled from some fixed distribution $\mathcal{X}$. However, most real-world
 deployed models instead are trained on growing data $X_0 \subset X_1 \dots $ or
-sequences of datasets in which the training set may overlap with past training
-sets to varying degrees. The frequency and importance of re-tuning will largely
+sequences of datasets in which the training set may only overlap with past training
+sets to some limited degree. The frequency and importance of re-tuning will largely
 depend on a combination of the sensitivity of the fitting + tuning procedure to
-the data $X$ and and the hyperparmater sensitivity:
+the data $X$ and and the *hyperparmater sensitivity*.
+
 
 For example, if an algorithm is highly insensitive to the data (e.g.
 regularized linear regression like LASSO or or Ridge Regression), one should
 expect consistent model performance with updated data *if* $\theta$ is
-unchanged. Rather, it is $\theta$ that should be expected to have larger impacts
-on future performance. Roughly $|\nabla_X \mathcal{L}_T(X) | < |\nabla_\theta \mathcal{L}_T(X)| $ for tuning
-procedure T and tuning loss function $\mathcal{L_T}$.
+unchanged. Rather, it is $\theta$ that should be expected to have larger
+impacts on future performance. Roughly $|\nabla_X \mathcal{L}_T(X; \theta) | <
+|\nabla_\theta \mathcal{L}_T(X; \theta)| $ for tuning procedure T and tuning
+loss function $\mathcal{L_T}$.
 
-By contrast, we have strong reason to beleive that deep CNNs should be able to
-perform well on most image classification tasks that most human beings do not
-find to be too difficult (e.g. ImageNet and CIFAR-100 classification). In fact,
-it is likely such models perform well on tasks humans find more difficult
-(person recogntion, tumor identification, etc), and that it is not
-*unreasonable* to assume that if you have an image classification task that
-humans or expert humans can perform, and which does not require extensive image
-pre-processing, then a CNN ought to be able to perform extremely well *provided
-there is sufficient data and/or augmentation*.
+#### A Definition of Hyper-parameter Sensitivity
 
-That is, deep learning models $f_{\theta}$ are such that we have very strong
-reasons to believe that, for *most* problems, there is a $\theta^{\star}$ such
-that $f_{\theta^{\star}}$ will outperform almost all classical or custom
-approaches. I.e. *regardless of the data $X$*, we can probably tune to some performance greater than the best performance of some classical model.
+Given a model $f$ with parameters $\theta \in \mathbb{R}^m$ that operates on
+data $X$ with targets $Y$, with performance criterion $\mathcal{C}$, we can define the overall
+model performance to be
 
-**HOWEVER** the cost of this tuning (and the relative gain) might be such that it is more
-econmically / resource efficient to simply use the classical model that does not need
-regular re-tuning with incoming data (or needs it only once a year), even if it loses
-some negligible amount of performance.
+$$ \mathcal{C} \big(f(X; \theta), Y\big) \in \mathbb{R}$$
 
-However, for some deep models (e.g. GANs) training is known to be highly temperamental.
-If training data $X_2$ differs enough from $X_1$, it is possible your previously-working
-GAN might not even converge at all, or just might produce unacceptable resutls in $X_2$.
 
-However, supposing one has a family of models (e.g. WideResNets) deployed, then
-as data rolls in, the sensitivity of performance to $\theta$ (e.g. WideResNet depth and width, augmentation, learning rate, weight decay)
+We may not in general have differentiability here with respect to the data $X$,
+i.e. neither $\nabla_X\mathcal{C}$ nor $\nabla_\theta\mathcal{C}$ need exist. Or, we may have that
+$\theta = (\vartheta, w)$, where $w$ is something like model weights, and where
+$\nabla_w\mathcal{C} \big(f(X, \vartheta, w), Y\big)$ exists, but
+$\nabla_{\vartheta}$ does not (e.g. the cases where $\vartheta$ is a
+categorical or ordinal variable), or is not easily computable. In this case we
+tend to call $\vartheta$ the hyperparameters (or hparams, for short).
 
- If an algorithm is known to be sensitive to choice of
-$\theta$, then it will necessarily be the case that
-data.
+Since we do *not* generally have gradients for hparams, we need a way to
+define hyperparameter sensitivity. Let us propose two notions of hparam
+sensitivity
 
-In the above case, if a tuning procedure $T(\mathcal{F}, X, \theta) = \theta^{\star}$,
-where $\mathcal{F} = \{f_{\theta}: \theta \in \Theta\}$. Or equivalently,
-$T(\mathcal{F}, X, \theta) = f_{\theta^{\star}}$. This means the tuning procedure
-has a performance:
+##### Global Hyperparameter Sensitivity
+
+Define the global hyperparameter sensitivity for a model $f$ on data $X$ with criterion $\mathcal{C}$ to be
 
 $$
-\mathcal{L}(f_{\theta^{\star}}(X_{\text{test}}, y_{\text{test}}))
+\eta_{\max}(f, X, \Theta_{\text{def}}) =
+\sup_{\theta_1, \theta_2 \in \Theta_{\text{def}}} \Big\lVert \mathcal{C}(f(X; \theta_1)) - \mathcal{C}(f(X; \theta_2)) \Big\rVert
 $$
 
-$$ |\theta_1^{\star} - \theta_2^{\star}|$$
+where $\Theta_{\text{def}}$ is some default subset of the total hyperparameter space
+widely regarded as containing appropriate hyperparameter ranges. That is, the global
+hparam sensitivity is the largest possible performance difference on $\Theta_{\text{def}}$.
+
+E.g. if we have a deep-learning classifier model $f$ that classifies $c$
+classes, and  $\Theta = \mathbb{R}^2$ and $\Theta_1$ is the deep-learning
+(initial) learning rate, and $\Theta_2$ is the deep learning weight decay, then
+$\Theta_{\text{def}}$ is (conservatively) something like $\Theta_{\text{def}} =
+\Theta_1 \times \Theta_2 = [1 \times 10^{-6}, 1.0] \times [0, 0.1]$, and if
+$\mathcal{C}$ is the accuracy, then typically accuracy will vary between
+guessing ($1/c$) and something less than perfect accuracy, so that $\eta_{\max}
+< \frac{c-1}{c}$.
+
+##### Local Hyperparameter Sensitivity
+
+Suppose we further restrict $\Theta_{\text{def}}$ to be compact (which is
+always true in practice), and assume, for the given data $(X, Y)$, that
+$\mathcal{C}(\theta) = \mathcal{C}(f(X; \theta), Y)$ is bounded and
+continuous (that is, assume for a moment that there are no oridinal or
+categorical hyperparameters, and that the real-valued hyperparameters influence
+the criterion in a reasonably-well-behaved manner). Then $\mathcal{C}_{\theta}$ is Lipschitz on
+$\Theta_{\text{def}}$ and has Lipschitz constant $\eta_{\min}$ such that
+
+$$
+\lVert \mathcal{C}(\theta_1) - \mathcal{C}(\theta_2) \rVert
+<
+\eta_{\min} \left\lVert \theta_1 - \theta_2 \right\rVert
+\quad \forall \theta_1, \theta_2  \in \Theta_{\text{def}}
+$$
+
+where
+
+$$
+\eta_{\min} = \inf_{\eta \in \mathbb{R}} \big\{
+\lVert \mathcal{C}(\theta_1) - \mathcal{C}(\theta_2) \rVert
+<
+\eta \left\lVert \theta_1 - \theta_2 \right\rVert
+\;\; \forall \; \theta_1, \theta_2  \in \Theta_{\text{def}} \big\}
+$$
+
+Here, $\eta_{\min}$ is the ***local hyperparameter sensitivity*** of $f$ on $X$
+for criterion $\mathcal{C}$. In practice, we will never find $\eta_{\min}$, and
+given a set of evaluated choices $\Theta_{\text{eval}} = \{\theta_1, \dots, \theta_H\}$, we will simply
+define the empirical local hyperparameter sensitivity $\eta_{\min}$ to be
+
+$$
+\eta_{\min} \le \max \Bigg\{
+\frac{\big\lVert \mathcal{C}(\theta_1) - \mathcal{C}(\theta_2) \big\rVert}
+{\lVert \theta_1 - \theta_2 \rVert}
+\quad \forall \ \theta_1, \theta_2  \in \Theta_{\text{eval}} \Bigg\}
+$$
+
+ie. the empirically largest observed ratio between the criterion distance and
+hyperparameter distance is just a lower bound on the local hyperparameter
+sensitivity.
+
+In addition, the differing scales of the continuous hyperparameters can be a problem for
+interpretation here.
 
 
+###### Extension to Categorical and Ordinal Hyperparams
+
+
+
+^[If we cannot assume the continuity of $g$ here, this ]
+
+(continuous function on compact set is Lipschitz: https://math.stackexchange.com/a/2338876)
+  we ideally want to say that
+something like that a pseudo-Lipshchitz constant $K^{(i)}$ exists for each
+hyperparameter component $\theta^{(i)}$ such that
+
+
+where:
+
+$$
+\mathcal{D} ( \theta^{(i)}_1 - \theta^{(i)}_2 ) =
+\begin{cases}
+\lVert \theta^{(i)}_1 - \theta^{(i)}_2 \rVert  & \text{ if } \theta^{(i)} \text{ continuous or ordinal}\\
+1  & \text{ if } \theta^{(i)} \text{ categorical }\\
+\end{cases}
+$$
+
+Unfortunately, this too is likely not possible in most cases, since the effect
+of changing $\theta^{(i)}$ is likely in general to depend on the value of all
+other $\theta^{(j)}$ for $j \ne i$ (i.e. we expect $K^{(i)} = K^{(i)}(\theta)$
+in actual practice), and thus at best we can likely obtain:
+
+$$
+\lVert \mathcal{L}(X; \theta_1) - \mathcal{L}(X; \theta_2) \rVert
+<
+K \cdot  \mathcal{D} \left( \theta_1 - \theta_2 \right)
+\quad \forall \theta_1, \theta_2  \in \Theta_{\text{def}} \subset \Theta
+$$
+
+where
+
+$$
+\mathcal{D} \left( \theta_1 - \theta_2 \right) \propto \sum_i \mathcal{D} ( \theta^{(i)}_1 - \theta^{(i)}_2 )
+$$
+
+and where $\Theta_{\text{def}}$ is some "default" subset of the total hyperparameter space
+found through earlier experimentation.
+
+
+That is, for "continuous" hyperparameters that can take on all values in some subet of $\mathbb{R}$, we
+want to say
+
+By contrast, we now have strong reason to believe that, *when properly-trained
+with sufficient data* deep neural networks (NNs) will be able to approach or
+even exceed human performance in a wide variety of domains with well-defined
+problems (e.g. image classification or segmentation, audio/text/image
+generation, etc). If we know we have already started with sufficient data $X_0$,
+and will only be acquiring increasing samples of data $X_i \subset X_{i + 1}$,
+then sensitivity to the data might be less of a concern than "proper training".
+
+That is, given two models with *sufficient capacity for the task at
+hand*, we should likely prefer the model with lower hyperparameter sensitivity
+$|\nabla_\theta \mathcal{L}_T(X; \theta)|$. In other cases, where a model with
+reduced capacity (lower potential performance ceiling) is considerably less
+hyperparameter sensitive than a higher-capacity model, we might also prefer
+the lower-capacity model, either due to tuning costs, or because the greater
+tunability / sensitivity might mean that arbtitrary decisions between very
+different but performance-equivalent hyperparams $\theta_1^{\star}, \theta_2^{\star}, \theta_3^{\star}$
+must be made.
+
+In addition, a model that is both highly data- and hyperparameter-sensitive may
+simply not practically be tuneable at all, since most optimization techniques
+assume at least some smoothness and insensitivity to small changes in the hyperparameters.
+
+
+### Hyperparameter Perturbation and Bi-level Optimization
+
+Estimating the hypergradient $\nabla_{\theta}\mathcal{L}(x; \theta)$ is currently
+an unsolved problem, and is not in general possible in full given categorical and/or
+ordinal components of $\theta$.
 
 ## Feature Selection is a Bad Idea
 
@@ -369,3 +511,12 @@ Total = 40 datasets × 5 downsamples × 4 feature selections × 5-10 sample pert
 But then times runs / repeats is  (2 to 8) × rN × 10^4, smallest r is like 5-10, smallest N is like 10-20,
 so 2 × 5 × 10 e4 = 1e6  to  8 × 10 × 20 e4 =  1.6e7, 16 million. So **between 1 to 16 million 'validations'
 of various sizes and timings**.
+
+# References
+
+## Model Drift / Out-of-Distribution Performance / Model Updating / Calibration Drift / Prediction Differences
+
+- "temporal validation" / "geographic validation" [@steyerbergValidationPredictionModels2019; @moonsPrognosisPrognosticResearch2009]
+- "calibration drift" [@hickeyDynamicTrendsCardiac2013]
+
+
