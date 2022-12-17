@@ -271,12 +271,14 @@ Define the global hyperparameter sensitivity for a model $f$ on data $X$ with cr
 
 $$
 \eta_{\max}(f, X, \Theta_{\text{def}}) =
-\sup_{\theta_1, \theta_2 \in \Theta_{\text{def}}} \Big\lVert \mathcal{C}(f(X; \theta_1)) - \mathcal{C}(f(X; \theta_2)) \Big\rVert
+\sup_{\theta_1, \theta_2 \in \Theta_{\text{def}}} \Big\lvert \mathcal{C}(f(X; \theta_1)) - \mathcal{C}(f(X; \theta_2)) \Big\rvert
 $$
 
-where $\Theta_{\text{def}}$ is some default subset of the total hyperparameter space
-widely regarded as containing appropriate hyperparameter ranges. That is, the global
-hparam sensitivity is the largest possible performance difference on $\Theta_{\text{def}}$.
+where $\Theta_{\text{def}}$ is some default subset of the total hyperparameter
+space widely regarded as containing appropriate hyperparameter ranges, and
+where $\lvert \ \cdot \ \rvert$ denotes the absolute value. That is, the global
+hparam sensitivity is the largest possible performance difference on
+$\Theta_{\text{def}}$.
 
 E.g. if we have a deep-learning classifier model $f$ that classifies $c$
 classes, and  $\Theta = \mathbb{R}^2$ and $\Theta_1$ is the deep-learning
@@ -298,7 +300,7 @@ the criterion in a reasonably-well-behaved manner). Then $\mathcal{C}_{\theta}$ 
 $\Theta_{\text{def}}$ and has Lipschitz constant $\eta_{\min}$ such that
 
 $$
-\lVert \mathcal{C}(\theta_1) - \mathcal{C}(\theta_2) \rVert
+\lvert \mathcal{C}(\theta_1) - \mathcal{C}(\theta_2) \rvert
 <
 \eta_{\min} \left\lVert \theta_1 - \theta_2 \right\rVert
 \quad \forall \theta_1, \theta_2  \in \Theta_{\text{def}}
@@ -308,7 +310,7 @@ where
 
 $$
 \eta_{\min} = \inf_{\eta \in \mathbb{R}} \big\{
-\lVert \mathcal{C}(\theta_1) - \mathcal{C}(\theta_2) \rVert
+\lvert \mathcal{C}(\theta_1) - \mathcal{C}(\theta_2) \rvert
 <
 \eta \left\lVert \theta_1 - \theta_2 \right\rVert
 \;\; \forall \; \theta_1, \theta_2  \in \Theta_{\text{def}} \big\}
@@ -321,21 +323,84 @@ define the empirical local hyperparameter sensitivity $\eta_{\min}$ to be
 
 $$
 \eta_{\min} \le \max \Bigg\{
-\frac{\big\lVert \mathcal{C}(\theta_1) - \mathcal{C}(\theta_2) \big\rVert}
+\frac{\big\lvert \mathcal{C}(\theta_1) - \mathcal{C}(\theta_2) \big\rvert}
 {\lVert \theta_1 - \theta_2 \rVert}
 \quad \forall \ \theta_1, \theta_2  \in \Theta_{\text{eval}} \Bigg\}
 $$
 
 ie. the empirically largest observed ratio between the criterion distance and
-hyperparameter distance is just a lower bound on the local hyperparameter
+hyperparameter distance is only ever a lower bound on the local hyperparameter
 sensitivity.
 
-In addition, the differing scales of the continuous hyperparameters can be a problem for
-interpretation here.
+###### Practical Considerations
+
+
+We have not yet carefully specified the meaning of $\lVert\cdot\rVert$,
+but it should, in most practical cases, be taken to be the L1 or L2 norm.
+
+
+Differing scales of the continuous hyperparameters can also be a problem for
+interpretation of the local hparam sensitivity. E.g. while viable learning
+rates for SGD vary in extreme cases from e.g.  $1 \times 10^{-8}$ to $1.0$, a
+parameter like the dropout rate varies in practice (also in extreme cases) only
+within something like $[0, 0.8]$.
+
+In such cases, rather than using $\lVert \theta_1 - \theta_2 \rVert$, it is likely
+prudent to normalize each dimension of $\theta$ to be in $[0, 1]$, or otherwise
+log-scale such dimensions so that $\theta_i^{\prime} - \theta_i$ means
+something broadly similar to $\theta_j^{\prime} - \theta_j$.
 
 
 ###### Extension to Categorical and Ordinal Hyperparams
 
+For functions of categorical and ordinal parameters, the notion of continuity
+makes little sense. However, the definition of the Lipschitz constant can be
+extended in practically-useful way quite trivially. We define an ordinal
+hyperparameter to be a variable in $\{0, 1, ..., \ell - 1\}$ where $\ell$ is
+the number of levels of the ordinal, and a categorical hyperparameter of $c$
+possible categories to be a variable which can take on the values in $\{0, 1,
+..., c - 1\}$.
+
+Decompose the hyperparameters $\theta$ into $\theta = (\vartheta, \omega,
+\kappa)$ for continous hparams $\vartheta \in \mathbb{R}^n$, ordinal hparams
+$\omega \in \mathbb{Z}^m$, and categorical hparams $\kappa \in \mathbb{Z}^p$.
+Also normalize $\vartheta$ so that $\vartheta \in [0, 1]^n$.
+
+For $x, y \in \mathbb{R}^n$, define
+
+$$
+\left\langle x- y \right\rangle_{\mathcal{D}} = \frac{1}{n} \sum_i^n\lVert x_i - y_i \rVert_{\mathcal{D}}
+$$
+
+to be the average distance, according to the metric $\lVert\cdot\rVert_{\mathcal{D}}$, between the
+components of $x$ and $y$. Then define
+
+$$
+\begin{align}
+\lVert \theta_1 - \theta_2 \rVert = \frac{1}{3}
+\big(
+\langle \vartheta - \vartheta_2 \rangle_{\mathcal{D}} +
+\langle \omega_1 - \omega_2 \rangle_{\mathcal{D}} +
+\langle \kappa_1 - \kappa_2 \rangle_{\mathcal{D}}
+\big)
+\end{align}
+$$
+
+and
+
+$$
+\lVert x - y \rVert_{\mathcal{D}} =
+\begin{cases}
+% \lVert \theta^{(i)}_1 - \theta^{(i)}_2 \rVert  & \text{ if } \theta^{(i)} \text{ continuous}\\
+\lvert x_i - y_i \rvert  & \text{ if } x,y \text{ ordinal or continuous }\\
+1  & \text{ if } x,y \text{ categorical }\\
+\end{cases}
+$$
+
+then $\lVert \theta_1 - \theta_2 \rVert \in [0, 1]$ and
+where $\Theta^{(i)}_{\max}$ is the largest
+
+then as above,
 
 
 ^[If we cannot assume the continuity of $g$ here, this ]
@@ -348,13 +413,6 @@ hyperparameter component $\theta^{(i)}$ such that
 
 where:
 
-$$
-\mathcal{D} ( \theta^{(i)}_1 - \theta^{(i)}_2 ) =
-\begin{cases}
-\lVert \theta^{(i)}_1 - \theta^{(i)}_2 \rVert  & \text{ if } \theta^{(i)} \text{ continuous or ordinal}\\
-1  & \text{ if } \theta^{(i)} \text{ categorical }\\
-\end{cases}
-$$
 
 Unfortunately, this too is likely not possible in most cases, since the effect
 of changing $\theta^{(i)}$ is likely in general to depend on the value of all
