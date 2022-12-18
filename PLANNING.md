@@ -363,9 +363,12 @@ possible categories to be a variable which can take on the values in $\{0, 1,
 
 Decompose the hyperparameters $\theta$ into $\theta = (\vartheta, \omega,
 \kappa)$ for continous hparams $\vartheta \in \mathbb{R}^n$, ordinal hparams
-$\omega \in \mathbb{Z}^m$, and categorical hparams $\kappa \in \mathbb{Z}^p$, such
-that $n + m + p = N$.
-Also normalize $\vartheta$ so that $\vartheta \in [0, 1]^n$ on $\Theta_{\text{def}}$.
+$\omega \in \mathbb{Z}^m$, and categorical hparams $\kappa \in \mathbb{Z}^p$,
+such that $n + m + p = N$. Also normalize $\vartheta$ so that $\vartheta \in
+[0, 1]^n$ on $\Theta_{\text{def}}$^[Ideally, if components of $\vartheta$ are
+typically varied by orders of magnitude, such as the learning rate, then they
+should be transformed first (e.g. via logarithm) to keep all components on a
+similar scale, and facilitate comparison among different hparam sensitivities].
 
 For $x, y \in \mathbb{R}^n$, define
 
@@ -507,30 +510,6 @@ hyperparameter component $\theta^{(i)}$ such that
 where:
 
 
-Unfortunately, this too is likely not possible in most cases, since the effect
-of changing $\theta^{(i)}$ is likely in general to depend on the value of all
-other $\theta^{(j)}$ for $j \ne i$ (i.e. we expect $K^{(i)} = K^{(i)}(\theta)$
-in actual practice), and thus at best we can likely obtain:
-
-$$
-\lVert \mathcal{L}(X; \theta_1) - \mathcal{L}(X; \theta_2) \rVert
-<
-K \cdot  \mathcal{D} \left( \theta_1 - \theta_2 \right)
-\quad \forall \theta_1, \theta_2  \in \Theta_{\text{def}} \subset \Theta
-$$
-
-where
-
-$$
-\mathcal{D} \left( \theta_1 - \theta_2 \right) \propto \sum_i \mathcal{D} ( \theta^{(i)}_1 - \theta^{(i)}_2 )
-$$
-
-and where $\Theta_{\text{def}}$ is some "default" subset of the total hyperparameter space
-found through earlier experimentation.
-
-
-That is, for "continuous" hyperparameters that can take on all values in some subet of $\mathbb{R}$, we
-want to say
 
 By contrast, we now have strong reason to believe that, *when properly-trained
 with sufficient data* deep neural networks (NNs) will be able to approach or
@@ -555,11 +534,28 @@ simply not practically be tuneable at all, since most optimization techniques
 assume at least some smoothness and insensitivity to small changes in the hyperparameters.
 
 
-### Hyperparameter Perturbation and Bi-level Optimization
+### Hyperparameter Perturbation
 
 Estimating the hypergradient $\nabla_{\theta}\mathcal{L}(x; \theta)$ is currently
 an unsolved problem, and is not in general possible in full given categorical and/or
-ordinal components of $\theta$.
+ordinal components of $\theta$. Estimating the hyperparameter sensistivity is by
+contrast straightforward, but computationally expensive.
+
+In practice, continuous hparams are reported with one, or even two signficant
+digits, at best, and for ordinal hparams of roughly seven or more levels, a
+change by one level is likely assumed to result in minor performance
+differences. Some categorical hparams can be expected to result in large
+performance differences on some problems (e.g. the choice of radial vs. linear
+kernal in a support-vector classifier), but in many cases the differences are
+also expected to be smaller (deep-learning optimizer, gradient-boosting loss
+function).
+
+Thus, while we should *not* in general expect model performance to be robust
+to changes in categorical hyperparameters, we should not expect strong
+sensitivity to changes in the second / third significant digits of continuous
+hparams, nor to changes of ordinal levels of less than about 10% or so of the
+total number of levels (e.g. we ought not to expect much performance
+differences between about 200 vs. 250 estimators in XGBoost).
 
 ## Feature Selection is a Bad Idea
 
