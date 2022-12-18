@@ -363,39 +363,133 @@ possible categories to be a variable which can take on the values in $\{0, 1,
 
 Decompose the hyperparameters $\theta$ into $\theta = (\vartheta, \omega,
 \kappa)$ for continous hparams $\vartheta \in \mathbb{R}^n$, ordinal hparams
-$\omega \in \mathbb{Z}^m$, and categorical hparams $\kappa \in \mathbb{Z}^p$.
-Also normalize $\vartheta$ so that $\vartheta \in [0, 1]^n$.
+$\omega \in \mathbb{Z}^m$, and categorical hparams $\kappa \in \mathbb{Z}^p$, such
+that $n + m + p = N$.
+Also normalize $\vartheta$ so that $\vartheta \in [0, 1]^n$ on $\Theta_{\text{def}}$.
 
 For $x, y \in \mathbb{R}^n$, define
 
 $$
-\left\langle x- y \right\rangle_{\mathcal{D}} = \frac{1}{n} \sum_i^n\lVert x_i - y_i \rVert_{\mathcal{D}}
+\left\lVert x- y \right\rVert_{\mathcal{D}} = \sum_i \lvert x_i - y_i \rvert_{\mathcal{D}}
 $$
 
-to be the average distance, according to the metric $\lVert\cdot\rVert_{\mathcal{D}}$, between the
-components of $x$ and $y$. Then define
+to be the sum of distances of the components of $x$ and $y$. Then define
+
+
+$$
+\lvert x - y \rvert_{\mathcal{D}} =
+\begin{cases}
+% \lVert \theta^{(i)}_1 - \theta^{(i)}_2 \rVert  & \text{ if } \theta^{(i)} \text{ continuous}\\
+\lvert x - y \rvert   & \text{ if } x,y \text{ continuous } \\
+\lvert x - y \rvert / \ell  & \text{ if } x,y \text{ ordinal with } \ell \text{ levels }\\
+|x \ominus y|/c  & \text{ if } x,y \text{ categorical with } c \text{ classes }\\
+\end{cases}
+$$
+
+Where $\ominus$ is the symmetric difference $ x \ominus y = (x \cup y)
+\setminus (x \cap y)$, such that $|x \ominus y| / c = 1 - |x \cap y|/c$ is just
+the proportion of different members of $x$ and $y$. That is, $|\cdot|_{\mathcal{D}}$
+just dispatches to whatever normalized distance-like quantity is most appropriate given
+the nature of the variable it is applied to.
+
+Then we can define the **normalized local hyperparameter sensitivity** to be
+
+$$
+\eta = \max \Bigg\{
+\frac{\big\lvert \mathcal{C}(\theta_1) - \mathcal{C}(\theta_2) \big\rvert}
+{\mathcal{D}( \theta_1, \theta_2 )}
+\quad \forall \ \theta_1 \ne \theta_2  \in \Theta_{\text{eval}}
+\Bigg\}
+$$
 
 $$
 \begin{align}
-\lVert \theta_1 - \theta_2 \rVert = \frac{1}{3}
+\mathcal{D}( \theta_1, \theta_2 )
+&= \frac{1}{N}
 \big(
-\langle \vartheta - \vartheta_2 \rangle_{\mathcal{D}} +
-\langle \omega_1 - \omega_2 \rangle_{\mathcal{D}} +
-\langle \kappa_1 - \kappa_2 \rangle_{\mathcal{D}}
-\big)
+\left\lVert \theta_1 - \theta_2 \right\rVert_{\mathcal{D}}
+\big) \\
+&= \frac{1}{N}
+\big(
+\lVert \vartheta - \vartheta_2 \rVert_{\mathcal{D}} +
+\lVert \omega_1 - \omega_2 \rVert_{\mathcal{D}} +
+\lVert \kappa_1 - \kappa_2 \rVert_{\mathcal{D}}
+\big) \\
 \end{align}
 $$
 
-and
+that is, it is the largest observed ratio between the difference in the criterion
+and the normalized differences between hyperparmeters. Note that
+$\mathcal{D}(\theta_1, \theta_2) \in [0, 1]$ regardless of the number of hyperparameters,
 
-$$
-\lVert x - y \rVert_{\mathcal{D}} =
-\begin{cases}
-% \lVert \theta^{(i)}_1 - \theta^{(i)}_2 \rVert  & \text{ if } \theta^{(i)} \text{ continuous}\\
-\lvert x_i - y_i \rvert  & \text{ if } x,y \text{ ordinal or continuous }\\
-1  & \text{ if } x,y \text{ categorical }\\
-\end{cases}
-$$
+Despite notation, this is an intuitive definition: suppose
+$\mathcal{C}(\theta)$ is the accuracy and that $\vartheta = \texttt{lr} \in \mathbb{R}$ is
+the learning rate, $\omega = \texttt{d} \in \mathbb{Z}$ is the network depth, and $\kappa
+= \texttt{opt} \in \{\text{AdamW}, \text{SGD}\}$ is the optimizer. Suppose we also have the
+following table of results:
+
+```
+   lr    depth      opt     acc
+-----  -------  -------  ------
+1e-04       34  AdamW    0.2424
+1e-04       34  SGD      0.2433
+1e-03       34  AdamW    0.2465
+1e-03       34  SGD      0.2475
+1e-04       50  AdamW    0.2624
+1e-04       50  SGD      0.2637
+1e-03       50  AdamW    0.2684
+1e-03       50  SGD      0.2698
+1e-04      101  AdamW    0.3261
+1e-04      101  SGD      0.3287
+1e-05       34  AdamW    0.3314
+1e-05       34  SGD      0.3341
+1e-02       34  AdamW    0.3355
+1e-03      101  AdamW    0.3382
+1e-02       34  SGD      0.3382
+1e-03      101  SGD      0.3410
+1e-05       50  AdamW    0.3932
+1e-05       50  SGD      0.3972
+1e-02       50  AdamW    0.3992
+1e-02       50  SGD      0.4033
+1e-01       34  AdamW    0.4244
+1e-01       34  SGD      0.4290
+1e-01       50  AdamW    0.5301
+1e-01       50  SGD      0.5368
+1e-05      101  AdamW    0.5904
+1e-05      101  SGD      0.5983
+1e-02      101  AdamW    0.6025
+1e-02      101  SGD      0.6107
+1e-01      101  AdamW    0.8667
+1e-01      101  SGD      0.8803
+
+```
+
+due to the relation
+
+```py
+def acc(lr: float, depth: int, is_adam: bool) -> float:
+   max_depth = 101
+   effective_depth = max(max_depth, depth) / max_depth
+   opt_lr = 3e-4
+   effective_lr = -np.abs(np.log10(lr) - np.log10(opt_lr)) / np.log10(opt_lr)
+   max_acc = 0.95
+   reduction = 0.98 if is_adam else 1.0
+   return effective_depth  * reduction * effective_lr * max_acc + 0.2
+dfs = []
+for lr in [1e-5, 1e-4, 1e-3, 1e-2, 1e-1]:
+   for depth in [34, 50, 101]:
+      for is_adam in [True, False]:
+         dfs.append(
+            DataFrame(
+               {"lr": lr, "depth": depth, "AdamW": is_adam, "acc": acc(lr_depth, is_adam) },
+               index=[0]
+            )
+         )
+print(pd.concat(dfs, axis=0, ignore_index=True))
+```
+
+
+
 
 then $\lVert \theta_1 - \theta_2 \rVert \in [0, 1]$ and
 where $\Theta^{(i)}_{\max}$ is the largest
@@ -403,7 +497,6 @@ where $\Theta^{(i)}_{\max}$ is the largest
 then as above,
 
 
-^[If we cannot assume the continuity of $g$ here, this ]
 
 (continuous function on compact set is Lipschitz: https://math.stackexchange.com/a/2338876)
   we ideally want to say that
