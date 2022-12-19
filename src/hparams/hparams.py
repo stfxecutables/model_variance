@@ -261,17 +261,16 @@ class OrdinalHparam(Hparam):
         ]:
             raise ValueError("Ordinal perturbation makes sense only for 1 sig dig or 10%")
         mag = magnitude.actual_value()
-        if method is HparamPerturbation.SigDig:
-            # mag == 1
+        if method is HparamPerturbation.SigDig:  # mag == 1
             value = value + rng.integers(-1, 2)
-        elif method is HparamPerturbation.RelPercent:
-            # mag == 0.10
+        elif method is HparamPerturbation.RelPercent:  # mag == 0.10
             delta = ceil(mag * value)
             value = rng.integers(value - delta, value + delta + 1)
-        elif method is HparamPerturbation.AbsPercent:
-            # mag == 0.10
+        elif method is HparamPerturbation.AbsPercent:  # mag == 0.10
             delta = ceil((self.max - self.min) * mag)
             value = value + rng.integers(-delta, delta + 1)
+        else:
+            raise NotImplementedError()
 
         val = np.clip(value, a_min=self.min, a_max=self.max)
         return self.new(val)
@@ -323,16 +322,42 @@ class CategoricalHparam(Hparam):
         self.name: str = name
         self.kind: HparamKind = HparamKind.Categorical
         self._value: str | None = str(value) if value is not None else None
-        self.categories: list[str] = list(categories)
-        self.n_categories: int = len(categories)
+        self.categories: list[str] = sorted(categories)
+        self.n_categories: int = len(self.categories)
+
+    def new(self, value: str) -> CategoricalHparam:
+        cls: Type[CategoricalHparam] = self.__class__
+        return cls(
+            name=self.name,
+            value=value,
+            categories=self.categories,
+        )
+
+    def perturbed(
+        self,
+        method: HparamPerturbation,
+        magnitude: PerturbMagnitude = PerturbMagnitude.AbsPercent10,
+        rng: Generator | None = None,
+    ) -> Hparam:
+        if self.value is None:
+            raise ValueError("Cannot perturb categorical hparam with value None.")
+        if method is HparamPerturbation.SigDig:
+            # No coherent definition for this, also sig dig perturbation
+            # is supposed to be "invisible", so perhaps leaving no impact on
+            # categoricals makes most sense here.
+            return self.new(self.value)
+        mag = 0.10
+        rng = np.random.default_rng() if rng is None else rng
+        if rng.uniform(0, 1) < mag:
+            return self.random(rng)
+        return self.new(self.value)
 
     def random(self, rng: Generator | None = None) -> CategoricalHparam:
         if rng is None:
             value = str(np.random.choice(self.categories, size=1))
         else:
             value = str(rng.choice(self.categories, size=1, shuffle=False))
-        cls: Type[CategoricalHparam] = self.__class__
-        return cls(name=self.name, value=value, categories=self.categories)
+        return self.new(value)
 
     def __len__(self) -> int:
         return self.n_categories
