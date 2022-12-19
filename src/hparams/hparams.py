@@ -42,6 +42,9 @@ from pandas import DataFrame, Series
 from scipy.stats import loguniform
 from typing_extensions import Literal
 
+from src.enumerables import HparamPerturbation, PerturbMagnitude
+from src.perturb import sig_perturb_plus
+
 T = TypeVar("T")
 
 
@@ -59,7 +62,7 @@ class Hparam(ABC, Generic[T]):
         self.kind: HparamKind
 
     @property
-    def value(self) -> T:
+    def value(self) -> T | None:
         return self._value
 
     @value.setter
@@ -68,6 +71,10 @@ class Hparam(ABC, Generic[T]):
 
     @abstractmethod
     def random(self, rng: Generator | None = None) -> Hparam:
+        ...
+
+    @abstractmethod
+    def perturbed(self, rng: Generator | None = None) -> Hparam:
         ...
 
     @abstractmethod
@@ -83,7 +90,7 @@ class Hparam(ABC, Generic[T]):
             )
         if self.value is None:
             raise ValueError("Cannot subtract hparam with no value")
-        return abs(self.value - o.value)
+        return abs(self.value - o.value)  # type: ignore
 
 
 class ContinuousHparam(Hparam):
@@ -124,7 +131,22 @@ class ContinuousHparam(Hparam):
             log_scale=self.log_scale,
         )
 
+    def perturbed(self, method: HparamPerturbation, magnitude: PerturbMagnitude, rng: Generator | None = None) -> Hparam:
+        if self.value is None:
+            raise ValueError("Cannot perturn hparam if value is None.")
+        cls: Type[ContinuousHparam] = self.__class__
+        mag = magnitude.actual_value()
+        if method is HparamPerturbation.SigDig:
+            value = float(sig_perturb_plus(self.value, n_digits=mag))
+        elif method is HparamPerturbation.Percent:
+            self.min
+            mag =
+
+
+
     def normed(self) -> float:
+        if self.value is None:
+            raise ValueError("Cannot norm if value is undefined.")
         if self.log_scale:
             value = float(np.log10(self.value))
             mn, mx = float(np.log10(self.min)), float(np.log10(self.max))
@@ -166,13 +188,15 @@ class OrdinalHparam(Hparam):
 
     def random(self, rng: Generator | None = None) -> OrdinalHparam:
         if rng is None:
-            value = float(np.random.choice(self.values))
+            value = int(np.random.choice(self.values))
         else:
-            value = float(rng.choice(self.values, size=1, shuffle=False))
+            value = int(rng.choice(self.values, size=1, shuffle=False))
         cls: Type[OrdinalHparam] = self.__class__
         return cls(name=self.name, value=value, max=self.max, min=self.min)
 
     def normed(self) -> float:
+        if self.value is None:
+            raise ValueError("Cannot norm if value is undefined.")
         return float((self.value - self.min) / (self.max - self.min))
 
     def __len__(self) -> int:
@@ -214,9 +238,9 @@ class CategoricalHparam(Hparam):
 
     def random(self, rng: Generator | None = None) -> CategoricalHparam:
         if rng is None:
-            value = float(np.random.choice(self.categories, size=1))
+            value = str(np.random.choice(self.categories, size=1))
         else:
-            value = float(rng.choice(self.categories, size=1, shuffle=False))
+            value = str(rng.choice(self.categories, size=1, shuffle=False))
         cls: Type[CategoricalHparam] = self.__class__
         return cls(name=self.name, value=value, categories=self.categories)
 

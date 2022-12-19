@@ -181,3 +181,27 @@ class RuntimeClass(Enum):
             ],
         }
         return runtimes[self]
+
+
+class HparamPerturbation(Enum):
+    SigDig = "sig"
+    Percent = "perc"
+
+
+class PerturbMagnitude(Enum):
+    SigZero = "sig-zero"
+    SigOne = "sig-one"
+    Percentile10 = "percentile-10"
+    Percentile05 = "percentile-05"
+    Percent10 = "percent-10"
+    Percent05 = "percent-05"
+
+    def actual_value(self) -> int:
+        return {
+            PerturbMagnitude.SigZero: 0,
+            PerturbMagnitude.SigOne: 1,
+            PerturbMagnitude.Percentile05: 5,
+            PerturbMagnitude.Percentile10: 10,
+            PerturbMagnitude.Percent05: 5,
+            PerturbMagnitude.Percent10: 10,
+        }[self]

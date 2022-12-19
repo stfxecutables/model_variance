@@ -47,13 +47,16 @@ from src.enumerables import DatasetName, RuntimeClass
 
 def sig_perturb(x: ndarray, n_digits: int = 1) -> ndarray:
     delta = 10 ** (np.floor(np.log10(np.abs(x))) / 10 ** n_digits)
+    if n_digits == 1:
+        delta *= 2
+
     return x + delta * np.random.uniform(-1, 1, x.shape)
 
 
 def sig_perturb_demo() -> None:
     x = np.full([5000, 5000], np.random.uniform(0, 1000))
     print(f"Original x value: {x[0][0]:0.4e}")
-    for N_DIGITS in [1, 2, 3]:
+    for N_DIGITS in [0, 1, 2, 3]:
         pert = sig_perturb(x, n_digits=N_DIGITS)
         pmax = pert.max()
         pmin = pert.min()
@@ -74,7 +77,7 @@ def sig_perturb_demo() -> None:
         print(f"Showing / perturbing at {nth} significant digit")
         print("              x:", x[0][0].reshape(-1, 1))
         # N2 = N_DIGITS if N_DIGITS > 1 else N_DIGITS + 1
-        N2 = N_DIGITS
+        N2 = N_DIGITS + 1
         np.set_printoptions(
             formatter={
                 "float": lambda x: np.format_float_scientific(x, precision=N2, trim="k")
