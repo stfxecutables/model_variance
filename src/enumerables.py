@@ -184,8 +184,9 @@ class RuntimeClass(Enum):
 
 
 class HparamPerturbation(Enum):
-    SigDig = "sig"
-    Percent = "perc"
+    SigDig = "sig-dig"
+    RelPercent = "rel-percent"
+    AbsPercent = "abs-percent"
 
 
 class PerturbMagnitude(Enum):
@@ -193,8 +194,10 @@ class PerturbMagnitude(Enum):
     SigOne = "sig-one"
     Percentile10 = "percentile-10"
     Percentile05 = "percentile-05"
-    Percent10 = "percent-10"
-    Percent05 = "percent-05"
+    RelPercent10 = "rel-percent-10"
+    RelPercent05 = "rel-percent-05"
+    AbsPercent10 = "abs-percent-10"
+    AbsPercent05 = "abs-percent-05"
 
     def actual_value(self) -> int:
         return {
@@ -202,6 +205,8 @@ class PerturbMagnitude(Enum):
             PerturbMagnitude.SigOne: 1,
             PerturbMagnitude.Percentile05: 5,
             PerturbMagnitude.Percentile10: 10,
-            PerturbMagnitude.Percent05: 5,
-            PerturbMagnitude.Percent10: 10,
+            PerturbMagnitude.RelPercent05: 0.05,
+            PerturbMagnitude.RelPercent10: 0.10,
+            PerturbMagnitude.AbsPercent05: 0.05,
+            PerturbMagnitude.AbsPercent10: 0.10,
         }[self]

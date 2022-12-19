@@ -42,7 +42,13 @@ from typing_extensions import Literal
 
 from src.constants import RESULTS
 from src.dataset import Dataset
-from src.enumerables import DatasetName, RuntimeClass
+from src.enumerables import (
+    DatasetName,
+    HparamPerturbation,
+    PerturbMagnitude,
+    RuntimeClass,
+)
+from src.hparams.hparams import OrdinalHparam
 
 
 def sig_perturb(x: ndarray, n_digits: int = 1) -> ndarray:
@@ -51,6 +57,26 @@ def sig_perturb(x: ndarray, n_digits: int = 1) -> ndarray:
         delta *= 2
 
     return x + delta * np.random.uniform(-1, 1, x.shape)
+
+
+def perc_perturb_norm(lr: float) -> float:
+    mn, mx = np.log10(1e-7), np.log10(1)
+    d = mx - mn
+    lrn = (np.log10(lr) - mn) / d
+    delta = 0.05
+    lr_min = 10 ** ((lrn - delta) * d + mn)
+    lr_max = 10 ** ((lrn + delta) * d + mn)
+    print(f"lr={lr:0.2e}: [{lr_min:0.2e}, {lr_max:0.2e}]")
+
+
+def perc_perturb(lr: float) -> float:
+    mn, mx = np.log10(1e-7), np.log10(1)
+    lrn = np.log10(lr)
+    d = mx - mn
+    delta = d * 0.05
+    lr_min = 10 ** ((lrn - delta))
+    lr_max = 10 ** ((lrn + delta))
+    print(f"lr={lr:0.2e}: [{lr_min:0.2e}, {lr_max:0.2e}]")
 
 
 def sig_perturb_demo() -> None:
@@ -115,7 +141,32 @@ def plot_skewed_data() -> None:
 
 
 if __name__ == "__main__":
-    sig_perturb_demo()
+
+    o = OrdinalHparam("o", value=200, max=500, min=0)
+    print(o)
+    print(
+        "AbsPercent",
+        o.perturbed(
+            method=HparamPerturbation.AbsPercent, magnitude=PerturbMagnitude.AbsPercent10
+        ),
+    )
+    print(
+        "RelPercent",
+        o.perturbed(
+            method=HparamPerturbation.RelPercent, magnitude=PerturbMagnitude.RelPercent10
+        ),
+    )
+    print(
+        "SigDig",
+        o.perturbed(method=HparamPerturbation.SigDig, magnitude=PerturbMagnitude.SigOne),
+    )
+    # sig_perturb_demo()
+    # print("Norm")
+    # for lr in [1e-4, 2e-4, 5e-4]:
+    #     perc_perturb_norm(lr)
+    # print("No-Norm")
+    # for lr in [1e-4, 2e-4, 5e-4]:
+    #     perc_perturb(lr)
 
     # for dsname in [
     #     DatasetName.ClickPrediction,

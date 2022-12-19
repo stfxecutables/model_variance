@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod
 from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass
 from enum import Enum
+from math import ceil
 from pathlib import Path
 from pprint import pformat, pprint
 from typing import (
@@ -74,7 +75,12 @@ class Hparam(ABC, Generic[T]):
         ...
 
     @abstractmethod
-    def perturbed(self, rng: Generator | None = None) -> Hparam:
+    def perturbed(
+        self,
+        method: HparamPerturbation,
+        magnitude: PerturbMagnitude,
+        rng: Generator | None = None,
+    ) -> Hparam:
         ...
 
     @abstractmethod
@@ -110,6 +116,16 @@ class ContinuousHparam(Hparam):
         self.max: float = float(max)
         self.log_scale: bool = log_scale
 
+    def new(self, value: float) -> ContinuousHparam:
+        cls: Type[ContinuousHparam] = self.__class__
+        return cls(
+            name=self.name,
+            value=value,
+            max=self.max,
+            min=self.min,
+            log_scale=self.log_scale,
+        )
+
     def random(self, rng: Generator | None = None) -> ContinuousHparam:
         if rng is None:
             if self.log_scale:
@@ -122,27 +138,59 @@ class ContinuousHparam(Hparam):
                 value = float(loguniform.rvs(self.min, self.max, size=1))
             else:
                 value = float(rng.uniform(self.min, self.max, size=1))
-        cls: Type[ContinuousHparam] = self.__class__
-        return cls(
-            name=self.name,
-            value=value,
-            max=self.max,
-            min=self.min,
-            log_scale=self.log_scale,
-        )
+        return self.new(value=value)
 
-    def perturbed(self, method: HparamPerturbation, magnitude: PerturbMagnitude, rng: Generator | None = None) -> Hparam:
+    def perturbed(
+        self,
+        method: HparamPerturbation,
+        magnitude: PerturbMagnitude,
+        rng: Generator | None = None,
+    ) -> Hparam:
         if self.value is None:
             raise ValueError("Cannot perturn hparam if value is None.")
-        cls: Type[ContinuousHparam] = self.__class__
+        if rng is None:
+            rng = np.random.default_rng()
         mag = magnitude.actual_value()
         if method is HparamPerturbation.SigDig:
             value = float(sig_perturb_plus(self.value, n_digits=mag))
-        elif method is HparamPerturbation.Percent:
-            self.min
-            mag =
+        elif method is HparamPerturbation.RelPercent:
+            assert magnitude is PerturbMagnitude.RelPercent10
+            if self.log_scale:
+                val = np.log10(self.value)
+                delta = mag * val  # mag = 0.10
+                value = 10 ** rng.uniform(val - delta, val + delta)
+            else:
+                value = rng.uniform(val - delta, val + delta)
+        elif method is HparamPerturbation.AbsPercent:
+            assert magnitude is PerturbMagnitude.AbsPercent10
+            value = self.val_perturb(rng)
+        else:
+            raise NotImplementedError()
+        val = np.clip(value, a_min=self.min, a_max=self.max)
+        return self.new(value=val)
 
+    def val_perturb(self, rng: Generator) -> float:
+        if self.log_scale:
+            # Example most extreme possible perturbed values:
+            #
+            #     1.00e-04  ->  [4.47e-05, 2.24e-04]
+            #     2.00e-04  ->  [8.93e-05, 4.48e-04]
+            #     5.00e-04  ->  [2.23e-04, 1.12e-03]
+            val = np.log10(self.value)
+            mn, mx = np.log10(self.min), np.log10(self.max)
+        else:
+            val = self.value
+            mn, mx = self.min, self.max
 
+        d = 0.05 * (mx - mn)
+        val_min = val - d
+        val_max = val + d
+
+        if self.log_scale:
+            value = 10 ** rng.uniform(val_min, val_max)
+        else:
+            value = rng.uniform(val_min, val_max)
+        return value
 
     def normed(self) -> float:
         if self.value is None:
@@ -185,6 +233,48 @@ class OrdinalHparam(Hparam):
         self.min: int = int(min)
         self.max: int = int(max)
         self.values = list(range(self.min, self.max + 1))
+
+    def new(self, value: int) -> OrdinalHparam:
+        cls: Type[OrdinalHparam] = self.__class__
+        return cls(
+            name=self.name,
+            value=value,
+            max=self.max,
+            min=self.min,
+        )
+
+    def perturbed(
+        self,
+        method: HparamPerturbation,
+        magnitude: PerturbMagnitude,
+        rng: Generator | None = None,
+    ) -> Hparam:
+        if self.value is None:
+            raise ValueError("Cannot perturn hparam if value is None.")
+        if rng is None:
+            rng = np.random.default_rng()
+        value = self.value
+        if magnitude not in [
+            PerturbMagnitude.SigOne,
+            PerturbMagnitude.RelPercent10,
+            PerturbMagnitude.AbsPercent10,
+        ]:
+            raise ValueError("Ordinal perturbation makes sense only for 1 sig dig or 10%")
+        mag = magnitude.actual_value()
+        if method is HparamPerturbation.SigDig:
+            # mag == 1
+            value = value + rng.integers(-1, 2)
+        elif method is HparamPerturbation.RelPercent:
+            # mag == 0.10
+            delta = ceil(mag * value)
+            value = rng.integers(value - delta, value + delta + 1)
+        elif method is HparamPerturbation.AbsPercent:
+            # mag == 0.10
+            delta = ceil((self.max - self.min) * mag)
+            value = value + rng.integers(-delta, delta + 1)
+
+        val = np.clip(value, a_min=self.min, a_max=self.max)
+        return self.new(val)
 
     def random(self, rng: Generator | None = None) -> OrdinalHparam:
         if rng is None:
