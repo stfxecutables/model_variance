@@ -36,6 +36,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from numpy import ndarray
+from numpy.random import Generator
 from numpy.typing import NDArray
 from pandas import CategoricalDtype, DataFrame, Series
 from pandas.errors import PerformanceWarning
@@ -46,7 +47,7 @@ from tqdm.contrib.concurrent import process_map
 from typing_extensions import Literal
 
 from src.constants import CAT_REDUCED, CONT_REDUCED, DISTANCES
-from src.enumerables import DatasetName, RuntimeClass
+from src.enumerables import DataPerturbation, DatasetName, RuntimeClass
 
 JSONS = ROOT / "data/json"
 PARQUETS = ROOT / "data/parquet"
@@ -193,8 +194,33 @@ class Dataset:
             X = X.reshape(-1, 1)
         return X
 
-    def get_X_categorical(self, reduction: int | None = None) -> ndarray | None:
+    def get_X_categorical(
+        self,
+        perturbation_prob: float = 0,
+        perturb_level: "sample" | "label" = "label",
+        reduction: int | None = None,
+        rng: Generator | None = None,
+    ) -> ndarray | None:
         """
+        Parameters
+        ----------
+        perturbation_prob: float = 0
+            If None, return data un-perturbed. Otherwise, return categoricals
+            (NOT including the target) with "label noise" proportional to
+            `perturbation_prob`. Note: this is
+
+        perturb_level: "sample" | "label"
+            If "label", simply perturb any label with probability
+            `perturbation_prob`. When there are a lot of categorical features,
+            this will mean most perturbed samples are different from the un-
+            perturbed samples.
+
+            If "sample", perturb `perturbation_prob` * len(self.data) samples
+            only, with each label in a to-be-perturbed sample having a
+            1 / n_categoricals probability of being perturbed (e.g. we expect
+            only about 0-2 categorical values to be changed
+
+
         Returns
         -------
         categoricals: ndarray
@@ -210,10 +236,47 @@ class Dataset:
         """
         if reduction not in [None, 25, 50, 75]:
             raise ValueError("`percent` must be in [None, 25, 50, 75]")
+        if reduction is not None and perturbation_prob > 0:
+            raise ValueError(
+                "Cannot perturb dimenion-reduced categoricals in this manner."
+            )
+        if perturbation_prob > 1:
+            raise ValueError("`perturbation_prob` must be <= 1")
 
         if reduction is None:
             df = self.data.drop(columns="__target")
             cats = df.select_dtypes(include=[CategoricalDtype])
+            orig = cats.copy()
+            if perturbation_prob > 0:
+                rng = np.random.default_rng() if rng is None else rng
+                if perturb_level == "sample":
+                    N = len(df)
+                    ix = rng.permutation(N)[: ceil(perturbation_prob * N)]
+                    ix_bool = np.zeros([len(cats)], dtype=np.bool_)
+                    ix_bool[ix] = True
+
+                    rands = cats.copy()  # df of random category values
+                    for column in rands.columns:
+                        c: Series = rands[column]
+                        dtype: CategoricalDtype = c.dtype
+                        categories = dtype.categories.to_numpy()
+                        new = rng.choice(categories, size=len(c), replace=True)
+                        rands[column] = new
+                    n_categoricals = cats.shape[1]
+                    p = 1 / n_categoricals
+                    idx = rng.uniform(0, 1, size=cats.shape) < p
+                    ix_final = ix_bool[:, None] & idx
+                    cats.loc[ix_final] = rands[ix_final]
+                else:
+                    rands = cats.copy()
+                    for column in cats.columns:
+                        c: Series = cats[column]
+                        dtype: CategoricalDtype = c.dtype
+                        categories = dtype.categories.to_numpy()
+                        new = rng.choice(categories, size=len(c), replace=True)
+                        rands[column] = new
+                    idx = rng.uniform(0, 1, size=rands.shape) < perturbation_prob
+                    cats.loc[idx] = rands.loc[idx]
             if cats.shape[1] == 0:
                 return OneHotEncoder(sparse=False).fit_transform(cats).astype(np.float64)  # type: ignore
             return pd.get_dummies(cats).astype(np.float64).to_numpy()  # type: ignore
@@ -372,6 +435,29 @@ class Dataset:
 
 
 if __name__ == "__main__":
+    for i, name in enumerate(DatasetName):
+        if i == 0:
+            continue
+        ds = Dataset(name)
+        if ds.n_categoricals <= 1:
+            continue
+        print(ds.name.name)
+        for _ in range(10):
+            X = ds.get_X_categorical(perturbation_prob=0, reduction=None)
+            X_cat = ds.get_X_categorical(
+                perturbation_prob=0.1, perturb_level="label", reduction=None
+            )
+            X_cat2 = ds.get_X_categorical(
+                perturbation_prob=0.1, perturb_level="sample", reduction=None
+            )
+            print(np.mean(X != X_cat))
+            print(np.mean(X != X_cat2))
+            # print(X)
+            # print(X_cat)
+        # break
+
+    sys.exit()
+
     datasets = Dataset.load_all()
     count = 0
     for dataset in datasets:

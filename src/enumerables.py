@@ -189,6 +189,17 @@ class HparamPerturbation(Enum):
     AbsPercent = "abs-percent"
 
 
+class DataPerturbation(Enum):
+    HalfNeighbor = "half-neighbour"
+    QuarterNeighbor = "quarter-neighbour"
+    SigDigZero = "sig0"
+    SigDigOne = "sig1"
+    RelPercent10 = "rel-10"
+    RelPercent05 = "rel-05"
+    Percentile10 = "percentile-10"
+    Percentile05 = "percentile-05"
+
+
 class PerturbMagnitude(Enum):
     SigZero = "sig-zero"
     SigOne = "sig-one"
