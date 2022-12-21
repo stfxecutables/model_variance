@@ -48,6 +48,7 @@ from typing_extensions import Literal
 
 from src.constants import CAT_REDUCED, CONT_REDUCED, DISTANCES
 from src.enumerables import DataPerturbation, DatasetName, RuntimeClass
+from src.perturb import neighbour_perturb, sig_perturb_plus
 
 JSONS = ROOT / "data/json"
 PARQUETS = ROOT / "data/parquet"
@@ -199,6 +200,8 @@ class Dataset:
         X_f: ndarray = np.asarray(
             df.select_dtypes(exclude=[CategoricalDtype]).astype(np.float64)
         )
+        if X_f.shape[1] == 0:
+            return None
         # NOTE: Neighbor perturbation *must* be done on the standardized data
         # because that is what it was calculated on. Sig-dig perturbation
         # also should be done on the standardized data (because of bad means)
@@ -210,21 +213,36 @@ class Dataset:
 
         if perturbation is None:
             return X_f
-        if perturbation is DataPerturbation.HalfNeighbor:
+        if perturbation in [
+            DataPerturbation.HalfNeighbor,
+            DataPerturbation.QuarterNeighbor,
+        ]:
             # we use the "normalized Gaussians" method to get a
             # random perturbation vector for each sample in d_nn / 2, where
             # d_nn = sqrt(|x^2 - x_nn^2|) for sample x and nearest neighor x_nn
-            deltas = self.nearest_distances(reduction=reduction) / 2
-            gaussians = np.random.standard_normal(X_f.shape)
-            norm = np.linalg.norm(gaussians, axis=1, keepdims=True)
-            shell = gaussians / norm  # samples on n-sphere shell
-            radii = np.random.uniform(0, 1, size=X_f.shape) * deltas[:, None]
-            perturbations = radii * shell
-            perturbed = X_f + perturbations
-            assert np.all(np.linalg.norm(perturbed - X_f, axis=1) <= deltas)
+            scale = 2 if perturbation is DataPerturbation.HalfNeighbor else 4
+            distances = self.nearest_distances(reduction=reduction)
+            perturbed = neighbour_perturb(X_f, distances=distances, scale=scale)
             return perturbed
-
-        return X_f
+        if perturbation in [DataPerturbation.SigDigOne, DataPerturbation.SigDigZero]:
+            n_digits = 0 if perturbation is DataPerturbation.SigDigZero else 1
+            perturbed = sig_perturb_plus(X_f, n_digits=n_digits)
+            return perturbed
+        if perturbation in [DataPerturbation.RelPercent05, DataPerturbation.RelPercent10]:
+            magnitude = 0.05 if perturbation is DataPerturbation.RelPercent05 else 0.10
+            deltas = np.random.uniform(-magnitude, magnitude, size=X_f.shape)
+            perturbed = X_f + deltas * X_f
+            return perturbed
+        if perturbation in [DataPerturbation.Percentile05, DataPerturbation.Percentile10]:
+            magnitude = 0.05 if perturbation is DataPerturbation.Percentile05 else 0.10
+            percs = np.percentile(X_f, q=magnitude, axis=0)
+            deltas = [
+                np.random.uniform(-p, p, size=len(X_f)) for i, p in enumerate(percs)
+            ]
+            deltas = np.stack(deltas, axis=1)
+            perturbed = X_f + deltas * X_f
+            return perturbed
+        raise ValueError("Invalid Perturbation!")
 
     def get_X_categorical(
         self,
@@ -371,7 +389,7 @@ class Dataset:
         outfile = DISTANCES / f"{self.name.name}{label}_distances.npz"
 
         X = self.get_X_continuous(reduction)
-        if X is None:
+        if X is None or X.shape[1] == 0:
             return None
 
         if outfile.exists():

@@ -9,6 +9,11 @@ atomic = true
 sections = ['FUTURE', 'STDLIB', 'THIRDPARTY', 'LOCALFOLDER', 'FIRSTPARTY']
 known_local_folder = ['src', 'test', 'tests']
 
+[tool.pytest.ini_options]
+testpaths = [
+    "test",
+]
+
 [tool.poetry]
 name = "model-variance"
 version = "0.0.0"
