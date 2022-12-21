@@ -639,10 +639,10 @@ It is probably not comparing tuning performance of other dumb models (SVC, LR)
 
 
 1. data downsampling
-   - [0.30, 0.45, 0.60, 0.75, 0.90] (5)
-1. feature selection [questionable]
-   - [0.25, 0.50, 0.75, 1.0=None]   (4)
-1. training sample perturbation     (5-10)
+   - [0.25, 0.50, 0.75, None] (4)
+1. training sample perturbation     (8)
+1. training data downsampling (4)
+   - [0.25, 0.50, 0.75, 1.00]
 1. test sample perturbation (FREE: can re-use same fitted model)
 1. test sample downsampling (FREE: can re-use same fitted model)
 1. hyperparameter perturbation      (5-10)

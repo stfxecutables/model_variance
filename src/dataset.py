@@ -174,25 +174,57 @@ class Dataset:
             self.data_ = df
         return self.data_
 
-    def get_X_continuous(self, reduction: int | None = None) -> ndarray | None:
+    def get_X_continuous(
+        self,
+        perturbation: DataPerturbation | None = None,
+        reduction: int | None = None,
+        rng: Generator | None = None,
+    ) -> ndarray | None:
         if reduction not in [None, 25, 50, 75]:
             raise ValueError("`percent` must be in [None, 25, 50, 75]")
+        if (reduction is not None) and (perturbation is not None):
+            raise NotImplementedError("No plans to test perturbation on UMAP reductions.")
 
-        if reduction is None:
-            df = self.data.drop(columns="__target")
-            X_f: ndarray = np.asarray(
-                df.select_dtypes(exclude=[CategoricalDtype]).astype(np.float64)
-            )
-            X_f -= X_f.mean(axis=0)
-            X_f /= X_f.std(axis=0)
+        rng = rng if rng is not None else np.random.default_rng()
+
+        if reduction is not None:
+            X: ndarray | None = reduce_continuous(self, percent=reduction)
+            if X is None:
+                return None
+            if X.ndim == 0:
+                X = X.reshape(-1, 1)
+            return X
+
+        df = self.data.drop(columns="__target")
+        X_f: ndarray = np.asarray(
+            df.select_dtypes(exclude=[CategoricalDtype]).astype(np.float64)
+        )
+        # NOTE: Neighbor perturbation *must* be done on the standardized data
+        # because that is what it was calculated on. Sig-dig perturbation
+        # also should be done on the standardized data (because of bad means)
+        # and percentile or relative percent perturbation just shouldn't matter
+        # if the data is standardized or not. Thus, we just work with the
+        # standardized data in all cases.
+        X_f -= X_f.mean(axis=0)
+        X_f /= X_f.std(axis=0)
+
+        if perturbation is None:
             return X_f
+        if perturbation is DataPerturbation.HalfNeighbor:
+            # we use the "normalized Gaussians" method to get a
+            # random perturbation vector for each sample in d_nn / 2, where
+            # d_nn = sqrt(|x^2 - x_nn^2|) for sample x and nearest neighor x_nn
+            deltas = self.nearest_distances(reduction=reduction) / 2
+            gaussians = np.random.standard_normal(X_f.shape)
+            norm = np.linalg.norm(gaussians, axis=1, keepdims=True)
+            shell = gaussians / norm  # samples on n-sphere shell
+            radii = np.random.uniform(0, 1, size=X_f.shape) * deltas[:, None]
+            perturbations = radii * shell
+            perturbed = X_f + perturbations
+            assert np.all(np.linalg.norm(perturbed - X_f, axis=1) <= deltas)
+            return perturbed
 
-        X: ndarray | None = reduce_continuous(self, percent=reduction)
-        if X is None:
-            return None
-        if X.ndim == 0:
-            X = X.reshape(-1, 1)
-        return X
+        return X_f
 
     def get_X_categorical(
         self,
@@ -387,6 +419,25 @@ class Dataset:
         return len(cat_dtypes)
 
     @property
+    def n_conts(self) -> int:
+        df = self.data
+        cat_dtypes = list(
+            filter(
+                lambda dtype: isinstance(dtype, CategoricalDtype),
+                df.dtypes.unique().tolist(),
+            )
+        )
+        return int(df.shape[1] - len(cat_dtypes) - 1)  # -1 for target
+
+    @property
+    def n_cont(self) -> int:
+        return self.n_conts
+
+    @property
+    def n_continuous(self) -> int:
+        return self.n_conts
+
+    @property
     def n_categoricals(self) -> int:
         return self.n_cats
 
@@ -435,6 +486,20 @@ class Dataset:
 
 
 if __name__ == "__main__":
+    ds = Dataset(DatasetName.Kr_vs_kp)
+    for i, name in enumerate(DatasetName):
+        ds = Dataset(name)
+        if ds.n_continuous <= 0:
+            continue
+        print(ds.name.name)
+        for _ in range(50):
+            X = ds.get_X_continuous(
+                perturbation=DataPerturbation.HalfNeighbor,
+                reduction=None,
+            )
+
+    sys.exit()
+
     for i, name in enumerate(DatasetName):
         if i == 0:
             continue
