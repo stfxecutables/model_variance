@@ -7,8 +7,14 @@ ROOT = Path(__file__).resolve().parent.parent  # isort: skip
 sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
+from typing import Literal
+
 from src.classifier import Classifier
 from src.dataset import Dataset
+from src.enumerables import DataPerturbation, DatasetName, HparamPerturbation
+from src.hparams.hparams import Hparam
+
+Percentage = Literal[25, 50, 75]
 
 
 class Evaluator:
@@ -33,8 +39,29 @@ class Evaluator:
 
     def __init__(
         self,
-        dataset: Dataset,
+        dataset_name: DatasetName,
         classifier: Classifier,
-        train_downsample: float | None,
+        dimension_reduction: Percentage | None,
+        continuous_perturb: DataPerturbation | None,
+        categorical_perturb: float | None,
+        hparam_perturb: HparamPerturbation | None,
+        train_downsample: Percentage | None,
+        categorical_perturb_level: Literal["sample", "label"] = "label",
     ) -> None:
-        pass
+        self.dataset_name: DatasetName = dataset_name
+        self.dataset_: Dataset | None = None
+        self.classifer: Classifier = classifier
+        self.dimension_reduction: Percentage | None = dimension_reduction
+        self.continuous_perturb: DataPerturbation | None = continuous_perturb
+        self.categorical_perturb: float | None = categorical_perturb
+        self.hparam_perturb: HparamPerturbation | None = hparam_perturb
+        self.train_downsample: Percentage | None = train_downsample
+        self.categorical_perturb_level: Literal[
+            "sample", "label"
+        ] = categorical_perturb_level
+
+    @property
+    def dataset(self) -> Dataset:
+        if self.dataset_ is None:
+            self.dataset_ = Dataset(self.dataset_name)
+        return self.dataset_

@@ -78,7 +78,6 @@ class Hparam(ABC, Generic[T]):
     def perturbed(
         self,
         method: HparamPerturbation,
-        magnitude: PerturbMagnitude,
         rng: Generator | None = None,
     ) -> Hparam:
         ...
@@ -143,29 +142,28 @@ class ContinuousHparam(Hparam):
     def perturbed(
         self,
         method: HparamPerturbation,
-        magnitude: PerturbMagnitude,
         rng: Generator | None = None,
     ) -> Hparam:
         if self.value is None:
             raise ValueError("Cannot perturn hparam if value is None.")
         if rng is None:
             rng = np.random.default_rng()
-        mag = magnitude.actual_value()
-        if method is HparamPerturbation.SigDig:
+        mag = method.magnitude()
+        if method in [HparamPerturbation.SigOne, HparamPerturbation.SigZero]:
             value = float(sig_perturb_plus(self.value, n_digits=mag))
-        elif method is HparamPerturbation.RelPercent:
-            assert magnitude is PerturbMagnitude.RelPercent10
+        elif method is HparamPerturbation.RelPercent10:
             if self.log_scale:
                 val = np.log10(self.value)
                 delta = mag * val  # mag = 0.10
                 value = 10 ** rng.uniform(val - delta, val + delta)
             else:
                 value = rng.uniform(val - delta, val + delta)
-        elif method is HparamPerturbation.AbsPercent:
-            assert magnitude is PerturbMagnitude.AbsPercent10
+        elif method is HparamPerturbation.AbsPercent10:
             value = self.val_perturb(rng)
         else:
-            raise NotImplementedError()
+            raise NotImplementedError(
+                f"Continuous perturbation not implemented for {method.name}"
+            )
         val = np.clip(value, a_min=self.min, a_max=self.max)
         return self.new(value=val)
 
@@ -246,7 +244,6 @@ class OrdinalHparam(Hparam):
     def perturbed(
         self,
         method: HparamPerturbation,
-        magnitude: PerturbMagnitude,
         rng: Generator | None = None,
     ) -> Hparam:
         if self.value is None:
@@ -254,19 +251,19 @@ class OrdinalHparam(Hparam):
         if rng is None:
             rng = np.random.default_rng()
         value = self.value
-        if magnitude not in [
-            PerturbMagnitude.SigOne,
-            PerturbMagnitude.RelPercent10,
-            PerturbMagnitude.AbsPercent10,
+        if method not in [
+            HparamPerturbation.SigOne,
+            HparamPerturbation.RelPercent10,
+            HparamPerturbation.AbsPercent10,
         ]:
             raise ValueError("Ordinal perturbation makes sense only for 1 sig dig or 10%")
-        mag = magnitude.actual_value()
-        if method is HparamPerturbation.SigDig:  # mag == 1
+        mag = method.magnitude()
+        if method is HparamPerturbation.SigOne:  # mag == 1
             value = value + rng.integers(-1, 2)
-        elif method is HparamPerturbation.RelPercent:  # mag == 0.10
+        elif method is HparamPerturbation.RelPercent10:  # mag is 0.10
             delta = ceil(mag * value)
             value = rng.integers(value - delta, value + delta + 1)
-        elif method is HparamPerturbation.AbsPercent:  # mag == 0.10
+        elif method is HparamPerturbation.AbsPercent10:  # mag == 0.10
             delta = ceil((self.max - self.min) * mag)
             value = value + rng.integers(-delta, delta + 1)
         else:
@@ -335,18 +332,17 @@ class CategoricalHparam(Hparam):
 
     def perturbed(
         self,
-        method: HparamPerturbation,
-        magnitude: PerturbMagnitude = PerturbMagnitude.AbsPercent10,
+        method: HparamPerturbation = HparamPerturbation.AbsPercent10,
         rng: Generator | None = None,
     ) -> Hparam:
         if self.value is None:
             raise ValueError("Cannot perturb categorical hparam with value None.")
-        if method is HparamPerturbation.SigDig:
+        if method is HparamPerturbation.SigOne:
             # No coherent definition for this, also sig dig perturbation
             # is supposed to be "invisible", so perhaps leaving no impact on
             # categoricals makes most sense here.
             return self.new(self.value)
-        mag = 0.10
+        mag = method.magnitude()
         rng = np.random.default_rng() if rng is None else rng
         if rng.uniform(0, 1) < mag:
             return self.random(rng)
