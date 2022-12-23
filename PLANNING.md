@@ -640,7 +640,11 @@ It is probably not comparing tuning performance of other dumb models (SVC, LR)
 
 1. data downsampling
    - [0.25, 0.50, 0.75, None] (4)
-1. training sample perturbation     (8)
+1. training sample perturbation
+   - Continuous perturbation (4-6)
+     - HalfNeighbour, SigDigOne?, RelPercent10, Percentile05?
+   - Categorical perturbation ()
+     -
 1. training data downsampling (4)
    - [0.25, 0.50, 0.75, 1.00]
 1. test sample perturbation (FREE: can re-use same fitted model)
