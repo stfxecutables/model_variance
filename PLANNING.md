@@ -643,21 +643,32 @@ It is probably not comparing tuning performance of other dumb models (SVC, LR)
 1. training sample perturbation
    - Continuous perturbation (4-6)
      - HalfNeighbour, SigDigOne?, RelPercent10, Percentile05?
-   - Categorical perturbation ()
-     -
+   - Categorical perturbation (3+)
+     - (0, "label"), (0.10, "label"), (0.10, "sample)
+     - more sample?
+1. hparam perturbation (4)
+   - SigOne, SigZero, RelPercent10, AbsPercent10
 1. training data downsampling (4)
    - [0.25, 0.50, 0.75, 1.00]
 1. test sample perturbation (FREE: can re-use same fitted model)
 1. test sample downsampling (FREE: can re-use same fitted model)
-1. hyperparameter perturbation      (5-10)
+1. metrics                  (FREE: can re-use same fitted model)
 
 - datasets (40)
 - runs     (r)
 - repeats  (N)
 - metrics  (FREE)
 
-Total = 40 datasets × 5 downsamples × 4 feature selections × 5-10 sample perturbs × 5-10 hp perurbs
-      = 20 000 to 80 000 fits (2e4 to 8e4)
+Total =
+         40 datasets ×
+         5 downsamples ×
+         4-6 continuous perturbs ×
+         3-5 categorical perturbs ×
+         4 hparam perturbs ×
+         4 train downsamples ×
+         N runs ×
+         r repeats
+      = (38400 - 96000) Nr
 
 But then times runs / repeats is  (2 to 8) × rN × 10^4, smallest r is like 5-10, smallest N is like 10-20,
 so 2 × 5 × 10 e4 = 1e6  to  8 × 10 × 20 e4 =  1.6e7, 16 million. So **between 1 to 16 million 'validations'
