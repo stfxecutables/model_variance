@@ -3,10 +3,11 @@ from __future__ import annotations
 # fmt: off
 import sys  # isort:skip
 from pathlib import Path  # isort: skip
-ROOT = Path(__file__).resolve().parent.parent.parent  # isort: skip
+ROOT = Path(__file__).resolve().parent.parent  # isort: skip
 sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
+import json
 from abc import ABC, abstractmethod
 from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass
@@ -43,7 +44,7 @@ from pandas import DataFrame, Series
 from scipy.stats import loguniform
 from typing_extensions import Literal
 
-from src.enumerables import HparamPerturbation, PerturbMagnitude
+from src.enumerables import HparamPerturbation
 from src.perturb import sig_perturb_plus
 
 T = TypeVar("T")
@@ -198,6 +199,32 @@ class ContinuousHparam(Hparam):
             mn, mx = float(np.log10(self.min)), float(np.log10(self.max))
             return (value - mn) / (mx - mn)
         return float((self.value - self.min) / (self.max - self.min))
+
+    def to_json(self, path: Path) -> None:
+        with open(path, "w") as handle:
+            json.dump(
+                {
+                    "name": self.name,
+                    "value": self.value,
+                    "min": self.min,
+                    "max": self.max,
+                    "log_scale": self.log_scale,
+                },
+                handle,
+                indent=2,
+            )
+
+    @staticmethod
+    def from_json(path: Path) -> ContinuousHparam:
+        with open(path, "r") as handle:
+            d = Namespace(**json.load(handle))
+        return ContinuousHparam(
+            name=d.name,
+            value=d.value,
+            min=d.min,
+            max=d.max,
+            log_scale=d.log_scale,
+        )
 
     def __sub__(self, o: Hparam) -> float:
         if not isinstance(o, ContinuousHparam):
