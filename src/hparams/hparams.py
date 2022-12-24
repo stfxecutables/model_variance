@@ -312,6 +312,30 @@ class OrdinalHparam(Hparam):
             raise ValueError("Cannot norm if value is undefined.")
         return float((self.value - self.min) / (self.max - self.min))
 
+    def to_json(self, path: Path) -> None:
+        with open(path, "w") as handle:
+            json.dump(
+                {
+                    "name": self.name,
+                    "value": self.value,
+                    "min": self.min,
+                    "max": self.max,
+                },
+                handle,
+                indent=2,
+            )
+
+    @staticmethod
+    def from_json(path: Path) -> ContinuousHparam:
+        with open(path, "r") as handle:
+            d = Namespace(**json.load(handle))
+        return OrdinalHparam(
+            name=d.name,
+            value=d.value,
+            min=d.min,
+            max=d.max,
+        )
+
     def __len__(self) -> int:
         return self.max - self.min + 1
 
@@ -381,6 +405,28 @@ class CategoricalHparam(Hparam):
         else:
             value = str(rng.choice(self.categories, size=1, shuffle=False))
         return self.new(value)
+
+    def to_json(self, path: Path) -> None:
+        with open(path, "w") as handle:
+            json.dump(
+                {
+                    "name": self.name,
+                    "value": self.value,
+                    "categories": self.categories,
+                },
+                handle,
+                indent=2,
+            )
+
+    @staticmethod
+    def from_json(path: Path) -> ContinuousHparam:
+        with open(path, "r") as handle:
+            d = Namespace(**json.load(handle))
+        return CategoricalHparam(
+            name=d.name,
+            value=d.value,
+            categories=d.categories,
+        )
 
     def __len__(self) -> int:
         return self.n_categories
