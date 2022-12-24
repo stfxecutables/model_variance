@@ -8,7 +8,7 @@ sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
 import json
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractstaticmethod
 from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass
 from enum import Enum
@@ -48,6 +48,7 @@ from src.enumerables import HparamPerturbation
 from src.perturb import sig_perturb_plus
 
 T = TypeVar("T")
+H = TypeVar("H", bound="Hparam")
 
 
 class HparamKind(Enum):
@@ -84,6 +85,14 @@ class Hparam(ABC, Generic[T]):
         ...
 
     @abstractmethod
+    def to_json(self, path: Path) -> None:
+        ...
+
+    @abstractstaticmethod
+    def from_json(path: Path) -> H:
+        ...
+
+    @abstractmethod
     def __sub__(self, o: Hparam) -> float:
         if not isinstance(o, Hparam):
             raise ValueError(
@@ -97,6 +106,16 @@ class Hparam(ABC, Generic[T]):
         if self.value is None:
             raise ValueError("Cannot subtract hparam with no value")
         return abs(self.value - o.value)  # type: ignore
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Hparam):
+            raise TypeError(f"Cannot compare types {type(self)} and {type(other)}")
+
+        return (
+            (self.name == other.name)
+            and (self.value == other.value)
+            and (self.kind is other.kind)
+        )
 
 
 class ContinuousHparam(Hparam):
@@ -115,6 +134,9 @@ class ContinuousHparam(Hparam):
         self.min: float = float(min)
         self.max: float = float(max)
         self.log_scale: bool = log_scale
+
+        if self.min <= 0 and self.log_scale:
+            raise RuntimeError("Cannot have a log-scale hparam and min=0")
 
     def new(self, value: float) -> ContinuousHparam:
         cls: Type[ContinuousHparam] = self.__class__
@@ -209,6 +231,7 @@ class ContinuousHparam(Hparam):
                     "min": self.min,
                     "max": self.max,
                     "log_scale": self.log_scale,
+                    "kind": self.kind.value,
                 },
                 handle,
                 indent=2,
@@ -320,6 +343,7 @@ class OrdinalHparam(Hparam):
                     "value": self.value,
                     "min": self.min,
                     "max": self.max,
+                    "kind": self.kind.value,
                 },
                 handle,
                 indent=2,
@@ -413,6 +437,7 @@ class CategoricalHparam(Hparam):
                     "name": self.name,
                     "value": self.value,
                     "categories": self.categories,
+                    "kind": self.kind.value,
                 },
                 handle,
                 indent=2,
@@ -490,13 +515,63 @@ class Hparams(ABC):
             hps.append(hp.random(rng))
         return cls(hparams=hps)
 
+    def to_json(self, root: Path) -> None:
+        root.mkdir(exist_ok=True, parents=True)
+        for name, hparam in self.hparams.items():
+            if hparam.kind is HparamKind.Categorical:
+                outdir = root / "categorical"
+            elif hparam.kind is HparamKind.Ordinal:
+                outdir = root / "ordinal"
+            elif hparam.kind is HparamKind.Continuous:
+                outdir = root / "continuous"
+            else:
+                raise ValueError(f"Impossible! Got kind: {hparam.kind}")
+            outdir.mkdir(exist_ok=True, parents=True)
+            path = outdir / f"{name}.json"
+            hparam.to_json(path=path)
+
+    @classmethod
+    def from_json(cls: Hparams, root: Path) -> ContinuousHparam:
+        jsons = sorted(root.rglob("*.json"))
+        hparams = []
+        for path in jsons:
+            if path.parent.name == "categorical":
+                hp = CategoricalHparam.from_json(path=path)
+            elif path.parent.name == "ordinal":
+                hp = OrdinalHparam.from_json(path=path)
+            elif path.parent.name == "continuous":
+                hp = ContinuousHparam.from_json(path=path)
+            else:
+                raise ValueError("Impossible!")
+            hparams.append(hp)
+        return cls(hparams=hparams)
+
+    def __eq__(self, __o: object) -> bool:
+        o = __o
+        if not isinstance(o, Hparams):
+            raise ValueError("Can only find difference between instance of Hparams.")
+
+        if sorted(self.hparams.keys()) != sorted(o.hparams.keys()):
+            return False
+
+        for name in sorted(self.hparams.keys()):
+            hp1 = self.hparams[name]
+            hp2 = o.hparams[name]
+            if hp1 != hp2:
+                return False
+        return True
+
     def __sub__(self, o: Hparams) -> float:
         if not isinstance(o, Hparams):
             raise ValueError(f"Can only find difference between instance of Hparams.")
         if sorted(self.hparams.keys()) != sorted(o.hparams.keys()):
+            names1 = set(self.hparams.keys())
+            names2 = set(o.hparams.keys())
+            diff = names1.symmetric_difference(names2)
             raise ValueError(
                 "Cannot find difference between different sets of hparams. "
-                f"Got left: {self.hparams} and right: {o.hparams}"
+                f"Got left: {self.hparams} and right: {o.hparams}.\n\nDiffering "
+                f"keys: {diff}"
             )
         diffs = []
         for name in sorted(self.hparams.keys()):
