@@ -23,6 +23,8 @@ from src.hparams.hparams import (
     Hparams,
     OrdinalHparam,
 )
+from src.hparams.svm import SVMHparams
+from src.hparams.xgboost import XGBoostHparams
 
 ROOT = Path(__file__).resolve().parent.parent  # isort: skip
 DIR = ROOT / "__test_temp__"
@@ -115,6 +117,39 @@ def test_hparams_list() -> None:
             hps = Hparams(random_hparams())
             hps.to_json(root=outdir)
             hp = Hparams.from_json(root=outdir)
+            assert hps - hp < 1e-14
+            assert hp - hps < 1e-14
+            rmtree(outdir)
+    except Exception as e:
+        raise e
+    finally:
+        rmtree(tempdir)
+
+
+def test_hparams_xgb() -> None:
+    try:
+        tempdir = Path(mkdtemp(dir=DIR))
+        outdir = DIR / f"{tempdir.name}/hps"
+        for _ in range(50):
+            hps = XGBoostHparams().random()
+            hps.to_json(root=outdir)
+            hp = XGBoostHparams.from_json(root=outdir)
+            assert hps - hp < 1e-14
+            assert hp - hps < 1e-14
+            rmtree(outdir)
+    except Exception as e:
+        raise e
+    finally:
+        rmtree(tempdir)
+
+def test_hparams_svm() -> None:
+    try:
+        tempdir = Path(mkdtemp(dir=DIR))
+        outdir = DIR / f"{tempdir.name}/hps"
+        for _ in range(50):
+            hps = SVMHparams().random()
+            hps.to_json(root=outdir)
+            hp = SVMHparams.from_json(root=outdir)
             assert hps - hp < 1e-14
             assert hp - hps < 1e-14
             rmtree(outdir)
