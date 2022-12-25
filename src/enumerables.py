@@ -221,3 +221,10 @@ class HparamPerturbation(Enum):
             HparamPerturbation.AbsPercent05: 0.05,
             HparamPerturbation.AbsPercent10: 0.10,
         }[self]
+
+
+class ClassifierKind(Enum):
+    XGBoost = "xgb"
+    SVM = "svm"
+    MLP = "mlp"
+    LR = "lr"

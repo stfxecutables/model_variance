@@ -7,6 +7,27 @@ ROOT = Path(__file__).resolve().parent.parent  # isort: skip
 sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
+from abc import ABC, abstractmethod
+from typing import Any
 
-class Classifier:
-    pass
+from numpy import ndarray
+from sklearn.svm import SVC
+from xgboost import XGBClassifier
+
+from src.hparams.hparams import Hparams
+from src.hparams.svm import SVMHparams
+from src.hparams.xgboost import XGBoostHparams
+
+
+class Classifier(ABC):
+    def __init__(self, hparams: Hparams) -> None:
+        self.hparams = hparams
+        self.model: XGBClassifier | SVC
+
+    @abstractmethod
+    def fit(self, X: ndarray, y: ndarray) -> None:
+        ...
+
+    @abstractmethod
+    def predict(self, X: ndarray) -> None:
+        ...

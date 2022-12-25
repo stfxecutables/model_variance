@@ -7,17 +7,26 @@ ROOT = Path(__file__).resolve().parent.parent  # isort: skip
 sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
+import json
+from enum import Enum, EnumMeta
 from typing import Literal
 
 from src.classifier import Classifier
 from src.dataset import Dataset
 from src.enumerables import DataPerturbation, DatasetName, HparamPerturbation
-from src.hparams.hparams import Hparam
+from src.hparams.hparams import Hparam, Hparams
+from src.serialize import DirJSONable, FileJSONable
 
 Percentage = Literal[25, 50, 75]
 
+def value_or_none(enumerable: Enum | None) -> Enum | None:
+    if isinstance(enumerable, EnumMeta):
+        raise TypeError("Must pass Enum instance, not class.")
+    if isinstance(enumerable, Enum):
+        return enumerable.value
+    return None
 
-class Evaluator:
+class Evaluator(DirJSONable):
     """For performing one repeat (i.e. `r` validation runs) with the sources
     of variance given in the constructor
 
@@ -41,6 +50,7 @@ class Evaluator:
         self,
         dataset_name: DatasetName,
         classifier: Classifier,
+        hparams: Hparams,
         dimension_reduction: Percentage | None,
         continuous_perturb: DataPerturbation | None,
         categorical_perturb: float | None,
@@ -51,6 +61,7 @@ class Evaluator:
         self.dataset_name: DatasetName = dataset_name
         self.dataset_: Dataset | None = None
         self.classifer: Classifier = classifier
+        self.hparams: Hparams = hparams
         self.dimension_reduction: Percentage | None = dimension_reduction
         self.continuous_perturb: DataPerturbation | None = continuous_perturb
         self.categorical_perturb: float | None = categorical_perturb
@@ -65,3 +76,28 @@ class Evaluator:
         if self.dataset_ is None:
             self.dataset_ = Dataset(self.dataset_name)
         return self.dataset_
+
+    def to_json(self, root: Path) -> None:
+        root.mkdir(exist_ok=True, parents=True)
+        hps = root / "hparams"
+        out = root / "evaluator.json"
+
+        self.hparams.to_json(hps)
+        with open(out, "w") as fp:
+            json.dump({
+                "dataset_name": self.dataset_name.value,
+                "classifier": self.classifer,
+                "dimension_reduction": self.dimension_reduction,
+                "continuous_perturb": value_or_none(self.continuous_perturb),
+                "categorical_perturb": self.categorical_perturb,
+                "hparam_perturb": value_or_none(self.hparam_perturb),
+                "train_downsample": self.train_downsample,
+                "categorical_perturb_level": self.categorical_perturb_level,
+            }, fp)
+
+    @classmethod
+    def from_json(cls: Evaluator, root: Path) -> Evaluator:
+        root.mkdir(exist_ok=True, parents=True)
+        hps = root / "hparams"
+        out = root / "evaluator.json"
+        hparams = ...

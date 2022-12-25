@@ -46,6 +46,7 @@ from typing_extensions import Literal
 
 from src.enumerables import HparamPerturbation
 from src.perturb import sig_perturb_plus
+from src.serialize import DirJSONable, FileJSONable
 
 T = TypeVar("T")
 H = TypeVar("H", bound="Hparam")
@@ -57,7 +58,7 @@ class HparamKind(Enum):
     Categorical = "categorical"
 
 
-class Hparam(ABC, Generic[T]):
+class Hparam(FileJSONable[H], Generic[T, H]):
     def __init__(self, name: str, value: T | None) -> None:
         super().__init__()
         self.name: str = name
@@ -82,14 +83,6 @@ class Hparam(ABC, Generic[T]):
         method: HparamPerturbation,
         rng: Generator | None = None,
     ) -> Hparam:
-        ...
-
-    @abstractmethod
-    def to_json(self, path: Path) -> None:
-        ...
-
-    @abstractstaticmethod
-    def from_json(path: Path) -> H:
         ...
 
     @abstractmethod
@@ -479,7 +472,7 @@ class CategoricalHparam(Hparam):
     __repr__ = __str__
 
 
-class Hparams(ABC):
+class Hparams(DirJSONable):
     def __init__(
         self, hparams: Collection[Hparam] | Sequence[Hparam] | None = None
     ) -> None:
