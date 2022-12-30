@@ -79,7 +79,7 @@ class Evaluator(DirJSONable):
     ) -> None:
         self.dataset_name: DatasetName = dataset_name
         self.dataset_: Dataset | None = None
-        self.classifer_kind: Classifier = classifier_kind
+        self.classifer_kind: ClassifierKind = classifier_kind
         self.hparams: Hparams = hparams
         self.dimension_reduction: Percentage | None = dimension_reduction
         self.continuous_perturb: DataPerturbation | None = continuous_perturb
@@ -140,6 +140,9 @@ class Evaluator(DirJSONable):
             train_downsample=d.train_downsample,
             categorical_perturb_level=d.categorical_perturb_level,
         )
+
+    def fit(self) -> None:
+        ...
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Evaluator):

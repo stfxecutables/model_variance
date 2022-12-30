@@ -32,10 +32,15 @@ import pandas as pd
 import pytest
 from numpy import ndarray
 from pandas import DataFrame, Series
+from sklearn.svm import SVC
 from typing_extensions import Literal
+from xgboost import XGBClassifier
 
 JSONS = ROOT / "data/json"
 PQS = ROOT / "data/parquet"
+
+
+ClassifierModel = SVC | XGBClassifier
 
 
 class DatasetName(Enum):
@@ -227,4 +232,14 @@ class ClassifierKind(Enum):
     XGBoost = "xgb"
     SVM = "svm"
     MLP = "mlp"
-    LR = "lr"
+    LR = "lr"  # MLP with one linear layer, mathematically identical
+
+    def model(self) -> ClassifierModel:
+        """Should return something that implements `.fit()` and `.predict()` methods"""
+        models: dict[ClassifierKind, ClassifierModel] = {
+            ClassifierKind.XGBoost: XGBClassifier,
+            ClassifierKind.SVM: SVC,
+            ClassifierKind.MLP: None,
+            ClassifierKind.LR: None,
+        }
+        return models[self]
