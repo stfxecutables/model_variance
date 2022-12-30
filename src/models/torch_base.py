@@ -264,5 +264,4 @@ class LogisticRegression(BaseModel):
 
 
 if __name__ == "__main__":
-    wr = wide_resnet16_10()
-    print(wr)
+    ...
