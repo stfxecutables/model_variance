@@ -247,7 +247,7 @@ class Dataset:
     def get_X_categorical(
         self,
         perturbation_prob: float = 0,
-        perturb_level: "sample" | "label" = "label",
+        perturb_level: Literal["sample", "label"] = "label",
         reduction: int | None = None,
         rng: Generator | None = None,
     ) -> ndarray | None:

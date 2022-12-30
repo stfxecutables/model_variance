@@ -16,6 +16,8 @@ from uuid import uuid4
 
 import numpy as np
 
+from src.enumerables import ClassifierKind, DataPerturbation, DatasetName
+from src.evaluator import Evaluator
 from src.hparams.hparams import (
     CategoricalHparam,
     ContinuousHparam,
@@ -25,6 +27,7 @@ from src.hparams.hparams import (
 )
 from src.hparams.svm import SVMHparams
 from src.hparams.xgboost import XGBoostHparams
+from src.utils import missing_keys
 
 ROOT = Path(__file__).resolve().parent.parent  # isort: skip
 DIR = ROOT / "__test_temp__"
@@ -142,6 +145,7 @@ def test_hparams_xgb() -> None:
     finally:
         rmtree(tempdir)
 
+
 def test_hparams_svm() -> None:
     try:
         tempdir = Path(mkdtemp(dir=DIR))
@@ -153,6 +157,50 @@ def test_hparams_svm() -> None:
             assert hps - hp < 1e-14
             assert hp - hps < 1e-14
             rmtree(outdir)
+    except Exception as e:
+        raise e
+    finally:
+        rmtree(tempdir)
+
+
+def test_evaluator() -> None:
+    try:
+        tempdir = Path(mkdtemp(dir=DIR))
+        out = DIR / f"{tempdir.name}/evaluator"
+        out.mkdir(exist_ok=True, parents=True)
+        for _ in range(50):
+            hp_cls = choice([SVMHparams, XGBoostHparams])
+            ds = choice([*DatasetName])
+            classifier = (
+                ClassifierKind.XGBoost if hp_cls is XGBoostHparams else ClassifierKind.SVM
+            )
+            hps = hp_cls().random()
+            dim_reduce = choice([25, 50, 75, None])
+            cont_perturb = choice([*DataPerturbation, None])
+            cat_perturb = choice([None, 0.1, 0.2])
+            h_perturb = choice([25, 50, 75, None])
+            train_downsample = choice([25, 50, 75, None])
+            cat_perturb_level = choice(["sample", "label"])
+            ev = Evaluator(
+                dataset_name=ds,
+                classifier_kind=classifier,
+                hparams=hps,
+                dimension_reduction=dim_reduce,
+                continuous_perturb=cont_perturb,
+                categorical_perturb=cat_perturb,
+                hparam_perturb=h_perturb,
+                train_downsample=train_downsample,
+                categorical_perturb_level=cat_perturb_level,
+            )
+            ev.to_json(out)
+            ev2 = Evaluator.from_json(out)
+            if ev != ev2:
+                info = missing_keys(ev, ev2)
+                if info is not None:
+                    raise ValueError(
+                        f"Objects differ:\n {info}\n" f"left: {ev}\n" f"right: {ev2}\n"
+                    )
+            rmtree(out)
     except Exception as e:
         raise e
     finally:
