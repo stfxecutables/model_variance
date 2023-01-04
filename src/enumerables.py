@@ -46,6 +46,7 @@ ClassifierModel = SVC | XGBClassifier
 
 
 class DatasetName(Enum):
+    """Remove DevnagariScript and FashionMnist, which are not tabular data"""
     Arrhythmia = "arrhythmia"
     Kc1 = "kc1"
     ClickPrediction = "click_prediction_small"
@@ -63,11 +64,11 @@ class DatasetName(Enum):
     Kr_vs_kp = "kr-vs-kp"
     Connect4 = "connect-4"
     Shuttle = "shuttle"
-    DevnagariScript = "devnagari-script"
+    # DevnagariScript = "devnagari-script"
     Car = "car"
     Australian = "australian"
     Segment = "segment"
-    FashionMnist = "fashion-mnist"
+    # FashionMnist = "fashion-mnist"
     JungleChess = "jungle_chess_2pcs_raw_endgame_complete"
     Christine = "christine"
     Jasmine = "jasmine"
@@ -106,11 +107,11 @@ class DatasetName(Enum):
             DatasetName.Kr_vs_kp: PQS / "3_v1_kr-vs-kp.parquet",
             DatasetName.Connect4: PQS / "40668_v2_connect-4.parquet",
             DatasetName.Shuttle: PQS / "40685_v1_shuttle.parquet",
-            DatasetName.DevnagariScript: PQS / "40923_v1_Devnagari-Script.parquet",
+            # DatasetName.DevnagariScript: PQS / "40923_v1_Devnagari-Script.parquet",
             DatasetName.Car: PQS / "40975_v3_car.parquet",
             DatasetName.Australian: PQS / "40981_v4_Australian.parquet",
             DatasetName.Segment: PQS / "40984_v3_segment.parquet",
-            DatasetName.FashionMnist: PQS / "40996_v1_Fashion-MNIST.parquet",
+            # DatasetName.FashionMnist: PQS / "40996_v1_Fashion-MNIST.parquet",
             DatasetName.JungleChess: PQS
             / "41027_v1_jungle_chess_2pcs_raw_endgame_complete.parquet",
             DatasetName.Christine: PQS / "41142_v1_christine.parquet",
@@ -178,9 +179,9 @@ class RuntimeClass(Enum):
                 DatasetName.Numerai28_6,
             ],
             RuntimeClass.Slow: [  # 40-600+ minutes on one core
-                DatasetName.DevnagariScript,  # <1 min with 80 Niagara cores
+                # DatasetName.DevnagariScript,  # <1 min with 80 Niagara cores
                 DatasetName.Jannis,
-                DatasetName.FashionMnist,
+                # DatasetName.FashionMnist,
                 DatasetName.Connect4,  # ~3 minutes with 80 Niagara cores
                 DatasetName.Helena,
                 DatasetName.Volkert,

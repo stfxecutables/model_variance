@@ -41,7 +41,7 @@ from numpy.typing import NDArray
 from pandas import CategoricalDtype, DataFrame, Series
 from pandas.errors import PerformanceWarning
 from sklearn.neighbors import NearestNeighbors
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from tqdm import tqdm
 from tqdm.contrib.concurrent import process_map
 from typing_extensions import Literal
@@ -337,6 +337,32 @@ class Dataset:
         if X.ndim == 0:
             X = X.reshape(-1, 1)
         return X
+
+    def get_X_y(
+        self,
+        cont_perturb: DataPerturbation | None = None,
+        cat_perturb_prob: float = 0,
+        cat_perturb_level: Literal["sample", "label"] = "label",
+        reduction: int | None = None,
+        rng: Generator | None = None,
+    ) -> tuple[ndarray, ndarray]:
+        if rng is None:
+            rng = np.random.default_rng()
+        X_cat = self.get_X_categorical(
+            perturbation_prob=cat_perturb_prob,
+            perturb_level=cat_perturb_level,
+            reduction=reduction,
+            rng=rng,
+        )
+        X_cont = self.get_X_continuous(
+            perturbation=cont_perturb,
+            reduction=reduction,
+            rng=rng,
+        )
+        y = self.data["__target"]
+        y = LabelEncoder().fit_transform(y).astype(np.float64)
+        X = pd.concat([X_cat, X_cont], axis=1, ignore_index=False).copy()
+        return X, y
 
     def X_reduced(self, percent: int) -> ndarray | None:
         if percent not in [25, 50, 75]:

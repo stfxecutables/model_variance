@@ -142,6 +142,8 @@ class Evaluator(DirJSONable):
         )
 
     def fit(self) -> None:
+        ds = self.dataset
+        model = self.classifer_kind.model()
         ...
 
     def __eq__(self, other: object) -> bool:
