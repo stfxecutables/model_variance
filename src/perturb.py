@@ -55,6 +55,7 @@ def sig_perturb(x: ndarray, n_digits: int = 1) -> ndarray:
 
 
 def sig_perturb_plus(x: ndarray, n_digits: int = 1) -> ndarray:
+    x = np.asarray(x)
     idx = x != 0
     delta = 10 ** (np.floor(np.log10(np.abs(x[idx]))) / 10 ** n_digits)
     # delta[idx] = 0

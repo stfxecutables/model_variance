@@ -94,3 +94,48 @@ class TestOrdinal:
             delta = ceil((hp.max - hp.min) * mag)
             h2 = hp.perturbed(method=method)
             assert (hp - h2) <= delta
+
+
+class TestContinuous:
+    N = 50
+    ALLOWANCE = N // 20
+    # N = 250
+
+    def test_clone(self) -> None:
+        for _ in range(50):
+            hp = random_continuous()
+            h2 = hp.clone()
+            assert hp == h2
+
+    def test_perturb_sig_one(self) -> None:
+        method = HparamPerturbation.SigOne
+        equals = []
+        for _ in range(self.N):
+            hp = random_continuous()
+            h2 = hp.perturbed(method=method)
+            equals.append(hp == h2)
+        assert sum(equals) <= self.ALLOWANCE
+
+    def test_perturb_rel_10(self) -> None:
+        method = HparamPerturbation.RelPercent10
+        mag = method.magnitude()
+        equals = []
+        for _ in range(self.N):
+            hp = random_continuous()
+            # delta = ceil(mag * hp.value)
+            h2 = hp.perturbed(method=method)
+            assert hp != h2
+            equals.append(hp == h2)
+        assert sum(equals) <= self.ALLOWANCE
+
+    def test_perturb_abs_10(self) -> None:
+        method = HparamPerturbation.AbsPercent10
+        mag = method.magnitude()
+        equals = []
+        for _ in range(self.N):
+            hp = random_continuous()
+            # delta = ceil((hp.max - hp.min) * mag)
+            h2 = hp.perturbed(method=method)
+            assert hp != h2
+            equals.append(hp == h2)
+        assert sum(equals) <= self.ALLOWANCE

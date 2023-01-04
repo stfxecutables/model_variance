@@ -182,12 +182,14 @@ class ContinuousHparam(Hparam):
         if method in [HparamPerturbation.SigOne, HparamPerturbation.SigZero]:
             value = float(sig_perturb_plus(self.value, n_digits=mag))
         elif method is HparamPerturbation.RelPercent10:
-            if self.log_scale:
-                val = np.log10(self.value)
-                delta = mag * val  # mag = 0.10
-                value = 10 ** rng.uniform(val - delta, val + delta)
-            else:
-                value = rng.uniform(val - delta, val + delta)
+            val = np.log10(self.value) if self.log_scale else self.value
+            delta = mag * val  # mag = 0.10
+            vmin = val - delta
+            vmax = val + delta
+            if vmin > vmax:
+                vmin, vmax = vmax, vmin
+            raw = rng.uniform(vmin, vmax)
+            value = 10 ** raw if self.log_scale else raw
         elif method is HparamPerturbation.AbsPercent10:
             value = self.val_perturb(rng)
         else:
