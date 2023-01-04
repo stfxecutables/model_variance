@@ -86,6 +86,10 @@ class Hparam(FileJSONable[H], Generic[T, H]):
         ...
 
     @abstractmethod
+    def clone(self) -> Hparam:
+        ...
+
+    @abstractmethod
     def __sub__(self, o: Hparam) -> float:
         if not isinstance(o, Hparam):
             raise ValueError(
@@ -136,6 +140,16 @@ class ContinuousHparam(Hparam):
         return cls(
             name=self.name,
             value=value,
+            max=self.max,
+            min=self.min,
+            log_scale=self.log_scale,
+        )
+
+    def clone(self) -> Hparam:
+        cls: Type[ContinuousHparam] = self.__class__
+        return cls(
+            name=self.name,
+            value=self.value,
             max=self.max,
             min=self.min,
             log_scale=self.log_scale,
@@ -284,6 +298,15 @@ class OrdinalHparam(Hparam):
             min=self.min,
         )
 
+    def clone(self) -> Hparam:
+        cls: Type[OrdinalHparam] = self.__class__
+        return cls(
+            name=self.name,
+            value=self.value,
+            max=self.max,
+            min=self.min,
+        )
+
     def perturbed(
         self,
         method: HparamPerturbation,
@@ -398,6 +421,14 @@ class CategoricalHparam(Hparam):
             categories=self.categories,
         )
 
+    def clone(self) -> Hparam:
+        cls: Type[CategoricalHparam] = self.__class__
+        return cls(
+            name=self.name,
+            value=self.value,
+            categories=self.categories,
+        )
+
     def perturbed(
         self,
         method: HparamPerturbation = HparamPerturbation.AbsPercent10,
@@ -500,6 +531,20 @@ class Hparams(DirJSONable):
         self.n_continuous = len(self.continuous)
         self.n_ordinal = len(self.ordinals)
         self.n_categorical = len(self.categoricals)
+
+    def clone(self) -> Hparams:
+        cls: Type[Hparams] = self.__class__
+        clones = [hp.clone() for hp in self.hparams.values()]
+        return cls(clones)
+
+    def perturbed(
+        self,
+        method: HparamPerturbation = HparamPerturbation.AbsPercent10,
+        rng: Generator | None = None,
+    ) -> Hparams:
+        cls: Type[Hparams] = self.__class__
+        perturbs = [hp.perturbed(method=method, rng=rng) for hp in self.hparams.values()]
+        return cls(perturbs)
 
     def random(self, rng: Generator | None = None) -> Hparams:
         cls = self.__class__

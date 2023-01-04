@@ -28,42 +28,17 @@ from src.hparams.hparams import (
 from src.hparams.svm import SVMHparams
 from src.hparams.xgboost import XGBoostHparams
 from src.utils import missing_keys
+from test.helpers import (
+    random_categorical,
+    random_continuous,
+    random_hparams,
+    random_ordinal,
+)
 
 ROOT = Path(__file__).resolve().parent.parent  # isort: skip
 DIR = ROOT / "__test_temp__"
 DIR.mkdir(exist_ok=True)
 CATS = [chr(i) for i in (list(range(97, 123)) + list(range(65, 91)))]
-
-
-def random_continuous() -> ContinuousHparam:
-    log_scale = choice([True, False])
-    value = np.random.uniform(0, 1)
-    hsh = uuid4().hex
-    mn = 1e-15 if log_scale else 0.0
-    return ContinuousHparam(
-        f"test_float_{hsh}", value=value, max=1.0, min=mn, log_scale=log_scale
-    )
-
-
-def random_categorical() -> CategoricalHparam:
-    size = np.random.randint(1, 20)
-    values = np.random.choice(CATS, size=size, replace=False)
-    value = np.random.choice(values)
-    hsh = uuid4().hex
-    return CategoricalHparam(f"test_cat_{hsh}", value=value, categories=values)
-
-
-def random_ordinal() -> OrdinalHparam:
-    mx = np.random.randint(1, 500)
-    value = np.random.choice(list(range(mx)))
-    hsh = uuid4().hex
-    return OrdinalHparam(f"test_ord_{hsh}", value=value, min=0, max=mx)
-
-
-def random_hparams() -> list[Hparam]:
-    n = choice(list(range(1, 100)))
-    choices = [random_categorical, random_continuous, random_ordinal]
-    return [choice(choices)() for _ in range(n)]
 
 
 def test_hparam_cont() -> None:
@@ -168,7 +143,7 @@ def test_evaluator() -> None:
         tempdir = Path(mkdtemp(dir=DIR))
         out = DIR / f"{tempdir.name}/evaluator"
         out.mkdir(exist_ok=True, parents=True)
-        for _ in range(50):
+        for _ in range(1000):
             hp_cls = choice([SVMHparams, XGBoostHparams])
             ds = choice([*DatasetName])
             classifier = (

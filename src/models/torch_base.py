@@ -36,7 +36,6 @@ import torch.nn.functional as F
 import torch.nn.init as init
 from numpy import ndarray
 from pandas import DataFrame, Series
-from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 from pytorch_lightning import LightningModule, Trainer, seed_everything
 from pytorch_lightning.callbacks import (
     Callback,
@@ -57,23 +56,17 @@ from torch.nn import (
     Sequential,
 )
 from torch.optim import Adam, AdamW
-from torch.optim.lr_scheduler import _LRScheduler
+from torch.optim.lr_scheduler import CosineAnnealingLR, _LRScheduler
 from torch.optim.optimizer import Optimizer
+from torchmetrics import Accuracy
 from torchmetrics.functional import accuracy
-from torchvision.models.resnet import Bottleneck, ResNet, _ovewrite_named_param, _resnet
 from typing_extensions import Literal
-
-from src.config import Config
-from src.dynamic_loss import DynamicThresholder, dynamic_loss, thresholded_loss
-from src.enumerables import FinalEvalPhase, Loss, Phase
-from src.metrics import Metrics
-from src.wideresnet import WideResNet
 
 
 class BaseModel(LightningModule):
     def __init__(
         self,
-        config: Config,
+        config: "Config",
         log_version_dir: Path,
         *args: Any,
         **kwargs: Any,
@@ -82,15 +75,12 @@ class BaseModel(LightningModule):
         self.model: Module
         self.config = config
         self.num_classes = config.num_classes
-        self.train_metrics = Metrics(self.config, Phase.Train)
-        self.val_metrics = Metrics(self.config, Phase.Val)
-        self.test_metrics = Metrics(self.config, Phase.Test)
-        self.thresholder = Identity()
+        self.train_acc = Accuracy()
+        self.val_acc = Accuracy()
+        self.test_acc = Accuracy()
 
-        self.ce_loss = CrossEntropyLoss()
         self.loss = CrossEntropyLoss()
         self.log_version_dir: Path = log_version_dir
-        self.final_eval: FinalEvalPhase | None = None
 
     @no_type_check
     def forward(self, x: Tensor) -> Tensor:
@@ -102,9 +92,9 @@ class BaseModel(LightningModule):
         self, batch: Tuple[Tensor, Tensor], batch_idx: int, *args, **kwargs
     ) -> Tensor:
         preds, loss = self._shared_step(batch)[:2]
+        self.log(f"train/loss", loss, on_step=False)
         if batch_idx % 20 == 0 and batch_idx != 0:
-            self.train_metrics.log(self, preds=preds, target=batch[1])
-        self.log(f"{Phase.Train.value}/loss", loss, on_step=True)
+            self.train_acc(preds=preds, target=batch[1])
         return loss  # auto-logged by Lightning
 
     @no_type_check
@@ -126,8 +116,8 @@ class BaseModel(LightningModule):
         self, batch: Tuple[Tensor, Tensor], batch_idx: int, *args, **kwargs
     ) -> Tensor:
         preds, loss = self._shared_step(batch)[:2]
-        self.test_metrics.log(self, preds=preds, target=batch[1])
-        self.log(f"{Phase.Test.value}/loss", loss)
+        self.test_acc(preds=preds, target=batch[1])
+        self.log(f"test/loss", loss)
         return {
             "pred": preds.cpu().numpy(),
             "loss": loss.cpu().numpy(),
@@ -165,24 +155,18 @@ class BaseModel(LightningModule):
     def _shared_step(self, batch: Tuple[Tensor, Tensor]) -> tuple[Tensor, Tensor, Tensor]:
         x, target = batch
         preds = self(x)  # need pred.shape == (B, n_classes, H, W)
-        if self.current_epoch < self.config.dyn_epoch:
-            loss = self.ce_loss(preds, target)
-        else:
-            loss = self.loss(preds, target)
+        loss = self.loss(preds, target)
         return preds, loss, target
 
     def configure_optimizers(self) -> Tuple[List[Optimizer], List[_LRScheduler]]:
-        warmup = 2 if self.config.max_epochs <= 10 else 5
         opt = AdamW(
             self.parameters(),
             lr=self.config.lr_init,
             weight_decay=self.config.weight_decay,
         )
-        sched = LinearWarmupCosineAnnealingLR(
+        sched = CosineAnnealingLR(
             optimizer=opt,
-            warmup_epochs=warmup,
-            warmup_start_lr=1e-5,
-            max_epochs=self.config.max_epochs,
+            T_max=self.config.max_epochs,
             eta_min=1e-9,
         )
         return [opt], [sched]
@@ -229,7 +213,7 @@ class MLP(BaseModel):
 
     def __init__(
         self,
-        config: Config,
+        config: "Config",
         log_version_dir: Path,
         in_channels: int,
         width1: int = 512,
@@ -250,7 +234,7 @@ class MLP(BaseModel):
 class LogisticRegression(BaseModel):
     def __init__(
         self,
-        config: Config,
+        config: "Config",
         log_version_dir: Path,
         in_channels: int,
         *args: Any,

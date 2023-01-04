@@ -1,0 +1,56 @@
+from pathlib import Path
+from random import choice
+from shutil import rmtree
+from tempfile import mkdtemp
+from uuid import uuid4
+
+import numpy as np
+
+from src.enumerables import ClassifierKind, DataPerturbation, DatasetName
+from src.evaluator import Evaluator
+from src.hparams.hparams import (
+    CategoricalHparam,
+    ContinuousHparam,
+    Hparam,
+    Hparams,
+    OrdinalHparam,
+)
+from src.hparams.svm import SVMHparams
+from src.hparams.xgboost import XGBoostHparams
+from src.utils import missing_keys
+
+ROOT = Path(__file__).resolve().parent.parent  # isort: skip
+DIR = ROOT / "__test_temp__"
+DIR.mkdir(exist_ok=True)
+CATS = [chr(i) for i in (list(range(97, 123)) + list(range(65, 91)))]
+
+
+def random_continuous() -> ContinuousHparam:
+    log_scale = choice([True, False])
+    value = np.random.uniform(0, 1)
+    hsh = uuid4().hex
+    mn = 1e-15 if log_scale else 0.0
+    return ContinuousHparam(
+        f"test_float_{hsh}", value=value, max=1.0, min=mn, log_scale=log_scale
+    )
+
+
+def random_categorical() -> CategoricalHparam:
+    size = np.random.randint(1, 20)
+    values = np.random.choice(CATS, size=size, replace=False)
+    value = np.random.choice(values)
+    hsh = uuid4().hex
+    return CategoricalHparam(f"test_cat_{hsh}", value=value, categories=values)
+
+
+def random_ordinal() -> OrdinalHparam:
+    mx = np.random.randint(1, 500)
+    value = np.random.choice(list(range(mx)))
+    hsh = uuid4().hex
+    return OrdinalHparam(f"test_ord_{hsh}", value=value, min=0, max=mx)
+
+
+def random_hparams() -> list[Hparam]:
+    n = choice(list(range(1, 100)))
+    choices = [random_categorical, random_continuous, random_ordinal]
+    return [choice(choices)() for _ in range(n)]

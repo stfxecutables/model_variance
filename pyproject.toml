@@ -13,6 +13,12 @@ known_local_folder = ['src', 'test', 'tests']
 testpaths = [
     "test",
 ]
+filterwarnings = [
+    # "error",
+    # note the use of single quote below to denote "raw" strings in TOML
+    'ignore:Call to deprecated create function:DeprecationWarning',
+    'ignore:distutils Version classes are deprecated:DeprecationWarning'
+]
 
 [tool.poetry]
 name = "model-variance"

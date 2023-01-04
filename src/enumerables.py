@@ -36,6 +36,8 @@ from sklearn.svm import SVC
 from typing_extensions import Literal
 from xgboost import XGBClassifier
 
+from src.models.torch_base import MLP, LogisticRegression
+
 JSONS = ROOT / "data/json"
 PQS = ROOT / "data/parquet"
 
@@ -239,7 +241,7 @@ class ClassifierKind(Enum):
         models: dict[ClassifierKind, ClassifierModel] = {
             ClassifierKind.XGBoost: XGBClassifier,
             ClassifierKind.SVM: SVC,
-            ClassifierKind.MLP: None,
-            ClassifierKind.LR: None,
+            ClassifierKind.MLP: MLP,
+            ClassifierKind.LR: LogisticRegression,
         }
         return models[self]

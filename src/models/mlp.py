@@ -17,3 +17,6 @@ import pandas as pd
 from numpy import ndarray
 from pandas import DataFrame, Series
 from typing_extensions import Literal
+
+if __name__ == "__main__":
+    pass
