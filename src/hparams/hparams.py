@@ -191,7 +191,7 @@ class ContinuousHparam(Hparam):
             raw = rng.uniform(vmin, vmax)
             value = 10 ** raw if self.log_scale else raw
         elif method is HparamPerturbation.AbsPercent10:
-            value = self.val_perturb(rng)
+            value = self.val_perturb_10(rng)
         else:
             raise NotImplementedError(
                 f"Continuous perturbation not implemented for {method.name}"
@@ -199,7 +199,7 @@ class ContinuousHparam(Hparam):
         val = np.clip(value, a_min=self.min, a_max=self.max)
         return self.new(value=val)
 
-    def val_perturb(self, rng: Generator) -> float:
+    def val_perturb_10(self, rng: Generator) -> float:
         if self.log_scale:
             # Example most extreme possible perturbed values:
             #
@@ -212,7 +212,7 @@ class ContinuousHparam(Hparam):
             val = self.value
             mn, mx = self.min, self.max
 
-        d = 0.05 * (mx - mn)
+        d = 0.05 * (mx - mn)  # 0.05 == 0.10 / 2, so
         val_min = val - d
         val_max = val + d
 

@@ -97,7 +97,7 @@ class TestOrdinal:
 
 
 class TestContinuous:
-    N = 50
+    N = 250
     ALLOWANCE = N // 20
     # N = 250
 
@@ -124,8 +124,13 @@ class TestContinuous:
             hp = random_continuous()
             # delta = ceil(mag * hp.value)
             h2 = hp.perturbed(method=method)
-            assert hp != h2
             equals.append(hp == h2)
+            if hp.log_scale:
+                diff = abs(np.log10(hp.value) - np.log10(h2.value))
+                assert diff <= abs(mag * np.log10(hp.value))
+            else:
+                diff = hp - h2
+                assert diff <= mag * hp.value
         assert sum(equals) <= self.ALLOWANCE
 
     def test_perturb_abs_10(self) -> None:
@@ -136,6 +141,7 @@ class TestContinuous:
             hp = random_continuous()
             # delta = ceil((hp.max - hp.min) * mag)
             h2 = hp.perturbed(method=method)
-            assert hp != h2
             equals.append(hp == h2)
+            diff = hp - h2
+            assert diff <= mag * abs(hp.max - hp.min)
         assert sum(equals) <= self.ALLOWANCE
