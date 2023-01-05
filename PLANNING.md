@@ -688,8 +688,12 @@ in terms of area is expected intersection) so you get 0.25, 0.56, 0.64, 0.81
 for 50%, 75%, 80%, and 90% training size. I.e. the difference is small at the
 usual choices of training set size.
 
-If grouping by `repeat`, there ought to be a *strong* correlation between `var(acc)` and `train_size`.
-in the cobbled $k$-fold case: I expect this correlation
+If grouping by `repeat`, there is a problem with using $k$-fold in that the
+groups are of different sizes. If we attempt to compute a variance of any
+statistic over a group, then since variance (or any other measure of scale)
+is more sensitive to sample size, then we have different levels of confidence
+about this variance summary depending on the number of folds. MC avoids this
+issue.
 
 ## Constructing a Shared Test Set *within* Repeats
 
