@@ -69,7 +69,7 @@ def load_run_rng(repeat: int, run: int, seedfile: Path = DEFAULT_SEEDS) -> Gener
     #   SeedSequence(e).spawn(n)[i] == SeedSequence(e).spawn(n + k)[i]
     #
     # for all i < n, and any k.
-    ss = parent.spawn(run)[-1]
+    ss = parent.spawn(run + 1)[-1]
     return np.random.default_rng(ss)
 
 

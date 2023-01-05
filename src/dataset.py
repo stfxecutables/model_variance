@@ -381,7 +381,7 @@ class Dataset:
         )
         y = self.data["__target"]
         y = LabelEncoder().fit_transform(y).astype(np.float64)
-        X = pd.concat([X_cat, X_cont], axis=1, ignore_index=False).copy()
+        X = np.concatenate([X_cat, X_cont], axis=1)
         return X, y
 
     def X_reduced(self, percent: int) -> ndarray | None:
@@ -555,14 +555,14 @@ class Dataset:
         """
         if train_downsample not in [None, 25, 50, 75]:
             raise ValueError("`train_downsample` must be in [None, 25, 50, 75]")
+        shuffle_rng = load_repeat_rng(repeat=repeat)
         X_orig, y = self.get_X_y(
             cont_perturb=None,
             cat_perturb_prob=0,
             cat_perturb_level=cat_perturb_level,
             reduction=reduction,
-            rng=rng,  # rng is not advanced here since no perturbation
+            rng=shuffle_rng,  # rng is not advanced here since no perturbation
         )
-        shuffle_rng = load_repeat_rng(repeat=repeat)
         shuffle_idx = shuffle_rng.permutation(len(y))
         X_orig = X_orig[shuffle_idx]
         y = y[shuffle_idx]
@@ -599,10 +599,9 @@ class Dataset:
             # 50% train split, use the first split of a 2-fold.
             k = {25: 4, 50: 2, 75: 4}[train_downsample]
             split_idx = {25: 1, 50: 0, 75: 0}[train_downsample]
-            idx_train = next(StratifiedKFold(k, shuffle=False).split(X_orig, y))[
-                split_idx
-            ]
-
+            idx_train = next(
+                StratifiedKFold(k, shuffle=False).split(X_nontest, y_nontest)
+            )[split_idx]
             X_train = X_nontest[idx_train]
             y_train = y_nontest[idx_train]
         return X_train, y_train, X_test, y_test
