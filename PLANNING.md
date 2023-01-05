@@ -590,12 +590,6 @@ reduction methods which are dated and harmful in almost all real-world predictio
 
 
 
-# Specifics / ALternatives
-
-We could choose *binned* options for each source of variance, e.g. data
-downsampling in [0.30, 0.45, 0.60, 0.75, 0.90], and so on, or could choose
-*random magnitudes* in [0.30, 0.90] (actually, quasi-random is better, e.g.
-Latin square, Sobol, poisson disc sampling).
 
 # Fit Times
 
@@ -612,6 +606,82 @@ LDPA                   (164 000 samples, 8 features)
   - GradientBoost on one core:   8 minutes
   - XGBoost (hist) on one core: 13 seconds
 
+# Pairwise Prediction Similarity Across Repeats and Runs
+
+We have a notion of Pairwise Prediction Similarity (PPS) across repeated,
+varied model runs, and which is not pre-committed only to a single metric like
+the EC (just a pairwise IoU / Jaccard index) nor pre-committed to examining the
+errors / error sets alone. We investigate similarity of both erroneous and
+correct predictions (be they residuals, or classification predictions) on a
+collection of datasets, and with various typical classifiers and/or regressors.
+There are five main sources of (model) variance:
+
+- train data downsampling
+- feature reduction
+- training sample perturbation
+- test sample perturbation
+- hyperparameter perturbation
+
+For each source of variance (or combination thereof) and each dataset and
+model, we would perform $N$ ***repeats***. Each repeat *chooses a fixed test*
+set to use across $r$ validation runs in each repeat, and each run has a single
+set of predictions on the (shared within a repeat) test set due to the variance
+induction procedure. PPS metrics (on residuals, correct predictions, and
+errors; PPSMs) can be computed across these $r$ runs, and summarized into
+single values, so that if we examine $p$ PPSMs, we get $N \times p$ summary
+values per variance-induction-procedure/dataset/model combination.
+
+Each variance induction procedure also has a degree / magnitude which can be
+varied, and then related to the PPSMs (potentially as a separate "experiment"
+in the paper). Simulating datasets with known separation / noise can also
+strongly aid in interpreting the meaning of the various PPSMs, and reveal
+advantages / disadvantages of particular choices of similarity metrics.
+
+ 
+# Tuning and Validation Procedure
+
+## k-fold vs. Monte-Carlo
+
+Suppose we wish to vary training-set size. With k-fold, we train on $\frac{k -
+1}{k}$ of the data, such that for $k \in \{2, 3, 4, 5, 10\}$ we train on 50%,
+66%, 75%, 80%, and 90% of the data, respectively, but also require $k$ model
+fits to obtain one cross-validated performance estimate. That is, the budget
+varies by orders of magnitude from 50% to 90% training set size when using
+$k$-fold validation. In addition, no one really uses $k < 5$, so this generates
+only 2 comparison points (or 3 if we increase to $20$-fold).  By contrast, we
+can use $k$ Monte-Carlo splits at arbitrary training set size and keep the
+budget the same.
+
+However, we also need to compute PPSMs across a number of repeats. To compute
+a PPSM, you need multiple predictions on the same set of samples. There are two
+options here: use a fixed holdout test set per repeat, or use repeated shuffled
+k-fold and "cobble together" validation-partitions to get total predictions on
+the full data. In addition, one must consider how to do tuning given the later
+PPSM measurement.
+
+We thus distinguish between e.g. "PPSM holdout / k-fold" and "tuning holdout / k-fold".
+
+## Cobbling vs. Holdout
+
+
+
+
+
+I think it is worth looking at model variance with and without tuning. It is conceivable
+that tuning improves model performance, but has a different effect on model variance.
+
+
+# Validation Procedure
+
+## k-fold vs. Monte-Carlo
+
+After setting aside a test set $\mathbf{X}_{\text{test}}$ from the full data
+$\mathbf{X}$, leaving behind an $\mathbf{X}_{\text{base}}$. We want to obtain
+an estimate of the performance on $\mathbf{X}_{\text{test}}$ by using
+cross-validation on $\mathbf{X}_{\text{base}}$, but in a way that *allows the
+comparison of different training set sizes*. There are two reasonable approaches:
+
+1.
 
 # Tuning
 
