@@ -10,9 +10,10 @@ sys.path.append(str(ROOT))  # isort: skip
 import json
 import os
 
-from numpy.random import SeedSequence
+import numpy as np
+from numpy.random import Generator, SeedSequence
 
-from src.constants import SEEDS
+from src.constants import DEFAULT_SEEDS, SEEDS
 
 
 def urandom_int() -> int:
@@ -26,7 +27,9 @@ def generate_seed_sequences(n_seqs: int) -> list[SeedSequence]:
     return seqs
 
 
-def save_seed_seqs(seed_seqs: list[SeedSequence], outname: str) -> None:
+def save_seed_seqs(
+    seed_seqs: list[SeedSequence], outname: str = DEFAULT_SEEDS.name
+) -> None:
     d = {}
     for i, ss in enumerate(seed_seqs):
         d[i] = dict(entropy=ss.entropy, spawn_key=list(ss.spawn_key))
@@ -36,7 +39,7 @@ def save_seed_seqs(seed_seqs: list[SeedSequence], outname: str) -> None:
     print(f"Saved seed sequences to {out}")
 
 
-def load_seed_seqs(outfile: Path) -> dict[int, SeedSequence]:
+def load_seed_seqs(outfile: Path = DEFAULT_SEEDS) -> dict[int, SeedSequence]:
     with open(outfile, "r") as fp:
         d: dict[int, dict[str, int | tuple[int, ...]]] = json.load(fp)
     seqs = {}
@@ -47,6 +50,33 @@ def load_seed_seqs(outfile: Path) -> dict[int, SeedSequence]:
     return seqs
 
 
+def load_rngs(seedfile: Path = DEFAULT_SEEDS) -> list[Generator]:
+    seqs = load_seed_seqs(outfile=seedfile)
+    return [np.random.default_rng(ss) for ss in seqs]
+
+def load_repeat_rng(repeat: int, seedfile: Path = DEFAULT_SEEDS) -> Generator:
+    seqs = load_seed_seqs(outfile=seedfile)
+    ss = seqs[repeat]
+    return np.random.default_rng(ss)
+
+
+def load_run_rng(repeat: int, run: int, seedfile: Path = DEFAULT_SEEDS) -> Generator:
+    seqs = load_seed_seqs(outfile=seedfile)
+    parent = seqs[repeat]
+    # below is safe to do because each element of spawn has same entropy, but with
+    # spawn_key being an incremented tuple. E.g.
+    #
+    #   SeedSequence(e).spawn(n)[i] == SeedSequence(e).spawn(n + k)[i]
+    #
+    # for all i < n, and any k.
+    ss = parent.spawn(run)[-1]
+    return np.random.default_rng(ss)
+
+
 if __name__ == "__main__":
-    seqs = generate_seed_sequences(50)
-    print()
+    if DEFAULT_SEEDS.exists():
+        raise FileExistsError(
+            f"Seeds already generated at {DEFAULT_SEEDS}. Remove it to re-generate seeds"
+        )
+    seqs = generate_seed_sequences(5000)
+    save_seed_seqs(seqs)

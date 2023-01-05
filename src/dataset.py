@@ -21,6 +21,7 @@ from typing import (
     Callable,
     Dict,
     List,
+    Literal,
     Optional,
     Sequence,
     Tuple,
@@ -40,16 +41,19 @@ from numpy.random import Generator
 from numpy.typing import NDArray
 from pandas import CategoricalDtype, DataFrame, Series
 from pandas.errors import PerformanceWarning
+from sklearn.model_selection import StratifiedKFold
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from tqdm import tqdm
 from tqdm.contrib.concurrent import process_map
 from typing_extensions import Literal
 
-from src.constants import CAT_REDUCED, CONT_REDUCED, DISTANCES
+from src.constants import CAT_REDUCED, CONT_REDUCED, DISTANCES, TEST_SIZE
 from src.enumerables import DataPerturbation, DatasetName, RuntimeClass
 from src.perturb import neighbour_perturb, sig_perturb_plus
+from src.seeding import load_repeat_rng, load_run_rng
 
+Percentage = Literal[25, 50, 75]
 JSONS = ROOT / "data/json"
 PARQUETS = ROOT / "data/parquet"
 
@@ -346,6 +350,22 @@ class Dataset:
         reduction: int | None = None,
         rng: Generator | None = None,
     ) -> tuple[ndarray, ndarray]:
+        """
+        Returns
+        -------
+        X: ndarray
+            Predictors, perturbed depending on perturbation arguments.
+
+        y: ndarray
+            1d integer array of true labels. Never perturbed (no label noise).
+
+        Note
+        ----
+        If `cont_perturb` is None, and `cat_perturb_prob == 0`, and
+        reductions have already been generated, then a call to this
+        function is fully deterministic and does NOT advance the
+        passed in rng (or use it at all).
+        """
         if rng is None:
             rng = np.random.default_rng()
         X_cat = self.get_X_categorical(
@@ -516,9 +536,76 @@ class Dataset:
     __repr__ = __str__
 
     def get_monte_carlo_splits(
-        self, train_size: int | float
-    ) -> Tuple[DataFrame, DataFrame]:
-        pass
+        self,
+        train_downsample: Percentage | None,
+        cont_perturb: DataPerturbation | None = None,
+        cat_perturb_prob: float = 0,
+        cat_perturb_level: Literal["sample", "label"] = "label",
+        reduction: int | None = None,
+        repeat: int = 0,
+        run: int = 0,
+    ) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
+        """
+        Returns
+        -------
+        X_train: ndarray
+        y_train: ndarray
+        X_test: ndarray
+        y_test: ndarray
+        """
+        if train_downsample not in [None, 25, 50, 75]:
+            raise ValueError("`train_downsample` must be in [None, 25, 50, 75]")
+        X_orig, y = self.get_X_y(
+            cont_perturb=None,
+            cat_perturb_prob=0,
+            cat_perturb_level=cat_perturb_level,
+            reduction=reduction,
+            rng=rng,  # rng is not advanced here since no perturbation
+        )
+        shuffle_rng = load_repeat_rng(repeat=repeat)
+        shuffle_idx = shuffle_rng.permutation(len(y))
+        X_orig = X_orig[shuffle_idx]
+        y = y[shuffle_idx]
+
+        # 4-fold means test_size is 25%
+        idx_train, idx_test = next(StratifiedKFold(4, shuffle=False).split(X_orig, y))
+        X_test = X_orig[idx_test]
+        y_test = y[idx_test]
+
+        rng = load_run_rng(repeat=repeat, run=run)
+        X_pert = self.get_X_y(
+            cont_perturb=cont_perturb,
+            cat_perturb_prob=cat_perturb_prob,
+            cat_perturb_level=cat_perturb_level,
+            reduction=reduction,
+            rng=rng,
+        )[0]
+        X_pert = X_pert[shuffle_idx]
+        X_nontest = X_pert[idx_train]
+        y_nontest = y[idx_train]
+
+        if train_downsample is None:
+            X_train = X_nontest
+            y_train = y_nontest
+        else:
+            N = len(X_nontest)
+            idx = rng.permutation(N)
+            X_nontest, y_nontest = X_nontest[idx], y_nontest[idx]
+            # again need to go through k-fold for stratification...
+            # Grab either train or test idx based on desired train size.
+            # I.e. to get a 25% stratified train set, use 4-fold and take the
+            # test split for training instead. To get a 75% stratified train
+            # set, use the first normal train split of a 4-fold, and to get a
+            # 50% train split, use the first split of a 2-fold.
+            k = {25: 4, 50: 2, 75: 4}[train_downsample]
+            split_idx = {25: 1, 50: 0, 75: 0}[train_downsample]
+            idx_train = next(StratifiedKFold(k, shuffle=False).split(X_orig, y))[
+                split_idx
+            ]
+
+            X_train = X_nontest[idx_train]
+            y_train = y_nontest[idx_train]
+        return X_train, y_train, X_test, y_test
 
     @staticmethod
     def load_all() -> list[Dataset]:

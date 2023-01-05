@@ -20,7 +20,7 @@ def ensure_dir(path: Path) -> Path:
     path.mkdir(exist_ok=True, parents=True)
     return path
 
-
+# Paths
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS = ensure_dir(ROOT / "results")
 DATA = ensure_dir(ROOT / "data")
@@ -29,3 +29,7 @@ CAT_REDUCED = ensure_dir(PQS / "categorical_reductions")
 CONT_REDUCED = ensure_dir(PQS / "continuous_reductions")
 DISTANCES = ensure_dir(DATA / "precomputed")
 SEEDS = ensure_dir(DATA / "seeds")
+DEFAULT_SEEDS = SEEDS / "seed_seqs.json"
+
+# constants
+TEST_SIZE = 0.25
