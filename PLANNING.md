@@ -659,9 +659,57 @@ k-fold and "cobble together" validation-partitions to get total predictions on
 the full data. In addition, one must consider how to do tuning given the later
 PPSM measurement.
 
-We thus distinguish between e.g. "PPSM holdout / k-fold" and "tuning holdout / k-fold".
+That is, given full data $\mathbf{X}_{\text{full}}$, for each repeat $i$ we
+must assemble $N$ predictions $\hat{\bm{y}}_r^{(i)} \in \mathbb{R}^{n}$, for $r
+= 1, \dots, N$, on fixed set $\mathbf{X}_{\text{test}}^{(i)}$ with $n$ test
+samples, and where $\mathbf{X}_{\text{test}}^{(i)}$ is shared across the $r$
+runs in each repeat $i$.
 
-## Cobbling vs. Holdout
+### Comparing Across All Combinations
+
+In addition, we would like to ultimately have a table of something like:
+
+| run | repeat | train_size | samp_perturb | hp_perturb | reduction | acc | preds |
+|-----|--------|------------|--------------|------------|-----------|-----|-------|
+| ... |  ...   |     ...    |    ...       |    ...     |    ...    | ... |[path] |
+
+
+But where there are no "hidden" factors or confounds that vary with some column
+of the above. For example, if using cobbled k-fold to generate identical
+within-repeat test sets, the "cobbled" preds are in fact a result of a differing
+number of model fits for each different `train_size`.
+
+Likewise, there is an implicit "expected training set similarity" for each
+choice of splitting / validation procedure. For $k$-fold, the proportion of
+overlapping samples is $\frac{k-2}{k}$, i.e. 0, 0.5, 0.6, 0.8 for 2-, 4-, 5-,
+10-fold respectively (50%, 75%, 80%, and 90% training size).  For MC,
+probability of being sampled twice is $P_{\text{train}}^2$ (expected overlap is
+in terms of area is expected intersection) so you get 0.25, 0.56, 0.64, 0.81
+for 50%, 75%, 80%, and 90% training size. I.e. the difference is small at the
+usual choices of training set size.
+
+If grouping by `repeat`, there ought to be a *strong* correlation between `var(acc)` and `train_size`.
+in the cobbled $k$-fold case: I expect this correlation
+
+## Constructing a Shared Test Set *within* Repeats
+
+There are only two sane approaches:
+
+- **random holdout**: randomly sample (without replacement) $1 - P_{\text{train}}$% of the
+  data as $\mathbf{X}_{\text{test}}^{(i)}$. The remaining
+
+### Cobbled vs. MC Downsample
+
+Here, $k$-fold simply seems too expensive given that we want multiple repeats.
+MC cross-validation allows a fixed budget of runs (say, 10-50) with precise
+variation of the training set size. The only downside / cost to MC is that
+
+### Test Set Variation *Across* Repeats
+
+If we perform 10 or 20 repeats, there is a strong case to make for choosing the
+repeat test sets via 10- or 20-fold, and little in favor of MCCV.
+
+
 
 
 
