@@ -69,6 +69,8 @@ class Evaluator(DirJSONable):
         self,
         dataset_name: DatasetName,
         classifier_kind: ClassifierKind,
+        repeat: int,
+        run: int,
         hparams: Hparams,
         dimension_reduction: Percentage | None,
         continuous_perturb: DataPerturbation | None,
@@ -80,6 +82,8 @@ class Evaluator(DirJSONable):
         self.dataset_name: DatasetName = dataset_name
         self.dataset_: Dataset | None = None
         self.classifer_kind: ClassifierKind = classifier_kind
+        self.repeat: int = repeat
+        self.run: int = run
         self.hparams: Hparams = hparams
         self.dimension_reduction: Percentage | None = dimension_reduction
         self.continuous_perturb: DataPerturbation | None = continuous_perturb
@@ -143,8 +147,18 @@ class Evaluator(DirJSONable):
 
     def fit(self) -> None:
         ds = self.dataset
+        if self.classifer_kind in [ClassifierKind.MLP, ClassifierKind.LR]:
+            raise NotImplementedError()
         model = self.classifer_kind.model()
-        ...
+        X_train, y_train, X_test, y_test = ds.get_monte_carlo_splits(
+            train_downsample=self.train_downsample,
+            cont_perturb=self.continuous_perturb,
+            cat_perturb_prob=self.categorical_perturb,
+            cat_perturb_level=self.categorical_perturb_level,
+            reduction=self.dimension_reduction,
+            repeat=self.repeat,
+            run=self.run,
+        )
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Evaluator):

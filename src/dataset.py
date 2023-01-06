@@ -315,7 +315,6 @@ class Dataset:
             cats = df.select_dtypes(include=[CategoricalDtype])
             if cats.shape[1] == 0:
                 return OneHotEncoder(sparse=False).fit_transform(cats).astype(np.float64)  # type: ignore
-            orig = cats.copy()
             if perturbation_prob > 0:
                 rng = np.random.default_rng() if rng is None else rng
                 if perturb_level == "sample":

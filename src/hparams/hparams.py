@@ -65,6 +65,9 @@ class Hparam(FileJSONable[H], Generic[T, H]):
         self._value: T | None = value
         self.kind: HparamKind
 
+    def to_dict(self) -> dict[str, T | None]:
+        return {self.name: self.value}
+
     @property
     def value(self) -> T | None:
         return self._value
@@ -533,6 +536,16 @@ class Hparams(DirJSONable):
         self.n_continuous = len(self.continuous)
         self.n_ordinal = len(self.ordinals)
         self.n_categorical = len(self.categoricals)
+
+    def to_dict(self) -> dict[str, int | float | str]:
+        d = {}
+        for hp in self.hparams.values():
+            if hp.name in d:
+                raise KeyError(
+                    f"Duplicate key: {hp.name}. This means two hparams have same name."
+                )
+            d.update(hp.to_dict())
+        return d
 
     def clone(self) -> Hparams:
         cls: Type[Hparams] = self.__class__

@@ -117,7 +117,7 @@ class BaseModel(LightningModule):
     ) -> Tensor:
         preds, loss = self._shared_step(batch)[:2]
         self.test_acc(preds=preds, target=batch[1])
-        self.log(f"test/loss", loss)
+        self.log("test/loss", loss)
         return {
             "pred": preds.cpu().numpy(),
             "loss": loss.cpu().numpy(),

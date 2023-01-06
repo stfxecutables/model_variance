@@ -9,21 +9,14 @@ sys.path.append(str(ROOT))  # isort: skip
 
 import sys
 from pathlib import Path
-from typing import Any, List, Optional, Sequence, Tuple, Union, cast, no_type_check
 
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
 from numpy import ndarray
-from pandas import DataFrame, Series
 from sklearn.svm import SVC
-from typing_extensions import Literal
 
-from src.models.dl_model import DLModel
-from src.models.torch_base import LogisticRegression
+from src.models.model import ClassifierModel
 
 
-class LRModel(DLModel):
+class SVCModel(ClassifierModel):
     def predict(self, X: ndarray) -> ndarray:
-        model: LogisticRegression = self.model
+        model: SVC = self.model
         return model.predict(X)

@@ -47,6 +47,7 @@ ClassifierModel = SVC | XGBClassifier
 
 class DatasetName(Enum):
     """Remove DevnagariScript and FashionMnist, which are not tabular data"""
+
     Arrhythmia = "arrhythmia"
     Kc1 = "kc1"
     ClickPrediction = "click_prediction_small"
@@ -237,12 +238,12 @@ class ClassifierKind(Enum):
     MLP = "mlp"
     LR = "lr"  # MLP with one linear layer, mathematically identical
 
-    def model(self) -> ClassifierModel:
-        """Should return something that implements `.fit()` and `.predict()` methods"""
-        models: dict[ClassifierKind, ClassifierModel] = {
-            ClassifierKind.XGBoost: XGBClassifier,
-            ClassifierKind.SVM: SVC,
-            ClassifierKind.MLP: MLP,
-            ClassifierKind.LR: LogisticRegression,
-        }
-        return models[self]
+    # def model(self) -> ClassifierModel:
+    #     """Should return something that implements `.fit()` and `.predict()` methods"""
+    #     models: dict[ClassifierKind, ClassifierModel] = {
+    #         ClassifierKind.XGBoost: XGBClassifier,
+    #         ClassifierKind.SVM: SVC,
+    #         ClassifierKind.MLP: MLP,
+    #         ClassifierKind.LR: LogisticRegression,
+    #     }
+    #     return models[self]
