@@ -226,23 +226,36 @@ class Dataset:
             # d_nn = sqrt(|x^2 - x_nn^2|) for sample x and nearest neighor x_nn
             scale = 2 if perturbation is DataPerturbation.HalfNeighbor else 4
             distances = self.nearest_distances(reduction=reduction)
-            perturbed = neighbour_perturb(X_f, distances=distances, scale=scale)
+            perturbed = neighbour_perturb(X_f, distances=distances, scale=scale, rng=rng)
             return perturbed
         if perturbation in [DataPerturbation.SigDigOne, DataPerturbation.SigDigZero]:
             n_digits = 0 if perturbation is DataPerturbation.SigDigZero else 1
-            perturbed = sig_perturb_plus(X_f, n_digits=n_digits)
+            perturbed = sig_perturb_plus(X_f, n_digits=n_digits, rng=rng)
             return perturbed
         if perturbation in [DataPerturbation.RelPercent05, DataPerturbation.RelPercent10]:
             magnitude = 0.05 if perturbation is DataPerturbation.RelPercent05 else 0.10
-            deltas = np.random.uniform(-magnitude, magnitude, size=X_f.shape)
+            deltas = rng.uniform(-magnitude, magnitude, size=X_f.shape)
             perturbed = X_f + deltas * X_f
             return perturbed
         if perturbation in [DataPerturbation.Percentile05, DataPerturbation.Percentile10]:
+            """
+            raise NotImplementedError(
+                "This method doesn't make sense with clustered data. E.g. if you have\n"
+                "data like:\n\n"
+                "     .......                                               .....\n"
+                "------^----------------------|------------------------------------>\n"
+                "      |                     x=0\n"
+                "      percentile\n"
+                "then a 'small' negative perturbation is quite large. But if we take\n"
+                "the absolute value, then I think we are OK"
+            )
+            """
             magnitude = 0.05 if perturbation is DataPerturbation.Percentile05 else 0.10
-            percs = np.percentile(X_f, q=magnitude, axis=0)
-            deltas = [
-                np.random.uniform(-p, p, size=len(X_f)) for i, p in enumerate(percs)
-            ]
+            # m = magnitude / 2
+            percs = np.percentile(np.abs(X_f), q=magnitude, axis=0)
+            # percs_lo = np.percentile(np.abs(X_f), q=m, axis=0)
+            # we could have negatives in above
+            deltas = [rng.uniform(-p, p, size=len(X_f)) for p in percs]
             deltas = np.stack(deltas, axis=1)
             perturbed = X_f + deltas * X_f
             return perturbed
@@ -300,6 +313,8 @@ class Dataset:
         if reduction is None:
             df = self.data.drop(columns="__target")
             cats = df.select_dtypes(include=[CategoricalDtype])
+            if cats.shape[1] == 0:
+                return OneHotEncoder(sparse=False).fit_transform(cats).astype(np.float64)  # type: ignore
             orig = cats.copy()
             if perturbation_prob > 0:
                 rng = np.random.default_rng() if rng is None else rng
@@ -331,8 +346,6 @@ class Dataset:
                         rands[column] = new
                     idx = rng.uniform(0, 1, size=rands.shape) < perturbation_prob
                     cats.loc[idx] = rands.loc[idx]
-            if cats.shape[1] == 0:
-                return OneHotEncoder(sparse=False).fit_transform(cats).astype(np.float64)  # type: ignore
             return pd.get_dummies(cats).astype(np.float64).to_numpy()  # type: ignore
 
         X = reduce_categoricals(self)

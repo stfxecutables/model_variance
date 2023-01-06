@@ -36,6 +36,7 @@ import pandas as pd
 import pytest
 import seaborn as sbn
 from numpy import ndarray
+from numpy.random import Generator
 from numpy.typing import NDArray
 from pandas import CategoricalDtype, DataFrame, Series
 from pandas.errors import PerformanceWarning
@@ -54,7 +55,10 @@ def sig_perturb(x: ndarray, n_digits: int = 1) -> ndarray:
     return x + delta * np.random.uniform(-1, 1, x.shape)
 
 
-def sig_perturb_plus(x: ndarray, n_digits: int = 1) -> ndarray:
+def sig_perturb_plus(
+    x: ndarray, n_digits: int = 1, rng: Generator | None = None
+) -> ndarray:
+    rng = np.random.default_rng() if rng is None else rng
     x = np.asarray(x)
     idx = x != 0
     delta = 10 ** (np.floor(np.log10(np.abs(x[idx]))) / 10 ** n_digits)
@@ -62,7 +66,7 @@ def sig_perturb_plus(x: ndarray, n_digits: int = 1) -> ndarray:
     if n_digits == 1:
         delta *= 2
     perturbed = deepcopy(x)
-    perturbed[idx] += delta * np.random.uniform(-1, 1, [len(delta)])
+    perturbed[idx] += delta * rng.uniform(-1, 1, [len(delta)])
     return perturbed
 
 
@@ -70,17 +74,20 @@ def percent_perturb(x: float, xmin: float, xmax: float, magnitude: float) -> nda
     """Perturb to within `magnitude` percent of the range of `x`"""
 
 
-def neighbour_perturb(x: ndarray, distances: ndarray, scale: float) -> ndarray:
+def neighbour_perturb(
+    x: ndarray, distances: ndarray, scale: float, rng: Generator | None = None
+) -> ndarray:
     """
     We use the "normalized Gaussians" method to get a random perturbation
     vector for each sample in d_nn / 2, where d_nn = sqrt(|x^2 - x_nn^2|) for
     sample x and nearest neighor x_nn
     """
+    rng = np.random.default_rng() if rng is None else rng
     deltas = distances / scale
-    gaussians = np.random.standard_normal(x.shape)
+    gaussians = rng.standard_normal(x.shape)
     norm = np.linalg.norm(gaussians, axis=1, keepdims=True)
     shell = gaussians / norm  # samples on n-sphere shell
-    radii = np.random.uniform(0, 1, size=x.shape) * deltas[:, None]
+    radii = rng.uniform(0, 1, size=x.shape) * deltas[:, None]
     perturbations = radii * shell
     perturbed = x + perturbations
     assert np.all(np.linalg.norm(perturbed - x, axis=1) <= deltas)
