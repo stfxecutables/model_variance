@@ -191,6 +191,12 @@ class RuntimeClass(Enum):
         }
         return runtimes[self]
 
+    @staticmethod
+    def from_dataset(dsname: DatasetName) -> RuntimeClass:
+        for cls in RuntimeClass:
+            if dsname in cls.members():
+                return cls
+
 
 # class HparamPerturbation(Enum):
 #     SigDig = "sig-dig"

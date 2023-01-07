@@ -27,8 +27,14 @@ from src.enumerables import (
     DataPerturbation,
     DatasetName,
     HparamPerturbation,
+    RuntimeClass,
 )
 from src.hparams.hparams import Hparam, Hparams
+from src.models.logistic import LRModel
+from src.models.mlp import MLPModel
+from src.models.model import ClassifierModel
+from src.models.svc import SVCModel
+from src.models.xgb import XGBoostModel
 from src.serialize import DirJSONable, FileJSONable
 from src.utils import missing_keys
 
@@ -89,6 +95,7 @@ class Evaluator(DirJSONable):
         self.dataset_name: DatasetName = dataset_name
         self.dataset_: Dataset | None = None
         self.classifer_kind: ClassifierKind = classifier_kind
+        self.model: ClassifierModel = self.get_classifier_model()
         self.repeat: int = repeat
         self.run: int = run
         self.hparams: Hparams = hparams
@@ -102,6 +109,22 @@ class Evaluator(DirJSONable):
         ] = categorical_perturb_level
         self.to_json(self.logdir)
         print(f"Evaluator results will be logged to {self.logdir}")
+
+    def get_classifier_model(self) -> ClassifierModel:
+        args = dict(
+            hparams=self.hparams,
+            logdir=self.logdir,
+            runtime=RuntimeClass.from_dataset(self.dataset_name),
+        )
+        if self.classifer_kind is ClassifierKind.LR:
+            return LRModel(**args)
+        if self.classifer_kind is ClassifierKind.SVM:
+            return SVCModel(**args)
+        if self.classifer_kind is ClassifierKind.XGBoost:
+            return XGBoostModel(**args)
+        if self.classifer_kind is ClassifierKind.MLP:
+            return MLPModel(**args)
+        raise ValueError(f"Unknown model kind: {self.classifer_kind}")
 
     @property
     def logdir(self) -> Path:
@@ -182,22 +205,22 @@ class Evaluator(DirJSONable):
         )
 
     def evaluate(self) -> None:
-        ds = self.dataset
-        if self.classifer_kind in [ClassifierKind.MLP, ClassifierKind.LR]:
-            raise NotImplementedError()
-        model = self.classifer_kind.model()
-        X_train, y_train, X_test, y_test = ds.get_monte_carlo_splits(
-            train_downsample=self.train_downsample,
-            cont_perturb=self.continuous_perturb,
-            cat_perturb_prob=self.categorical_perturb,
-            cat_perturb_level=self.categorical_perturb_level,
-            reduction=self.dimension_reduction,
-            repeat=self.repeat,
-            run=self.run,
-        )
         try:
-            # fit
-            ...
+            ds = self.dataset
+            if self.classifer_kind in [ClassifierKind.MLP, ClassifierKind.LR]:
+                raise NotImplementedError()
+            model = self.classifer_kind.model()
+            X_train, y_train, X_test, y_test = ds.get_monte_carlo_splits(
+                train_downsample=self.train_downsample,
+                cont_perturb=self.continuous_perturb,
+                cat_perturb_prob=self.categorical_perturb,
+                cat_perturb_level=self.categorical_perturb_level,
+                reduction=self.dimension_reduction,
+                repeat=self.repeat,
+                run=self.run,
+            )
+            # TODO: fit
+            raise NotImplementedError()
         except Exception as e:
             traceback.print_exc()
             raise RuntimeError("Could not fit model. Likely CUDA-related.") from e
