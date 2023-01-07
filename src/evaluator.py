@@ -117,6 +117,8 @@ class Evaluator(DirJSONable):
                     "hparam_perturb": value_or_none(self.hparam_perturb),
                     "train_downsample": self.train_downsample,
                     "categorical_perturb_level": self.categorical_perturb_level,
+                    "repeat": self.repeat,
+                    "run": self.run,
                 },
                 fp,
             )
@@ -143,6 +145,8 @@ class Evaluator(DirJSONable):
             hparam_perturb=h_perturb,
             train_downsample=d.train_downsample,
             categorical_perturb_level=d.categorical_perturb_level,
+            repeat=d.repeat,
+            run=d.run,
         )
 
     def fit(self) -> None:

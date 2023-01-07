@@ -42,7 +42,7 @@ JSONS = ROOT / "data/json"
 PQS = ROOT / "data/parquet"
 
 
-ClassifierModel = SVC | XGBClassifier
+ThridPartyClassifierModel = SVC | XGBClassifier
 
 
 class DatasetName(Enum):

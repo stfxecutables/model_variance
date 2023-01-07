@@ -14,7 +14,7 @@ from numpy import ndarray
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
 
-from src.enumerables import ClassifierKind, ClassifierModel
+from src.enumerables import ClassifierKind, ThridPartyClassifierModel
 from src.hparams.hparams import Hparams
 from src.hparams.svm import SVMHparams
 from src.hparams.xgboost import XGBoostHparams
@@ -24,7 +24,7 @@ class Classifier(ABC):
     def __init__(self, kind: ClassifierKind, hparams: Hparams) -> None:
         self.kind: ClassifierKind = kind
         self.hparams: Hparams = hparams
-        self.model: ClassifierModel = self.kind.model()
+        self.model: ThridPartyClassifierModel = self.kind.model()
 
     @abstractmethod
     def fit(self, X: ndarray, y: ndarray) -> None:

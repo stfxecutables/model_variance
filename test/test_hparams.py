@@ -6,6 +6,7 @@ from tempfile import mkdtemp
 from uuid import uuid4
 
 import numpy as np
+from pytest import raises
 
 from src.enumerables import ClassifierKind, DataPerturbation, DatasetName
 from src.evaluator import Evaluator
@@ -23,6 +24,7 @@ from src.utils import missing_keys
 from test.helpers import (
     random_categorical,
     random_continuous,
+    random_fixed,
     random_hparams,
     random_ordinal,
 )
@@ -59,6 +61,43 @@ class TestCategorical:
                 # preturbation is random, but the probability all are equal approaches
                 # nil as the number of perturbed copies grows large
                 assert (total > 0) and (total < N)
+
+class TestFixed:
+    def test_clone(self) -> None:
+        for _ in range(50):
+            hp = random_fixed()
+            h2 = hp.clone()
+            assert hp == h2
+
+    def test_perturb(self) -> None:
+        N = 50
+        for method in [
+            HparamPerturbation.SigOne,
+            HparamPerturbation.RelPercent10,
+            HparamPerturbation.AbsPercent10,
+        ]:
+            hp = random_fixed()
+            for _ in range(N):
+                h2 = hp.perturbed(method=method)
+                assert h2 == hp
+
+    def test_subtract(self) -> None:
+        N = 10
+        for _ in range(N):
+            hp = random_fixed()
+            assert (hp - hp.clone()) == 0.0
+        for _ in range(N):
+            h1 = random_fixed()
+            h2 = random_fixed()
+            with raises(ValueError):
+                h1 - h2
+        for _ in range(N):
+            h1 = random_fixed()
+            h2 = h1.clone()
+            h2._value = h1.value + 1
+            with raises(RuntimeError):
+                h1 - h2
+
 
 
 class TestOrdinal:

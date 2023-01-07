@@ -56,6 +56,7 @@ class HparamKind(Enum):
     Continuous = "continuous"
     Ordinal = "ordinal"
     Categorical = "categorical"
+    Fixed = "fixed"
 
 
 class Hparam(FileJSONable[H], Generic[T, H]):
@@ -508,6 +509,82 @@ class CategoricalHparam(Hparam):
     __repr__ = __str__
 
 
+class FixedHparam(Hparam):
+    def __init__(self, name: str, value: str | None) -> None:
+        super().__init__(name=name, value=value)
+        self.name: str = name
+        self.kind: HparamKind = HparamKind.Fixed
+        self._value: Any | None = value
+
+    def new(self, value: str) -> CategoricalHparam:
+        cls: Type[CategoricalHparam] = self.__class__
+        return cls(
+            name=self.name,
+            value=value,
+        )
+
+    def clone(self) -> Hparam:
+        cls: Type[CategoricalHparam] = self.__class__
+        return cls(
+            name=self.name,
+            value=self.value,
+        )
+
+    def perturbed(
+        self,
+        method: HparamPerturbation = HparamPerturbation.AbsPercent10,
+        rng: Generator | None = None,
+    ) -> Hparam:
+        return self.new(self.value)
+
+    def random(self, rng: Generator | None = None) -> CategoricalHparam:
+        return self.new(self.value)
+
+    def to_json(self, path: Path) -> None:
+        with open(path, "w") as handle:
+            json.dump(
+                {
+                    "name": self.name,
+                    "value": self.value,
+                    "kind": self.kind.value,
+                },
+                handle,
+                indent=2,
+            )
+
+    @staticmethod
+    def from_json(path: Path) -> ContinuousHparam:
+        with open(path, "r") as handle:
+            d = Namespace(**json.load(handle))
+        return FixedHparam(
+            name=d.name,
+            value=d.value,
+        )
+
+    def __sub__(self, o: Hparam) -> float:
+        if not isinstance(o, FixedHparam):
+            raise ValueError(
+                f"Can only find difference between hparams of same kind. Got {type(o)}"
+            )
+        if o.name != self.name:
+            raise ValueError(
+                "Cannot find difference between different hparams. "
+                f"Got: `{self.name}` - `{o.name}`"
+            )
+        if self.value != o.value:
+            raise RuntimeError(
+                "Trying to compare FixedHparams with same name and different values. "
+                "This should not be possible, and suggests a de-serialization or "
+                "other issue."
+            )
+        return 0.0
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}(name={self.name}, value={self.value}, "
+
+    __repr__ = __str__
+
+
 class Hparams(DirJSONable):
     def __init__(
         self, hparams: Collection[Hparam] | Sequence[Hparam] | None = None
@@ -524,6 +601,7 @@ class Hparams(DirJSONable):
         self.continuous: dict[str, Hparam] = {}
         self.ordinals: dict[str, Hparam] = {}
         self.categoricals: dict[str, Hparam] = {}
+        self.fixeds: dict[str, Hparam] = {}
         for name, hp in self.hparams.items():
             if hp.kind is HparamKind.Continuous:
                 self.continuous[name] = hp
@@ -531,11 +609,14 @@ class Hparams(DirJSONable):
                 self.ordinals[name] = hp
             elif hp.kind is HparamKind.Categorical:
                 self.categoricals[name] = hp
+            elif hp.kind is HparamKind.Fixed:
+                self.fixeds[name] = hp
             else:
                 raise ValueError("Invalid Hparam kind!")
         self.n_continuous = len(self.continuous)
         self.n_ordinal = len(self.ordinals)
         self.n_categorical = len(self.categoricals)
+        self.n_fixed = len(self.fixeds)
 
     def to_dict(self) -> dict[str, int | float | str]:
         d = {}
@@ -577,6 +658,8 @@ class Hparams(DirJSONable):
                 outdir = root / "ordinal"
             elif hparam.kind is HparamKind.Continuous:
                 outdir = root / "continuous"
+            elif hparam.kind is HparamKind.Fixed:
+                outdir = root / "fixed"
             else:
                 raise ValueError(f"Impossible! Got kind: {hparam.kind}")
             outdir.mkdir(exist_ok=True, parents=True)
@@ -594,6 +677,8 @@ class Hparams(DirJSONable):
                 hp = OrdinalHparam.from_json(path=path)
             elif path.parent.name == "continuous":
                 hp = ContinuousHparam.from_json(path=path)
+            elif path.parent.name == "fixed":
+                hp = FixedHparam.from_json(path=path)
             else:
                 raise ValueError("Impossible!")
             hparams.append(hp)
@@ -629,6 +714,8 @@ class Hparams(DirJSONable):
         diffs = []
         for name in sorted(self.hparams.keys()):
             hp1 = self.hparams[name]
+            if hp1.kind is HparamKind.Fixed:
+                continue
             hp2 = o.hparams[name]
             diffs.append(hp1 - hp2)
         return float(np.mean(diffs))

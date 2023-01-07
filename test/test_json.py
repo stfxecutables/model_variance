@@ -166,6 +166,8 @@ def test_evaluator() -> None:
                 hparam_perturb=h_perturb,
                 train_downsample=train_downsample,
                 categorical_perturb_level=cat_perturb_level,
+                repeat=int(np.random.randint(0, 50)),
+                run=int(np.random.randint(0, 50)),
             )
             ev.to_json(out)
             ev2 = Evaluator.from_json(out)

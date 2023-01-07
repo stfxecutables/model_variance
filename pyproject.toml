@@ -19,6 +19,9 @@ filterwarnings = [
     'ignore:Call to deprecated create function:DeprecationWarning',
     'ignore:distutils Version classes are deprecated:DeprecationWarning'
 ]
+markers = [
+    "slow: mark slow-running tests"
+]
 
 [tool.poetry]
 name = "model-variance"

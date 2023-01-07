@@ -49,7 +49,7 @@ def loader(
 def callbacks() -> list[Callable]:
     return [
         ModelCheckpoint(
-            monitor="train/acc", save_last=False, mode="max", every_n_epochs=1
+            monitor="train/acc", save_last=True, mode="max", every_n_epochs=1
         ),
         EarlyStopping(
             monitor="train/acc", patience=999999, mode="max", check_finite=True
@@ -74,12 +74,16 @@ class DLModel(ClassifierModel):
             max_epochs=5,
         )
         self.trainer.fit(self.model, train_dataloaders=train_loader)
+        self.fitted = True
 
     def predict(self, X: ndarray, y: ndarray) -> ndarray:
+        if not self.fitted:
+            raise RuntimeError("Model has not yet been fitted.")
+
         test_loader = loader(X=X, y=y, shuffle=False)
         trainer = self.trainer
         results: list[dict[str, ndarray]] = trainer.test(
-            model=self.model, dataloaders=test_loader
+            model=self.model, dataloaders=test_loader, ckpt_path="best"
         )
         preds = np.concatenate([result["pred"] for result in results], axis=0)
         # targs = np.concatenate([result["target"] for result in results], axis=0)

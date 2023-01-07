@@ -1,6 +1,7 @@
 from argparse import Namespace
 
 import numpy as np
+import pytest
 from pytest import CaptureFixture
 from sklearn.model_selection import ParameterGrid
 from tqdm import tqdm
@@ -9,6 +10,7 @@ from src.dataset import Dataset
 from src.enumerables import DataPerturbation, DatasetName, RuntimeClass
 
 
+@pytest.mark.slow
 def test_no_perturb(capsys: CaptureFixture) -> None:
     grid = dict(
         dsname=RuntimeClass.Fast.members()[:2],
@@ -64,6 +66,7 @@ def test_no_perturb(capsys: CaptureFixture) -> None:
             pbar.close()
 
 
+@pytest.mark.slow
 class TestPerturbRepro:
     def perturb(self, cont: DataPerturbation, _capsys: CaptureFixture) -> None:
         grid = dict(
@@ -130,17 +133,22 @@ class TestPerturbRepro:
                 pbar.clear()
                 pbar.close()
 
+    @pytest.mark.slow
     def test_half_neighbour(self, capsys: CaptureFixture) -> None:
         self.perturb(cont=DataPerturbation.HalfNeighbor, _capsys=capsys)
 
+    @pytest.mark.slow
     def test_sig_dig_one(self, capsys: CaptureFixture) -> None:
         self.perturb(cont=DataPerturbation.SigDigOne, _capsys=capsys)
 
+    @pytest.mark.slow
     def test_sig_dig_zero(self, capsys: CaptureFixture) -> None:
         self.perturb(cont=DataPerturbation.SigDigZero, _capsys=capsys)
 
+    @pytest.mark.slow
     def test_rel_percent10(self, capsys: CaptureFixture) -> None:
         self.perturb(cont=DataPerturbation.RelPercent10, _capsys=capsys)
 
+    @pytest.mark.slow
     def test_percentile10(self, capsys: CaptureFixture) -> None:
         self.perturb(cont=DataPerturbation.Percentile10, _capsys=capsys)

@@ -11,6 +11,7 @@ from src.evaluator import Evaluator
 from src.hparams.hparams import (
     CategoricalHparam,
     ContinuousHparam,
+    FixedHparam,
     Hparam,
     Hparams,
     OrdinalHparam,
@@ -34,6 +35,11 @@ def random_continuous() -> ContinuousHparam:
         f"test_float_{hsh}", value=value, max=1.0, min=mn, log_scale=log_scale
     )
 
+def random_fixed() -> FixedHparam:
+    value = np.random.uniform(0, 1)
+    hsh = uuid4().hex
+    return FixedHparam(f"test_fixed_{hsh}", value=value)
+
 
 def random_categorical() -> CategoricalHparam:
     size = np.random.randint(1, 20)
@@ -52,5 +58,5 @@ def random_ordinal() -> OrdinalHparam:
 
 def random_hparams() -> list[Hparam]:
     n = choice(list(range(1, 100)))
-    choices = [random_categorical, random_continuous, random_ordinal]
+    choices = [random_categorical, random_continuous, random_ordinal, random_fixed]
     return [choice(choices)() for _ in range(n)]

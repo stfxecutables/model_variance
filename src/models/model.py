@@ -35,6 +35,8 @@ from src.enumerables import ClassifierKind, RuntimeClass
 from src.hparams.hparams import Hparams
 from src.models.torch_base import MLP, LogisticRegression
 
+ThirdPartyClassifierModel = SVC | XGBClassifier | MLP | LogisticRegression
+
 
 class ClassifierModel(ABC):
     def __init__(self, hparams: Hparams, runtime: RuntimeClass) -> None:
@@ -42,20 +44,26 @@ class ClassifierModel(ABC):
         self.kind: ClassifierKind
         self.hparams: Hparams = hparams
         self.runtime = RuntimeClass(runtime)
-        self.fitted: Any | None = None
-
-        self.model = {
-            ClassifierKind.LR: Type[LogisticRegression],
-            ClassifierKind.MLP: Type[MLP],
-            ClassifierKind.SVM: Type[SVC],
-            ClassifierKind.XGBoost: Type[XGBClassifier],
-        }[self.kind]
+        self.fitted: bool = False
+        self.model_cls: Type[Any]
+        self.model: ThirdPartyClassifierModel | None
 
     def fit(self, X: ndarray, y: ndarray) -> None:
-        cargs: Mapping
-        n_jobs = -1 if self.runtime is RuntimeClass.Slow else 1
         # constant (non-perturbable) constructor args and fit args
         fargs = (X, y)
+        args = self._get_model_args()
+        self.model = self.model_cls(**args)
+        self.model.fit(*fargs)
+        self.fitted = True
+
+    def predict(self, X: ndarray, y: ndarray) -> ndarray:
+        if not self.fitted:
+            raise RuntimeError("Model has not yet been fitted.")
+        raise NotImplementedError("Subclass must implement `predict`")
+
+    def _get_model_args(self) -> Mapping:
+        cargs: Mapping
+        n_jobs = -1 if self.runtime is RuntimeClass.Slow else 1
         if self.kind is ClassifierKind.XGBoost:
             cargs = dict(enable_categorical=True, tree_method="hist", n_jobs=n_jobs)
         elif self.kind is ClassifierKind.SVM:
@@ -74,12 +82,4 @@ class ClassifierModel(ABC):
                     f"Shared args over-riding hparams. Shared args:\n{cargs}\n"
                     f"hps:\n{hps}"
                 )
-        args = {**cargs, **hps}
-        model = self.model(**args)
-        model.fit(*fargs)
-        self.fitted = model
-
-    def predict(self, X: ndarray, y: ndarray) -> ndarray:
-        if self.fitted is None:
-            raise RuntimeError("Model has not yet been fitted.")
-        raise NotImplementedError("Subclass must implement `predict`")
+        return {**cargs, **hps}

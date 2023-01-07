@@ -9,14 +9,17 @@ sys.path.append(str(ROOT))  # isort: skip
 
 import sys
 from pathlib import Path
-from typing import Any, List, Optional, Sequence, Tuple, Union, cast, no_type_check
+from typing import Type
 
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-from numpy import ndarray
-from pandas import DataFrame, Series
-from typing_extensions import Literal
+from src.enumerables import ClassifierKind, RuntimeClass
+from src.hparams.hparams import Hparams
+from src.models.dl_model import DLModel
+from src.models.torch_base import MLP
 
-if __name__ == "__main__":
-    pass
+
+class MLPModel(DLModel):
+    def __init__(self, hparams: Hparams, runtime: RuntimeClass) -> None:
+        super().__init__(hparams, runtime)
+        self.kind: ClassifierKind = ClassifierKind.MLP
+        self.model_cls: Type[MLP] = MLP
+        self.model: MLP

@@ -167,7 +167,7 @@ class BaseModel(LightningModule):
         sched = CosineAnnealingLR(
             optimizer=opt,
             T_max=self.config.max_epochs,
-            eta_min=1e-9,
+            eta_min=0,
         )
         return [opt], [sched]
 
