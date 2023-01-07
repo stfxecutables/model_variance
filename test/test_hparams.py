@@ -1,31 +1,14 @@
 from math import ceil
 from pathlib import Path
-from random import choice
-from shutil import rmtree
-from tempfile import mkdtemp
-from uuid import uuid4
 
 import numpy as np
 from pytest import raises
 
-from src.enumerables import ClassifierKind, DataPerturbation, DatasetName
-from src.evaluator import Evaluator
-from src.hparams.hparams import (
-    CategoricalHparam,
-    ContinuousHparam,
-    Hparam,
-    HparamPerturbation,
-    Hparams,
-    OrdinalHparam,
-)
-from src.hparams.svm import SVMHparams
-from src.hparams.xgboost import XGBoostHparams
-from src.utils import missing_keys
+from src.hparams.hparams import HparamPerturbation
 from test.helpers import (
     random_categorical,
     random_continuous,
     random_fixed,
-    random_hparams,
     random_ordinal,
 )
 
@@ -62,6 +45,7 @@ class TestCategorical:
                 # nil as the number of perturbed copies grows large
                 assert (total > 0) and (total < N)
 
+
 class TestFixed:
     def test_clone(self) -> None:
         for _ in range(50):
@@ -97,7 +81,6 @@ class TestFixed:
             h2._value = h1.value + 1
             with raises(RuntimeError):
                 h1 - h2
-
 
 
 class TestOrdinal:

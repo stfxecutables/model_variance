@@ -1,24 +1,16 @@
 from pathlib import Path
 from random import choice
-from shutil import rmtree
-from tempfile import mkdtemp
 from uuid import uuid4
 
 import numpy as np
 
-from src.enumerables import ClassifierKind, DataPerturbation, DatasetName
-from src.evaluator import Evaluator
 from src.hparams.hparams import (
     CategoricalHparam,
     ContinuousHparam,
     FixedHparam,
     Hparam,
-    Hparams,
     OrdinalHparam,
 )
-from src.hparams.svm import SVMHparams
-from src.hparams.xgboost import XGBoostHparams
-from src.utils import missing_keys
 
 ROOT = Path(__file__).resolve().parent.parent  # isort: skip
 DIR = ROOT / "__test_temp__"
@@ -34,6 +26,7 @@ def random_continuous() -> ContinuousHparam:
     return ContinuousHparam(
         f"test_float_{hsh}", value=value, max=1.0, min=mn, log_scale=log_scale
     )
+
 
 def random_fixed() -> FixedHparam:
     value = np.random.uniform(0, 1)

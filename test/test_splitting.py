@@ -7,7 +7,7 @@ from sklearn.model_selection import ParameterGrid
 from tqdm import tqdm
 
 from src.dataset import Dataset
-from src.enumerables import DataPerturbation, DatasetName, RuntimeClass
+from src.enumerables import DataPerturbation, RuntimeClass
 
 
 @pytest.mark.slow

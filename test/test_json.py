@@ -12,7 +12,6 @@ from pathlib import Path
 from random import choice
 from shutil import rmtree
 from tempfile import mkdtemp
-from uuid import uuid4
 
 import numpy as np
 
@@ -21,7 +20,6 @@ from src.evaluator import Evaluator
 from src.hparams.hparams import (
     CategoricalHparam,
     ContinuousHparam,
-    Hparam,
     Hparams,
     OrdinalHparam,
 )
