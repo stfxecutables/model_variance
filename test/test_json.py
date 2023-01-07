@@ -23,6 +23,8 @@ from src.hparams.hparams import (
     Hparams,
     OrdinalHparam,
 )
+from src.hparams.logistic import LRHparams
+from src.hparams.mlp import MLPHparams
 from src.hparams.svm import SVMHparams
 from src.hparams.xgboost import XGBoostHparams
 from src.utils import missing_keys
@@ -137,46 +139,48 @@ def test_hparams_svm() -> None:
 
 
 def test_evaluator() -> None:
-    try:
-        tempdir = Path(mkdtemp(dir=DIR))
-        out = DIR / f"{tempdir.name}/evaluator"
-        out.mkdir(exist_ok=True, parents=True)
-        for _ in range(1000):
-            hp_cls = choice([SVMHparams, XGBoostHparams])
-            ds = choice([*DatasetName])
-            classifier = (
-                ClassifierKind.XGBoost if hp_cls is XGBoostHparams else ClassifierKind.SVM
-            )
-            hps = hp_cls().random()
-            dim_reduce = choice([25, 50, 75, None])
-            cont_perturb = choice([*DataPerturbation, None])
-            cat_perturb = choice([None, 0.1, 0.2])
-            h_perturb = choice([25, 50, 75, None])
-            train_downsample = choice([25, 50, 75, None])
-            cat_perturb_level = choice(["sample", "label"])
-            ev = Evaluator(
-                dataset_name=ds,
-                classifier_kind=classifier,
-                hparams=hps,
-                dimension_reduction=dim_reduce,
-                continuous_perturb=cont_perturb,
-                categorical_perturb=cat_perturb,
-                hparam_perturb=h_perturb,
-                train_downsample=train_downsample,
-                categorical_perturb_level=cat_perturb_level,
-                repeat=int(np.random.randint(0, 50)),
-                run=int(np.random.randint(0, 50)),
-            )
-            ev.to_json(out)
-            ev2 = Evaluator.from_json(out)
-            if ev != ev2:
-                info = missing_keys(ev, ev2)
-                if info is not None:
-                    raise ValueError(
-                        f"Objects differ:\n {info}\n" f"left: {ev}\n" f"right: {ev2}\n"
-                    )
-            rmtree(out)
-    except Exception as e:
-        raise e
-    finally:
-        rmtree(tempdir)
+    for _ in range(100):
+        hp_cls = choice([SVMHparams, XGBoostHparams, LRHparams, MLPHparams])
+        ds = choice([*DatasetName])
+        classifier_kind = {
+            XGBoostHparams: ClassifierKind.XGBoost,
+            SVMHparams: ClassifierKind.SVM,
+            LRHparams: ClassifierKind.LR,
+            MLPHparams: ClassifierKind.MLP,
+        }[hp_cls]
+        hps = hp_cls().random()
+        dim_reduce = choice([25, 50, 75, None])
+        cont_perturb = choice([*DataPerturbation, None])
+        cat_perturb = choice([None, 0.1, 0.2])
+        h_perturb = choice([25, 50, 75, None])
+        train_downsample = choice([25, 50, 75, None])
+        cat_perturb_level = choice(["sample", "label"])
+        ev = Evaluator(
+            dataset_name=ds,
+            classifier_kind=classifier_kind,
+            hparams=hps,
+            dimension_reduction=dim_reduce,
+            continuous_perturb=cont_perturb,
+            categorical_perturb=cat_perturb,
+            hparam_perturb=h_perturb,
+            train_downsample=train_downsample,
+            categorical_perturb_level=cat_perturb_level,
+            repeat=int(np.random.randint(0, 50)),
+            run=int(np.random.randint(0, 50)),
+            debug=True,
+        )
+        try:
+            ev2 = Evaluator.from_json(ev.logdir)
+            rmtree(ev.logdir)
+            if ev == ev2:
+                continue
+
+            info = missing_keys(ev, ev2)
+            if info is not None:
+                raise ValueError(
+                    f"Objects differ:\n {info}\n" f"left: {ev}\n" f"right: {ev2}\n"
+                )
+        except Exception as e:
+            if ev.logdir.exists():
+                rmtree(ev.logdir)
+            raise e

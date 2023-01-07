@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Type
 
 from numpy import ndarray
-from sklearn.svm import SVC
 from xgboost import XGBClassifier
 
 from src.enumerables import ClassifierKind, RuntimeClass
@@ -30,5 +29,5 @@ class XGBoostModel(ClassifierModel):
         self.model_cls: Type[XGBClassifier] = XGBClassifier
         self.model: XGBClassifier
 
-    def predict(self, X: ndarray, y: ndarray) -> ndarray:
-        return self.model.predict(X)
+    def predict(self, X: ndarray, y: ndarray) -> tuple[ndarray, ndarray]:
+        return self.model.predict(X), y

@@ -194,9 +194,9 @@ class Dataset:
 
         if reduction is not None:
             X: ndarray | None = reduce_continuous(self, percent=reduction)
-            if X is None:
+            if X is None or X.size == 0:
                 return None
-            if X.ndim == 0:
+            if X.ndim == 0 or X.ndim == 1:
                 X = X.reshape(-1, 1)
             return X
 
@@ -204,8 +204,10 @@ class Dataset:
         X_f: ndarray = np.asarray(
             df.select_dtypes(exclude=[CategoricalDtype]).astype(np.float64)
         )
-        if X_f.shape[1] == 0:
+        if X_f.size == 0:
             return None
+        if X_f.ndim < 2:
+            X_f = X_f.reshape(-1, 1)
         # NOTE: Neighbor perturbation *must* be done on the standardized data
         # because that is what it was calculated on. Sig-dig perturbation
         # also should be done on the standardized data (because of bad means)
@@ -263,7 +265,7 @@ class Dataset:
 
     def get_X_categorical(
         self,
-        perturbation_prob: float = 0,
+        perturbation_prob: float | None = 0,
         perturb_level: Literal["sample", "label"] = "label",
         reduction: int | None = None,
         rng: Generator | None = None,
@@ -307,6 +309,8 @@ class Dataset:
             raise ValueError(
                 "Cannot perturb dimenion-reduced categoricals in this manner."
             )
+        if perturbation_prob is None:
+            perturbation_prob = 0
         if perturbation_prob > 1:
             raise ValueError("`perturbation_prob` must be <= 1")
 
@@ -393,7 +397,14 @@ class Dataset:
         )
         y = self.data["__target"]
         y = LabelEncoder().fit_transform(y).astype(np.float64)
-        X = np.concatenate([X_cat, X_cont], axis=1)
+        if X_cat is None and X_cont is None:
+            raise ValueError("No data for dataset.")
+        if X_cont is None:
+            X = X_cat
+        elif X_cat is None:
+            X = X_cont
+        else:
+            X = np.concatenate([X_cat, X_cont], axis=1)
         return X, y
 
     def X_reduced(self, percent: int) -> ndarray | None:

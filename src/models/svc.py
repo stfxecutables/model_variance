@@ -27,5 +27,5 @@ class SVCModel(ClassifierModel):
         self.model_cls: Type[SVC] = SVC
         self.model: SVC
 
-    def predict(self, X: ndarray, y: ndarray) -> ndarray:
-        return self.model.predict(X)
+    def predict(self, X: ndarray, y: ndarray) -> tuple[ndarray, ndarray]:
+        return self.model.predict(X), y

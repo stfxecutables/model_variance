@@ -30,6 +30,7 @@ from numpy import ndarray
 from pandas import DataFrame, Series
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.loggers import TensorBoardLogger
 from torch.utils.data import DataLoader, TensorDataset
 from typing_extensions import Literal
 
@@ -67,7 +68,7 @@ class DLModel(ClassifierModel):
         train_loader = loader(X, y, shuffle=True)
         accel = "gpu" if torch.cuda.is_available() else "cpu"
         self.trainer = Trainer(
-            logger=False,
+            logger=TensorBoardLogger(str(self.logdir), name=None),
             callbacks=callbacks(),
             accelerator=accel,
             enable_checkpointing=False,
@@ -76,7 +77,7 @@ class DLModel(ClassifierModel):
         self.trainer.fit(self.model, train_dataloaders=train_loader)
         self.fitted = True
 
-    def predict(self, X: ndarray, y: ndarray) -> ndarray:
+    def predict(self, X: ndarray, y: ndarray) -> tuple[ndarray, ndarray]:
         if not self.fitted:
             raise RuntimeError("Model has not yet been fitted.")
 
@@ -86,5 +87,5 @@ class DLModel(ClassifierModel):
             model=self.model, dataloaders=test_loader, ckpt_path="last"
         )
         preds = np.concatenate([result["pred"] for result in results], axis=0)
-        # targs = np.concatenate([result["target"] for result in results], axis=0)
-        return preds
+        targs = np.concatenate([result["target"] for result in results], axis=0)
+        return preds, targs

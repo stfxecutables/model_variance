@@ -39,8 +39,8 @@ from typing_extensions import Literal
 
 from src.hparams.hparams import (
     ContinuousHparam,
-    Hparam,
     FixedHparam,
+    Hparam,
     Hparams,
     OrdinalHparam,
 )
@@ -64,7 +64,8 @@ def xgboost_hparams(
         ContinuousHparam("eta", eta, max=1.0, min=0.001, log_scale=True),
         ContinuousHparam("lambda", lamda, max=1.0, min=1e-10, log_scale=True),
         ContinuousHparam("alpha", alpha, max=1.0, min=1e-10, log_scale=True),
-        OrdinalHparam("num_round", num_round, max=1000, min=1),
+        # XGB complains below are unused
+        # OrdinalHparam("num_round", num_round, max=1000, min=1),
         ContinuousHparam("gamma", gamma, max=1.0, min=0.1, log_scale=True),
         ContinuousHparam(
             "colsample_bylevel", colsample_bylevel, max=1.0, min=0.1, log_scale=False

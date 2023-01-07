@@ -19,8 +19,11 @@ from time import strftime
 from typing import Literal, Type, TypeVar
 from uuid import UUID, uuid4
 
+import numpy as np
+from numpy import ndarray
+
 from src.classifier import Classifier
-from src.constants import LOGS
+from src.constants import DEBUG_LOGS, LOGS, ensure_dir
 from src.dataset import Dataset
 from src.enumerables import (
     ClassifierKind,
@@ -91,11 +94,12 @@ class Evaluator(DirJSONable):
         hparam_perturb: HparamPerturbation | None,
         train_downsample: Percentage | None,
         categorical_perturb_level: Literal["sample", "label"] = "label",
+        debug: bool = False,
+        _suppress_json: bool = False,
     ) -> None:
         self.dataset_name: DatasetName = dataset_name
         self.dataset_: Dataset | None = None
         self.classifer_kind: ClassifierKind = classifier_kind
-        self.model: ClassifierModel = self.get_classifier_model()
         self.repeat: int = repeat
         self.run: int = run
         self.hparams: Hparams = hparams
@@ -107,27 +111,36 @@ class Evaluator(DirJSONable):
         self.categorical_perturb_level: Literal[
             "sample", "label"
         ] = categorical_perturb_level
-        self.to_json(self.logdir)
+        self.debug = debug
+        self.logdir = self.get_logdir()
+        if not _suppress_json:
+            self.to_json(self.logdir)
         print(f"Evaluator results will be logged to {self.logdir}")
 
-    def get_classifier_model(self) -> ClassifierModel:
+    @property
+    def model(self) -> ClassifierModel:
+        kind = self.classifer_kind
+        logdir = (
+            self.logdir
+            if kind in [ClassifierKind.LR, ClassifierKind.SVM]
+            else self.dl_dir
+        )
         args = dict(
             hparams=self.hparams,
-            logdir=self.logdir,
+            logdir=logdir,
             runtime=RuntimeClass.from_dataset(self.dataset_name),
         )
-        if self.classifer_kind is ClassifierKind.LR:
+        if kind is ClassifierKind.LR:
             return LRModel(**args)
-        if self.classifer_kind is ClassifierKind.SVM:
+        if kind is ClassifierKind.SVM:
             return SVCModel(**args)
-        if self.classifer_kind is ClassifierKind.XGBoost:
+        if kind is ClassifierKind.XGBoost:
             return XGBoostModel(**args)
-        if self.classifer_kind is ClassifierKind.MLP:
+        if kind is ClassifierKind.MLP:
             return MLPModel(**args)
         raise ValueError(f"Unknown model kind: {self.classifer_kind}")
 
-    @property
-    def logdir(self) -> Path:
+    def get_logdir(self) -> Path:
         c = self.classifer_kind.value
         d = self.dataset_name.value
         dim = self.dimension_reduction
@@ -145,9 +158,30 @@ class Evaluator(DirJSONable):
             slurm_id = jid
 
         ts = strftime("%b-%d--%H-%M-%S")
-        hsh = urlsafe_b64encode(uuid4().bytes)
+        hsh = urlsafe_b64encode(uuid4().bytes).decode()
         uid = f"{ts}__{hsh}" if slurm_id is None else f"{slurm_id}__{ts}__{hsh}"
-        return LOGS / f"{c}/{d}/{red}/{rep}/{run}/{uid}"
+        root = DEBUG_LOGS if self.debug else LOGS
+        return ensure_dir(root / f"{c}/{d}/{red}/{rep}/{run}/{uid}")
+
+    @property
+    def res_dir(self) -> Path:
+        """This a property to ensure it matches `self.logdir` on deserialization"""
+        return ensure_dir(self.logdir / "results")
+
+    @property
+    def preds_dir(self) -> Path:
+        """This a property to ensure it matches `self.logdir` on deserialization"""
+        return ensure_dir(self.logdir / "preds")
+
+    @property
+    def metrics_dir(self) -> Path:
+        """This a property to ensure it matches `self.logdir` on deserialization"""
+        return ensure_dir(self.logdir / "metrics")
+
+    @property
+    def dl_dir(self) -> Path:
+        """This a property to ensure it matches `self.logdir` on deserialization"""
+        return ensure_dir(self.logdir / "dl_logs")
 
     @property
     def dataset(self) -> Dataset:
@@ -174,12 +208,14 @@ class Evaluator(DirJSONable):
                     "categorical_perturb_level": self.categorical_perturb_level,
                     "repeat": self.repeat,
                     "run": self.run,
+                    "debug": self.debug,
                 },
                 fp,
+                indent=2,
             )
 
     @classmethod
-    def from_json(cls: Evaluator, root: Path) -> Evaluator:
+    def from_json(cls: Type[Evaluator], root: Path) -> Evaluator:
         root.mkdir(exist_ok=True, parents=True)
         hps = root / "hparams"
         out = root / "evaluator.json"
@@ -190,7 +226,7 @@ class Evaluator(DirJSONable):
         c_perturb = to_enum_or_none(DataPerturbation, d.continuous_perturb)
         h_perturb = to_enum_or_none(HparamPerturbation, d.hparam_perturb)
 
-        return cls(
+        new = cls(
             dataset_name=DatasetName(d.dataset_name),
             classifier_kind=ClassifierKind(d.classifier_kind),
             hparams=hparams,
@@ -202,14 +238,23 @@ class Evaluator(DirJSONable):
             categorical_perturb_level=d.categorical_perturb_level,
             repeat=d.repeat,
             run=d.run,
+            debug=d.debug,
+            _suppress_json=True,
         )
+        new.logdir = root
+        return new
 
-    def evaluate(self) -> None:
+    def evaluate(self, no_pred: bool = False) -> None:
+        if self.preds_dir.exists():
+            with os.scandir(self.preds_dir) as files:
+                if next(files, None) is not None:
+                    raise FileExistsError(
+                        f"Prediction data already present in {self.res_dir}."
+                    )
         try:
             ds = self.dataset
             if self.classifer_kind in [ClassifierKind.MLP, ClassifierKind.LR]:
                 raise NotImplementedError()
-            model = self.classifer_kind.model()
             X_train, y_train, X_test, y_test = ds.get_monte_carlo_splits(
                 train_downsample=self.train_downsample,
                 cont_perturb=self.continuous_perturb,
@@ -219,16 +264,26 @@ class Evaluator(DirJSONable):
                 repeat=self.repeat,
                 run=self.run,
             )
-            # TODO: fit
+            self.model.fit(X=X_train, y=y_train)
+            if no_pred:
+                return
             raise NotImplementedError()
+            preds = self.model.predict(X=X_test, y=y_test)
+
         except Exception as e:
-            traceback.print_exc()
-            raise RuntimeError("Could not fit model. Likely CUDA-related.") from e
-        finally:
+            info = traceback.format_exc()
             print(f"Cleaning up {self.logdir} due to evaluation failure...")
             rmtree(self.logdir)
             print(f"Removed {self.logdir}")
-            sys.exit(1)  # ensure SLURM logs run as a fail
+            raise RuntimeError(f"Could not fit model:\n{info}") from e
+
+    def save_preds(self, preds: ndarray) -> None:
+        outfile = self.preds_dir / "preds.npz"
+        np.savez_compressed(outfile, preds=preds)
+
+    def load_preds(self) -> ndarray:
+        outfile = self.preds_dir / "preds.npz"
+        return np.load(outfile)["preds"]
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Evaluator):

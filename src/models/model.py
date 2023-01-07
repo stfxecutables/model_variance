@@ -57,7 +57,7 @@ class ClassifierModel(ABC):
         self.model.fit(*fargs)
         self.fitted = True
 
-    def predict(self, X: ndarray, y: ndarray) -> ndarray:
+    def predict(self, X: ndarray, y: ndarray) -> tuple[ndarray, ndarray]:
         if not self.fitted:
             raise RuntimeError("Model has not yet been fitted.")
         raise NotImplementedError("Subclass must implement `predict`")
@@ -67,4 +67,6 @@ class ClassifierModel(ABC):
         if self.kind is ClassifierKind.XGBoost:
             n_jobs = -1 if self.runtime is RuntimeClass.Slow else 1
             cargs: Mapping = dict(n_jobs=n_jobs)
-        return {**cargs, **hps}
+            return {**cargs, **hps}
+        else:
+            return hps

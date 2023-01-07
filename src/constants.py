@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parent.parent
 RESULTS = ensure_dir(ROOT / "results")
 DATA = ensure_dir(ROOT / "data")
 LOGS = ensure_dir(ROOT / "logs")
+DEBUG_LOGS = ensure_dir(ROOT / "debug_logs")
 PQS = ensure_dir(DATA / "parquet")
 CAT_REDUCED = ensure_dir(PQS / "categorical_reductions")
 CONT_REDUCED = ensure_dir(PQS / "continuous_reductions")
