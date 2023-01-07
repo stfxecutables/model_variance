@@ -40,7 +40,7 @@ from typing_extensions import Literal
 from src.hparams.hparams import (
     ContinuousHparam,
     Hparam,
-    HparamKind,
+    FixedHparam,
     Hparams,
     OrdinalHparam,
 )
@@ -81,6 +81,8 @@ def xgboost_hparams(
             "min_child_weight", min_child_weight, max=20, min=0.1, log_scale=True
         ),
         ContinuousHparam("subsample", subsample, max=1.0, min=0.01, log_scale=False),
+        FixedHparam("enable_categorical", value=True),
+        FixedHparam("tree_method", value="hist"),
     ]
 
 

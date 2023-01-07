@@ -8,12 +8,19 @@ sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
 import json
+import os
+import sys
 import traceback
 from argparse import Namespace
+from base64 import urlsafe_b64encode
 from enum import Enum, EnumMeta
+from shutil import rmtree
+from time import strftime
 from typing import Literal, Type, TypeVar
+from uuid import UUID, uuid4
 
 from src.classifier import Classifier
+from src.constants import LOGS
 from src.dataset import Dataset
 from src.enumerables import (
     ClassifierKind,
@@ -93,6 +100,31 @@ class Evaluator(DirJSONable):
         self.categorical_perturb_level: Literal[
             "sample", "label"
         ] = categorical_perturb_level
+        self.to_json(self.logdir)
+        print(f"Evaluator results will be logged to {self.logdir}")
+
+    @property
+    def logdir(self) -> Path:
+        c = self.classifer_kind.value
+        d = self.dataset_name.value
+        dim = self.dimension_reduction
+        red = "full" if dim is None else f"reduce={dim}"
+
+        rep = f"rep={self.repeat:03d}"
+        run = f"run={self.run:03d}"
+        jid = os.environ.get("SLURM_JOB_ID")
+        aid = os.environ.get("SLURM_ARRAY_TASK_ID")
+        if jid is None:
+            slurm_id = None
+        elif aid is not None:
+            slurm_id = f"{jid}_{aid}"
+        else:
+            slurm_id = jid
+
+        ts = strftime("%b-%d--%H-%M-%S")
+        hsh = urlsafe_b64encode(uuid4().bytes)
+        uid = f"{ts}__{hsh}" if slurm_id is None else f"{slurm_id}__{ts}__{hsh}"
+        return LOGS / f"{c}/{d}/{red}/{rep}/{run}/{uid}"
 
     @property
     def dataset(self) -> Dataset:
@@ -149,7 +181,7 @@ class Evaluator(DirJSONable):
             run=d.run,
         )
 
-    def fit(self) -> None:
+    def evaluate(self) -> None:
         ds = self.dataset
         if self.classifer_kind in [ClassifierKind.MLP, ClassifierKind.LR]:
             raise NotImplementedError()
@@ -163,6 +195,17 @@ class Evaluator(DirJSONable):
             repeat=self.repeat,
             run=self.run,
         )
+        try:
+            # fit
+            ...
+        except Exception as e:
+            traceback.print_exc()
+            raise RuntimeError("Could not fit model. Likely CUDA-related.") from e
+        finally:
+            print(f"Cleaning up {self.logdir} due to evaluation failure...")
+            rmtree(self.logdir)
+            print(f"Removed {self.logdir}")
+            sys.exit(1)  # ensure SLURM logs run as a fail
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Evaluator):

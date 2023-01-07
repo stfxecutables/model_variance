@@ -58,8 +58,8 @@ def callbacks() -> list[Callable]:
 
 
 class DLModel(ClassifierModel):
-    def __init__(self, hparams: Hparams, runtime: RuntimeClass) -> None:
-        super().__init__(hparams, runtime)
+    def __init__(self, hparams: Hparams, logdir: Path, runtime: RuntimeClass) -> None:
+        super().__init__(hparams=hparams, runtime=runtime, logdir=logdir)
         self.model: LightningModule
         self.trainer: Trainer | None = None
 
@@ -83,7 +83,7 @@ class DLModel(ClassifierModel):
         test_loader = loader(X=X, y=y, shuffle=False)
         trainer = self.trainer
         results: list[dict[str, ndarray]] = trainer.test(
-            model=self.model, dataloaders=test_loader, ckpt_path="best"
+            model=self.model, dataloaders=test_loader, ckpt_path="last"
         )
         preds = np.concatenate([result["pred"] for result in results], axis=0)
         # targs = np.concatenate([result["target"] for result in results], axis=0)

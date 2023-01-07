@@ -16,14 +16,17 @@ from sklearn.svm import SVC
 from xgboost import XGBClassifier
 
 from src.enumerables import ClassifierKind, RuntimeClass
-from src.hparams.hparams import Hparams
+from src.hparams.xgboost import XGBoostHparams
 from src.models.model import ClassifierModel
 
 
 class XGBoostModel(ClassifierModel):
-    def __init__(self, hparams: Hparams, runtime: RuntimeClass) -> None:
-        super().__init__(hparams, runtime)
+    def __init__(
+        self, hparams: XGBoostHparams, logdir: Path, runtime: RuntimeClass
+    ) -> None:
+        super().__init__(hparams=hparams, logdir=logdir, runtime=runtime)
         self.kind: ClassifierKind = ClassifierKind.XGBoost
+        self.hparams: XGBoostHparams
         self.model_cls: Type[XGBClassifier] = XGBClassifier
         self.model: XGBClassifier
 

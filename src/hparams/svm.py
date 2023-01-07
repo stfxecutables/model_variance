@@ -10,7 +10,7 @@ sys.path.append(str(ROOT))  # isort: skip
 from pathlib import Path
 from typing import Collection, Sequence
 
-from src.hparams.hparams import ContinuousHparam, Hparam, Hparams
+from src.hparams.hparams import ContinuousHparam, FixedHparam, Hparam, Hparams
 
 
 def svm_hparams(
@@ -22,6 +22,7 @@ def svm_hparams(
     return [
         ContinuousHparam("C", C, max=1e5, min=1e-2, log_scale=True),
         ContinuousHparam("gamma", gamma, max=1e3, min=1e-10, log_scale=True),
+        FixedHparam("kernel", value="rbf")
     ]
 
 

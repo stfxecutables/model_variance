@@ -39,10 +39,11 @@ ThirdPartyClassifierModel = SVC | XGBClassifier | MLP | LogisticRegression
 
 
 class ClassifierModel(ABC):
-    def __init__(self, hparams: Hparams, runtime: RuntimeClass) -> None:
+    def __init__(self, hparams: Hparams, logdir: Path, runtime: RuntimeClass) -> None:
         super().__init__()
         self.kind: ClassifierKind
         self.hparams: Hparams = hparams
+        self.logdir: Path = Path(logdir)
         self.runtime = RuntimeClass(runtime)
         self.fitted: bool = False
         self.model_cls: Type[Any]
@@ -62,24 +63,8 @@ class ClassifierModel(ABC):
         raise NotImplementedError("Subclass must implement `predict`")
 
     def _get_model_args(self) -> Mapping:
-        cargs: Mapping
-        n_jobs = -1 if self.runtime is RuntimeClass.Slow else 1
-        if self.kind is ClassifierKind.XGBoost:
-            cargs = dict(enable_categorical=True, tree_method="hist", n_jobs=n_jobs)
-        elif self.kind is ClassifierKind.SVM:
-            cargs = dict(kernel="rbf")
-        elif self.kind is ClassifierKind.MLP:
-            cargs = dict()
-        elif self.kind is ClassifierKind.LR:
-            cargs = dict()
-        else:
-            raise NotImplementedError()
-
         hps = self.hparams.to_dict()
-        for key in cargs.keys():
-            if key in hps.keys():
-                raise ValueError(
-                    f"Shared args over-riding hparams. Shared args:\n{cargs}\n"
-                    f"hps:\n{hps}"
-                )
+        if self.kind is ClassifierKind.XGBoost:
+            n_jobs = -1 if self.runtime is RuntimeClass.Slow else 1
+            cargs: Mapping = dict(n_jobs=n_jobs)
         return {**cargs, **hps}
