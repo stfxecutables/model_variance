@@ -15,6 +15,8 @@ data/parquet/continuous_reductions/DevnagariScript_75percent.npy
 data/parquet/continuous_reductions/FashionMnist_50percent.npy
 data/parquet/continuous_reductions/FashionMnist_75percent.npy
 
+logs
+
 
 
 ################################################################################
