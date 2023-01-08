@@ -69,12 +69,14 @@ def helper(kind: ClassifierKind, _capsys: CaptureFixture) -> None:
             with _capsys.disabled():
                 pbar.set_description(f"{kind.value}: {evaluator.dataset_name.name:<20}")
             evaluator.evaluate(no_pred=True)
-            rmtree(evaluator.logdir)
+            if evaluator.logdir.exists():
+                rmtree(evaluator.logdir)
             with _capsys.disabled():
                 pbar.update()
         except Exception as e:
             pbar.close()
-            rmtree(evaluator.logdir)
+            if evaluator.logdir.exists():
+                rmtree(evaluator.logdir)
             raise e
     pbar.close()
 
@@ -87,3 +89,9 @@ def test_svm(capsys: CaptureFixture) -> None:
 @pytest.mark.slow
 def test_xgb(capsys: CaptureFixture) -> None:
     helper(ClassifierKind.XGBoost, capsys)
+
+
+@pytest.mark.slow
+def test_lr(capsys: CaptureFixture) -> None:
+    with capsys.disabled():
+        helper(ClassifierKind.LR, capsys)

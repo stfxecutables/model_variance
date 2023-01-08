@@ -31,6 +31,7 @@ from pandas import DataFrame, Series
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
 
+from src.dataset import Dataset
 from src.enumerables import ClassifierKind, RuntimeClass
 from src.hparams.hparams import Hparams
 from src.models.torch_base import MLP, LogisticRegression
@@ -39,12 +40,13 @@ ThirdPartyClassifierModel = SVC | XGBClassifier | MLP | LogisticRegression
 
 
 class ClassifierModel(ABC):
-    def __init__(self, hparams: Hparams, logdir: Path, runtime: RuntimeClass) -> None:
+    def __init__(self, hparams: Hparams, dataset: Dataset, logdir: Path) -> None:
         super().__init__()
         self.kind: ClassifierKind
         self.hparams: Hparams = hparams
+        self.dataset = dataset
         self.logdir: Path = Path(logdir)
-        self.runtime = RuntimeClass(runtime)
+        self.runtime = RuntimeClass.from_dataset(self.dataset.name)
         self.fitted: bool = False
         self.model_cls: Type[Any]
         self.model: ThirdPartyClassifierModel | None

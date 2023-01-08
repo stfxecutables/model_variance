@@ -179,6 +179,11 @@ class Dataset:
             self.data_ = df
         return self.data_
 
+    @property
+    def num_classes(self) -> int:
+        df = self.data
+        return len(np.unique(df["__target"]))
+
     def get_X_continuous(
         self,
         perturbation: DataPerturbation | None = None,
@@ -406,6 +411,11 @@ class Dataset:
         else:
             X = np.concatenate([X_cat, X_cont], axis=1)
         return X, y
+
+    @property
+    def n_features(self) -> int:
+        X, y = self.get_X_y()
+        return X.shape[1]
 
     def X_reduced(self, percent: int) -> ndarray | None:
         if percent not in [25, 50, 75]:

@@ -9,8 +9,9 @@ sys.path.append(str(ROOT))  # isort: skip
 
 import sys
 from pathlib import Path
-from typing import Type
+from typing import Mapping, Type
 
+from src.dataset import Dataset
 from src.enumerables import ClassifierKind, RuntimeClass
 from src.hparams.logistic import LRHparams
 from src.models.dl_model import DLModel
@@ -18,8 +19,8 @@ from src.models.torch_base import LogisticRegression
 
 
 class LRModel(DLModel):
-    def __init__(self, hparams: LRHparams, logdir: Path, runtime: RuntimeClass) -> None:
-        super().__init__(hparams=hparams, logdir=logdir, runtime=runtime)
+    def __init__(self, hparams: LRHparams, dataset: Dataset, logdir: Path) -> None:
+        super().__init__(hparams=hparams, dataset=dataset, logdir=logdir)
         self.kind: ClassifierKind = ClassifierKind.LR
         self.hparams: LRHparams
         self.model_cls: Type[LogisticRegression] = LogisticRegression

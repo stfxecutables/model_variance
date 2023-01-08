@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -62,22 +63,32 @@ from torchmetrics import Accuracy
 from torchmetrics.functional import accuracy
 from typing_extensions import Literal
 
+from src.constants import LR_MAX_EPOCHS, MLP_MAX_EPOCHS
+from src.dataset import Dataset
+from src.hparams.hparams import Hparams
+
 
 class BaseModel(LightningModule):
     def __init__(
         self,
-        config: "Config",
+        dataset: Dataset,
         log_version_dir: Path,
+        hps: Hparams,
         *args: Any,
         **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
         self.model: Module
-        self.config = config
-        self.num_classes = config.num_classes
-        self.train_acc = Accuracy()
-        self.val_acc = Accuracy()
-        self.test_acc = Accuracy()
+        self.dataset = dataset
+        self.num_classes = dataset.num_classes
+        self.hps = Namespace(**hps.to_dict())
+        self.max_epochs: int = LR_MAX_EPOCHS
+
+        # task = "binary" if self.num_classes == 2 else "multiclass"
+        acc_args = dict(task="multiclass", num_classes=self.num_classes)
+        self.train_acc = Accuracy(**acc_args)
+        self.val_acc = Accuracy(**acc_args)
+        self.test_acc = Accuracy(**acc_args)
 
         self.loss = CrossEntropyLoss()
         self.log_version_dir: Path = log_version_dir
@@ -91,8 +102,10 @@ class BaseModel(LightningModule):
     def training_step(
         self, batch: Tuple[Tensor, Tensor], batch_idx: int, *args, **kwargs
     ) -> Tensor:
-        preds, loss = self._shared_step(batch)[:2]
-        self.log(f"train/loss", loss, on_step=False)
+        preds, loss, target = self._shared_step(batch)
+        acc = self.train_acc(preds, target)
+        self.log("train/loss", loss)
+        self.log("train/acc", acc, prog_bar=True)
         if batch_idx % 20 == 0 and batch_idx != 0:
             self.train_acc(preds=preds, target=batch[1])
         return loss  # auto-logged by Lightning
@@ -161,12 +174,12 @@ class BaseModel(LightningModule):
     def configure_optimizers(self) -> Tuple[List[Optimizer], List[_LRScheduler]]:
         opt = AdamW(
             self.parameters(),
-            lr=self.config.lr_init,
-            weight_decay=self.config.weight_decay,
+            lr=self.hps.lr,
+            weight_decay=self.hps.wd,
         )
         sched = CosineAnnealingLR(
             optimizer=opt,
-            T_max=self.config.max_epochs,
+            T_max=self.max_epochs,
             eta_min=0,
         )
         return [opt], [sched]
@@ -175,17 +188,17 @@ class BaseModel(LightningModule):
 class MlpBlock(Module):
     """Simple blocks of https://arxiv.org/pdf/1705.03098.pdf"""
 
-    def __init__(self, width: int) -> None:
+    def __init__(self, width: int, dropout: float = 0.5) -> None:
         super().__init__()
         self.block = Sequential(
             Linear(width, width, bias=False),
             BatchNorm1d(width),
             LeakyReLU(),
-            Dropout(0.5),
+            Dropout(dropout),
             Linear(width, width, bias=False),
             BatchNorm1d(width),
             LeakyReLU(),
-            Dropout(0.5),
+            Dropout(dropout),
         )
 
     def forward(self, x: Tensor) -> Tensor:
@@ -213,38 +226,46 @@ class MLP(BaseModel):
 
     def __init__(
         self,
-        config: "Config",
+        dataset: Dataset,
         log_version_dir: Path,
-        in_channels: int,
+        hps: Hparams,
         width1: int = 512,
         width2: int = 256,
+        dropout: float = 0.5,
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        super().__init__(config=config, log_version_dir=log_version_dir, *args, **kwargs)
+        super().__init__(
+            dataset=dataset, log_version_dir=log_version_dir, hps=hps, *args, **kwargs
+        )
+        self.in_channels = self.dataset.n_features
         self.model = Sequential(
-            BetterLinear(in_channels=in_channels, out_channels=width1),
-            MlpBlock(width=width1),
+            BetterLinear(in_channels=self.in_channels, out_channels=width1),
+            MlpBlock(width=width1, dropout=dropout),
             BetterLinear(in_channels=width1, out_channels=width2),
-            MlpBlock(width=width2),
+            MlpBlock(width=width2, dropout=dropout),
             Linear(width2, self.num_classes, bias=True),
         )
+        self.max_epochs = MLP_MAX_EPOCHS
 
 
 class LogisticRegression(BaseModel):
     def __init__(
         self,
-        config: "Config",
+        dataset: Dataset,
         log_version_dir: Path,
-        in_channels: int,
+        hps: Hparams,
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        super().__init__(config, log_version_dir, *args, **kwargs)
-        self.in_channels = in_channels
-        self.model = Linear(
-            in_features=in_channels, out_features=self.num_classes, bias=True
+        super().__init__(
+            dataset=dataset, log_version_dir=log_version_dir, hps=hps, *args, **kwargs
         )
+        self.in_channels = self.dataset.n_features
+        self.model = Linear(
+            in_features=self.in_channels, out_features=self.num_classes, bias=True
+        )
+        self.max_epochs = LR_MAX_EPOCHS
 
 
 if __name__ == "__main__":

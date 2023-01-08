@@ -21,3 +21,5 @@ DEFAULT_SEEDS = SEEDS / "seed_seqs.json"
 
 # constants
 TEST_SIZE = 0.25
+LR_MAX_EPOCHS = 5
+MLP_MAX_EPOCHS = 20

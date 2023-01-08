@@ -14,14 +14,12 @@ from src.hparams.hparams import ContinuousHparam, Hparam, Hparams
 
 
 def lr_hparams(
-    C: float | None = None,
-    gamma: float | None = None,
+    lr: float | None = None,
+    wd: float | None = None,
 ) -> list[Hparams]:
-    # see https://jcheminf.biomedcentral.com/articles/10.1186/s13321-015-0088-0#Sec6
-    # for a possible tuning range on C, gamma
     return [
-        ContinuousHparam("C", C, max=1e5, min=1e-2, log_scale=True),
-        ContinuousHparam("gamma", gamma, max=1e3, min=1e-10, log_scale=True),
+        ContinuousHparam("lr", lr, max=5e-1, min=1e-5, log_scale=True),
+        ContinuousHparam("wd", wd, max=5e-1, min=1e-8, log_scale=True),
     ]
 
 

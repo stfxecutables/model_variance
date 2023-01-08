@@ -14,6 +14,7 @@ from typing import Type
 from numpy import ndarray
 from xgboost import XGBClassifier
 
+from src.dataset import Dataset
 from src.enumerables import ClassifierKind, RuntimeClass
 from src.hparams.xgboost import XGBoostHparams
 from src.models.model import ClassifierModel
@@ -21,9 +22,9 @@ from src.models.model import ClassifierModel
 
 class XGBoostModel(ClassifierModel):
     def __init__(
-        self, hparams: XGBoostHparams, logdir: Path, runtime: RuntimeClass
+        self, hparams: XGBoostHparams, logdir: Path, dataset: Dataset
     ) -> None:
-        super().__init__(hparams=hparams, logdir=logdir, runtime=runtime)
+        super().__init__(hparams=hparams, logdir=logdir, dataset=dataset)
         self.kind: ClassifierKind = ClassifierKind.XGBoost
         self.hparams: XGBoostHparams
         self.model_cls: Type[XGBClassifier] = XGBClassifier

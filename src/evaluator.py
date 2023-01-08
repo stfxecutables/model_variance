@@ -127,8 +127,8 @@ class Evaluator(DirJSONable):
         )
         args = dict(
             hparams=self.hparams,
+            dataset=self.dataset,
             logdir=logdir,
-            runtime=RuntimeClass.from_dataset(self.dataset_name),
         )
         if kind is ClassifierKind.LR:
             return LRModel(**args)
@@ -253,8 +253,8 @@ class Evaluator(DirJSONable):
                     )
         try:
             ds = self.dataset
-            if self.classifer_kind in [ClassifierKind.MLP, ClassifierKind.LR]:
-                raise NotImplementedError()
+            # if self.classifer_kind in [ClassifierKind.MLP, ClassifierKind.LR]:
+            #     raise NotImplementedError()
             X_train, y_train, X_test, y_test = ds.get_monte_carlo_splits(
                 train_downsample=self.train_downsample,
                 cont_perturb=self.continuous_perturb,

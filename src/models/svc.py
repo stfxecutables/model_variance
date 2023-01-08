@@ -14,14 +14,15 @@ from typing import Type
 from numpy import ndarray
 from sklearn.svm import SVC
 
+from src.dataset import Dataset
 from src.enumerables import ClassifierKind, RuntimeClass
 from src.hparams.svm import SVMHparams
 from src.models.model import ClassifierModel
 
 
 class SVCModel(ClassifierModel):
-    def __init__(self, hparams: SVMHparams, logdir: Path, runtime: RuntimeClass) -> None:
-        super().__init__(hparams=hparams, logdir=logdir, runtime=runtime)
+    def __init__(self, hparams: SVMHparams, dataset: Dataset, logdir: Path) -> None:
+        super().__init__(hparams=hparams, logdir=logdir, dataset=dataset)
         self.kind: ClassifierKind = ClassifierKind.SVM
         self.hparams: SVMHparams
         self.model_cls: Type[SVC] = SVC

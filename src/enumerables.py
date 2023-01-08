@@ -36,8 +36,6 @@ from sklearn.svm import SVC
 from typing_extensions import Literal
 from xgboost import XGBClassifier
 
-from src.models.torch_base import MLP, LogisticRegression
-
 JSONS = ROOT / "data/json"
 PQS = ROOT / "data/parquet"
 
