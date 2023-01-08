@@ -28,7 +28,7 @@ FASTS = [
     DatasetName.Segment,
     DatasetName.Jasmine,
     DatasetName.Sylvine,
-    DatasetName.Fabert,
+    # DatasetName.Fabert,  # takes about 30s-1min on 2015 Macbook Pro for SVM
     DatasetName.Credit_g,
     DatasetName.Anneal,
     DatasetName.MfeatFactors,
@@ -68,7 +68,8 @@ def helper(kind: ClassifierKind, _capsys: CaptureFixture) -> None:
             evaluator = get_evaluator(kind=kind, i=i)
             with _capsys.disabled():
                 pbar.set_description(f"{kind.value}: {evaluator.dataset_name.name:<20}")
-            evaluator.evaluate(no_pred=True)
+            evaluator.evaluate(no_pred=False)
+            assert (evaluator.preds_dir / "preds.npz").exists()
             if evaluator.logdir.exists():
                 rmtree(evaluator.logdir)
             with _capsys.disabled():
@@ -81,17 +82,25 @@ def helper(kind: ClassifierKind, _capsys: CaptureFixture) -> None:
     pbar.close()
 
 
-@pytest.mark.slow
+@pytest.mark.medium
 def test_svm(capsys: CaptureFixture) -> None:
     helper(ClassifierKind.SVM, capsys)
 
 
-@pytest.mark.slow
+@pytest.mark.medium
 def test_xgb(capsys: CaptureFixture) -> None:
     helper(ClassifierKind.XGBoost, capsys)
 
 
-@pytest.mark.slow
+@pytest.mark.medium
 def test_lr(capsys: CaptureFixture) -> None:
     with capsys.disabled():
         helper(ClassifierKind.LR, capsys)
+
+
+@pytest.mark.medium
+def test_mlp(capsys: CaptureFixture) -> None:
+    with capsys.disabled():
+        helper(ClassifierKind.MLP, capsys)
+
+

@@ -9,6 +9,7 @@ sys.path.append(str(ROOT))  # isort: skip
 
 
 import sys
+from abc import ABC
 from pathlib import Path
 from typing import (
     Any,
@@ -33,17 +34,32 @@ from pandas import DataFrame, Series
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.plugins.environments import SLURMEnvironment
 from torch.utils.data import DataLoader, TensorDataset
 from typing_extensions import Literal
 
+from src.constants import BATCH_SIZE
 from src.dataset import Dataset
 from src.enumerables import RuntimeClass
 from src.hparams.hparams import Hparams
 from src.models.model import ClassifierModel
 
 
+class DisabledSLURMEnvironment(SLURMEnvironment):
+    def detect() -> bool:
+        return False
+
+    @staticmethod
+    def _validate_srun_used() -> None:
+        return
+
+    @staticmethod
+    def _validate_srun_variables() -> None:
+        return
+
+
 def loader(
-    X: ndarray, y: ndarray, batch_size: int = 256, shuffle: bool = False
+    X: ndarray, y: ndarray, batch_size: int = BATCH_SIZE, shuffle: bool = False
 ) -> DataLoader:
     ds = TensorDataset(
         torch.from_numpy(X).clone().detach().float().contiguous(),
@@ -68,35 +84,46 @@ class DLModel(ClassifierModel):
         super().__init__(hparams=hparams, dataset=dataset, logdir=logdir)
         self.model: LightningModule
         self.trainer: Trainer | None = None
+        self.max_epochs: int
+        self.fitted: bool = False
 
     def fit(self, X: ndarray, y: ndarray) -> None:
         train_loader = loader(X, y, shuffle=True)
         accel = "gpu" if torch.cuda.is_available() else "cpu"
+        self.trainer = Trainer(
+            logger=TensorBoardLogger(str(self.logdir), name=None),
+            callbacks=callbacks(),
+            accelerator=accel,
+            enable_checkpointing=True,
+            max_epochs=self.max_epochs,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            plugins=[DisabledSLURMEnvironment(auto_requeue=False)],
+        )
         with catch_warnings():
             # stfu Lightning
             filterwarnings("ignore", message="You defined a `validation_step`")
             filterwarnings("ignore", message="The dataloader")
             filterwarnings("ignore", message="The number of training batches")
-            self.trainer = Trainer(
-                logger=TensorBoardLogger(str(self.logdir), name=None),
-                callbacks=callbacks(),
-                accelerator=accel,
-                enable_checkpointing=True,
-                max_epochs=5,
-            )
             self.model = self.model_cls(**self._get_model_args())
             self.trainer.fit(self.model, train_dataloaders=train_loader)
-            self.fitted = True
+        self.fitted = True
 
     def predict(self, X: ndarray, y: ndarray) -> tuple[ndarray, ndarray]:
-        if not self.fitted:
+        if self.fitted is False:
             raise RuntimeError("Model has not yet been fitted.")
 
         test_loader = loader(X=X, y=y, shuffle=False)
         trainer = self.trainer
-        results: list[dict[str, ndarray]] = trainer.test(
-            model=self.model, dataloaders=test_loader, ckpt_path="last"
-        )
+        with catch_warnings():
+            # stfu Lightning
+            filterwarnings("ignore", message="The dataloader")
+            results: list[dict[str, ndarray]] = trainer.predict(
+                model=self.model,
+                dataloaders=test_loader,
+                ckpt_path="last",
+                return_predictions=True,
+            )
         preds = np.concatenate([result["pred"] for result in results], axis=0)
         targs = np.concatenate([result["target"] for result in results], axis=0)
         return preds, targs

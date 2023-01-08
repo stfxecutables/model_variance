@@ -21,5 +21,8 @@ DEFAULT_SEEDS = SEEDS / "seed_seqs.json"
 
 # constants
 TEST_SIZE = 0.25
-LR_MAX_EPOCHS = 5
+# LR_MAX_EPOCHS = 5
+LR_MAX_EPOCHS = 10
 MLP_MAX_EPOCHS = 20
+"""Tests show this is quite good for the Runtime.Fast datasets"""
+BATCH_SIZE = 64

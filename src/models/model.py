@@ -59,10 +59,9 @@ class ClassifierModel(ABC):
         self.model.fit(*fargs)
         self.fitted = True
 
+    @abstractmethod
     def predict(self, X: ndarray, y: ndarray) -> tuple[ndarray, ndarray]:
-        if not self.fitted:
-            raise RuntimeError("Model has not yet been fitted.")
-        raise NotImplementedError("Subclass must implement `predict`")
+        ...
 
     def _get_model_args(self) -> Mapping:
         hps = self.hparams.to_dict()

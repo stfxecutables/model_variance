@@ -108,6 +108,7 @@ class Evaluator(DirJSONable):
         self.categorical_perturb: float | None = categorical_perturb
         self.hparam_perturb: HparamPerturbation | None = hparam_perturb
         self.train_downsample: Percentage | None = train_downsample
+        self._model: ClassifierModel | None = None
         self.categorical_perturb_level: Literal[
             "sample", "label"
         ] = categorical_perturb_level
@@ -115,10 +116,13 @@ class Evaluator(DirJSONable):
         self.logdir = self.get_logdir()
         if not _suppress_json:
             self.to_json(self.logdir)
-        print(f"Evaluator results will be logged to {self.logdir}")
+        if not debug:
+            print(f"Evaluator results will be logged to {self.logdir}")
 
     @property
     def model(self) -> ClassifierModel:
+        if self._model is not None:
+            return self._model
         kind = self.classifer_kind
         logdir = (
             self.logdir
@@ -131,14 +135,16 @@ class Evaluator(DirJSONable):
             logdir=logdir,
         )
         if kind is ClassifierKind.LR:
-            return LRModel(**args)
-        if kind is ClassifierKind.SVM:
-            return SVCModel(**args)
-        if kind is ClassifierKind.XGBoost:
-            return XGBoostModel(**args)
-        if kind is ClassifierKind.MLP:
-            return MLPModel(**args)
-        raise ValueError(f"Unknown model kind: {self.classifer_kind}")
+            self._model = LRModel(**args)
+        elif kind is ClassifierKind.SVM:
+            self._model = SVCModel(**args)
+        elif kind is ClassifierKind.XGBoost:
+            self._model = XGBoostModel(**args)
+        elif kind is ClassifierKind.MLP:
+            self._model = MLPModel(**args)
+        else:
+            raise ValueError(f"Unknown model kind: {self.classifer_kind}")
+        return self._model
 
     def get_logdir(self) -> Path:
         c = self.classifer_kind.value
@@ -267,8 +273,8 @@ class Evaluator(DirJSONable):
             self.model.fit(X=X_train, y=y_train)
             if no_pred:
                 return
-            raise NotImplementedError()
-            preds = self.model.predict(X=X_test, y=y_test)
+            preds, targs = self.model.predict(X=X_test, y=y_test)
+            self.save_preds(preds)
 
         except Exception as e:
             info = traceback.format_exc()

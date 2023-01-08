@@ -138,6 +138,17 @@ class BaseModel(LightningModule):
         }
 
     @no_type_check
+    def predict_step(
+        self, batch: Tuple[Tensor, Tensor], batch_idx: int, *args, **kwargs
+    ) -> Tensor:
+        preds, loss = self._shared_step(batch)[:2]
+        return {
+            "pred": preds.cpu().numpy(),
+            "loss": loss.cpu().numpy(),
+            "target": batch[1].cpu().numpy(),
+        }
+
+    @no_type_check
     def test_epoch_end(self, outputs: list[dict[str, Tensor]]) -> None:
         """Save predictions each epoch. We will compare to true values after."""
         if self.trainer is None:
@@ -150,7 +161,10 @@ class BaseModel(LightningModule):
         targs = np.concatenate(targs, axis=0)
         losses = np.ravel(losses)
         acc = accuracy(
-            torch.from_numpy(preds), torch.from_numpy(targs), num_classes=self.num_classes
+            torch.from_numpy(preds),
+            torch.from_numpy(targs),
+            num_classes=self.num_classes,
+            task="multiclass",
         )
 
         epoch = int(self.current_epoch)
@@ -164,6 +178,10 @@ class BaseModel(LightningModule):
         np.save(outfile, targs)
         outfile = outdir / f"test_acc={acc:0.4f}_epoch={epoch:03d}.npy"
         np.save(outfile, acc)
+        return {
+            "pred": preds,
+            "target": targs,
+        }
 
     def _shared_step(self, batch: Tuple[Tensor, Tensor]) -> tuple[Tensor, Tensor, Tensor]:
         x, target = batch
