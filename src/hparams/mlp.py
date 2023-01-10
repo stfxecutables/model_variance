@@ -10,6 +10,10 @@ sys.path.append(str(ROOT))  # isort: skip
 from pathlib import Path
 from typing import Collection, Sequence
 
+from src.constants import DROPOUT_DEFAULT as P
+from src.constants import MLP_LR_INIT_DEFAULT as LR
+from src.constants import MLP_WIDTH_DEFAULT as WIDTH
+from src.constants import WD_DEFAULT as WD
 from src.hparams.hparams import ContinuousHparam, Hparam, Hparams, OrdinalHparam
 
 
@@ -21,11 +25,13 @@ def mlp_hparams(
     w2: int | None = None,
 ) -> list[Hparams]:
     return [
-        ContinuousHparam("lr", lr, max=5e-1, min=1e-5, log_scale=True),
-        ContinuousHparam("wd", wd, max=5e-1, min=1e-8, log_scale=True),
-        ContinuousHparam("dropout", dropout, min=0.0, max=0.8, log_scale=False),
-        OrdinalHparam("width1", w1, max=1024, min=32),
-        OrdinalHparam("width2", w2, max=1024, min=32),
+        ContinuousHparam("lr", lr, max=5e-1, min=1e-5, default=LR, log_scale=True),
+        ContinuousHparam("wd", wd, max=5e-1, min=1e-8, default=WD, log_scale=True),
+        ContinuousHparam(
+            "dropout", dropout, min=0.0, max=0.8, default=P, log_scale=False
+        ),
+        OrdinalHparam("width1", w1, max=1024, min=32, default=WIDTH),
+        OrdinalHparam("width2", w2, max=1024, min=32, default=WIDTH),
     ]
 
 

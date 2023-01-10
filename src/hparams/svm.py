@@ -10,6 +10,7 @@ sys.path.append(str(ROOT))  # isort: skip
 from pathlib import Path
 from typing import Collection, Sequence
 
+from src.constants import SVM_GAMMA as GAMMA
 from src.hparams.hparams import ContinuousHparam, FixedHparam, Hparam, Hparams
 
 
@@ -20,9 +21,11 @@ def svm_hparams(
     # see https://jcheminf.biomedcentral.com/articles/10.1186/s13321-015-0088-0#Sec6
     # for a possible tuning range on C, gamma
     return [
-        ContinuousHparam("C", C, max=1e5, min=1e-2, log_scale=True),
-        ContinuousHparam("gamma", gamma, max=1e3, min=1e-10, log_scale=True),
-        FixedHparam("kernel", value="rbf")
+        ContinuousHparam("C", C, max=1e5, min=1e-2, log_scale=True, default=1.0),
+        ContinuousHparam(
+            "gamma", gamma, max=1e3, min=1e-10, log_scale=True, default=GAMMA
+        ),
+        FixedHparam("kernel", value="rbf", default="rbf"),
     ]
 
 

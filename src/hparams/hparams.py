@@ -44,7 +44,7 @@ from pandas import DataFrame, Series
 from scipy.stats import loguniform
 from typing_extensions import Literal
 
-from src.enumerables import HparamPerturbation
+from src.enumerables import ClassifierKind, DatasetName, HparamPerturbation
 from src.perturb import sig_perturb_plus
 from src.serialize import DirJSONable, FileJSONable
 
@@ -60,10 +60,11 @@ class HparamKind(Enum):
 
 
 class Hparam(FileJSONable[H], Generic[T, H]):
-    def __init__(self, name: str, value: T | None) -> None:
+    def __init__(self, name: str, value: T | None, default: T | None = None) -> None:
         super().__init__()
         self.name: str = name
         self._value: T | None = value
+        self._default: T | None = default
         self.kind: HparamKind
 
     def to_dict(self) -> dict[str, T | None]:
@@ -77,6 +78,9 @@ class Hparam(FileJSONable[H], Generic[T, H]):
     def value(self) -> T:
         raise ValueError("Cannot set value on Hparam")
 
+    def default(self) -> Hparam:
+        return self.new(value=self._default)
+
     @abstractmethod
     def random(self, rng: Generator | None = None) -> Hparam:
         ...
@@ -87,6 +91,10 @@ class Hparam(FileJSONable[H], Generic[T, H]):
         method: HparamPerturbation,
         rng: Generator | None = None,
     ) -> Hparam:
+        ...
+
+    @abstractmethod
+    def new(self, value: T) -> Hparam:
         ...
 
     @abstractmethod
@@ -127,8 +135,9 @@ class ContinuousHparam(Hparam):
         max: float,
         min: float,
         log_scale: bool = False,
+        default: T | None = None,
     ) -> None:
-        super().__init__(name=name, value=value)
+        super().__init__(name=name, value=value, default=default)
         self.name: str = name
         self.kind: HparamKind = HparamKind.Continuous
         self._value: float | None = float(value) if value is not None else None
@@ -241,6 +250,7 @@ class ContinuousHparam(Hparam):
                 {
                     "name": self.name,
                     "value": self.value,
+                    "default": self._default,
                     "min": self.min,
                     "max": self.max,
                     "log_scale": self.log_scale,
@@ -260,6 +270,7 @@ class ContinuousHparam(Hparam):
             min=d.min,
             max=d.max,
             log_scale=d.log_scale,
+            default=d.default,
         )
 
     def __sub__(self, o: Hparam) -> float:
@@ -286,8 +297,15 @@ class ContinuousHparam(Hparam):
 
 
 class OrdinalHparam(Hparam):
-    def __init__(self, name: str, value: int | None, max: int, min: int = 0) -> None:
-        super().__init__(name=name, value=value)
+    def __init__(
+        self,
+        name: str,
+        value: int | None,
+        max: int,
+        min: int = 0,
+        default: T | None = None,
+    ) -> None:
+        super().__init__(name=name, value=value, default=default)
         self.name: str = name
         self.kind: HparamKind = HparamKind.Ordinal
         self._value: int | None = int(value) if value is not None else None
@@ -363,6 +381,7 @@ class OrdinalHparam(Hparam):
                 {
                     "name": self.name,
                     "value": self.value,
+                    "default": self._default,
                     "min": self.min,
                     "max": self.max,
                     "kind": self.kind.value,
@@ -378,6 +397,7 @@ class OrdinalHparam(Hparam):
         return OrdinalHparam(
             name=d.name,
             value=d.value,
+            default=d.default,
             min=d.min,
             max=d.max,
         )
@@ -410,9 +430,13 @@ class OrdinalHparam(Hparam):
 
 class CategoricalHparam(Hparam):
     def __init__(
-        self, name: str, value: str | None, categories: Sequence[str] | Collection[str]
+        self,
+        name: str,
+        value: str | None,
+        categories: Sequence[str] | Collection[str],
+        default: T | None = None,
     ) -> None:
-        super().__init__(name=name, value=value)
+        super().__init__(name=name, value=value, default=default)
         self.name: str = name
         self.kind: HparamKind = HparamKind.Categorical
         self._value: str | None = str(value) if value is not None else None
@@ -466,6 +490,7 @@ class CategoricalHparam(Hparam):
                 {
                     "name": self.name,
                     "value": self.value,
+                    "default": self._default,
                     "categories": self.categories,
                     "kind": self.kind.value,
                 },
@@ -480,6 +505,7 @@ class CategoricalHparam(Hparam):
         return CategoricalHparam(
             name=d.name,
             value=d.value,
+            default=d.default,
             categories=d.categories,
         )
 
@@ -510,17 +536,18 @@ class CategoricalHparam(Hparam):
 
 
 class FixedHparam(Hparam):
-    def __init__(self, name: str, value: str | None) -> None:
-        super().__init__(name=name, value=value)
+    def __init__(self, name: str, value: Any | None, default: Any | None = None) -> None:
+        super().__init__(name=name, value=value, default=default)
         self.name: str = name
         self.kind: HparamKind = HparamKind.Fixed
         self._value: Any | None = value
+        self._default: Any | None = value
 
-    def new(self, value: str) -> CategoricalHparam:
+    def new(self, value: Any) -> CategoricalHparam:
         cls: Type[CategoricalHparam] = self.__class__
         return cls(
             name=self.name,
-            value=value,
+            value=self.value,
         )
 
     def clone(self) -> Hparam:
@@ -546,6 +573,7 @@ class FixedHparam(Hparam):
                 {
                     "name": self.name,
                     "value": self.value,
+                    "default": self._default,
                     "kind": self.kind.value,
                 },
                 handle,
@@ -559,6 +587,7 @@ class FixedHparam(Hparam):
         return FixedHparam(
             name=d.name,
             value=d.value,
+            default=d.default,
         )
 
     def __sub__(self, o: Hparam) -> float:

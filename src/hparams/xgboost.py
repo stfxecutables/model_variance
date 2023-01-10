@@ -60,6 +60,7 @@ def xgboost_hparams(
     min_child_weight: float | None = None,
     subsample: float | None = None,
 ) -> list[Hparams]:
+    """Note defaults are all None for XGBClassifier"""
     return [
         ContinuousHparam("eta", eta, max=1.0, min=0.001, log_scale=True),
         ContinuousHparam("lambda", lamda, max=1.0, min=1e-10, log_scale=True),

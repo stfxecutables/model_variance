@@ -190,6 +190,27 @@ class RuntimeClass(Enum):
         return runtimes[self]
 
     @staticmethod
+    def very_fasts() -> list[DatasetName]:
+        return [
+            DatasetName.Arrhythmia,
+            DatasetName.Kc1,
+            DatasetName.BloodTransfusion,
+            DatasetName.Cnae9,
+            DatasetName.Phoneme,
+            DatasetName.Kr_vs_kp,
+            DatasetName.Car,
+            DatasetName.Australian,
+            DatasetName.Segment,
+            DatasetName.Jasmine,
+            DatasetName.Sylvine,
+            # DatasetName.Fabert,  # takes about 30s-1min on 2015 Macbook Pro for SVM
+            DatasetName.Credit_g,
+            DatasetName.Anneal,
+            DatasetName.MfeatFactors,
+            DatasetName.Vehicle,
+        ]
+
+    @staticmethod
     def from_dataset(dsname: DatasetName) -> RuntimeClass:
         for cls in RuntimeClass:
             if dsname in cls.members():
