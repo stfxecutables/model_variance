@@ -662,6 +662,15 @@ class Hparams(DirJSONable):
         clones = [hp.clone() for hp in self.hparams.values()]
         return cls(clones)
 
+    def defaults(self) -> Hparams:
+        cls: Type[Hparams] = self.__class__
+        defaulteds = [hp.default() for hp in self.hparams.values()]
+        return cls(defaulteds)
+
+    @abstractmethod
+    def tuned(self, dsname: DatasetName) -> Hparams:
+        ...
+
     def perturbed(
         self,
         method: HparamPerturbation = HparamPerturbation.AbsPercent10,
