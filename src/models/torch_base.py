@@ -85,7 +85,7 @@ class BaseModel(LightningModule):
         self.max_epochs: int = LR_MAX_EPOCHS
 
         # task = "binary" if self.num_classes == 2 else "multiclass"
-        acc_args = dict(task="multiclass", num_classes=self.num_classes)
+        acc_args = dict(task="multiclass", num_classes=self.num_classes, top_k=1)
         self.train_acc = Accuracy(**acc_args)
         self.val_acc = Accuracy(**acc_args)
         self.test_acc = Accuracy(**acc_args)
