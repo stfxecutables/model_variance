@@ -169,3 +169,15 @@ def test_xgb_fast(capsys: CaptureFixture) -> None:
     summarize_times(
         kind=ClassifierKind.XGBoost, runtime=RuntimeClass.Fast, repeats=5, _capsys=capsys
     )
+
+
+def test_lr_fast(capsys: CaptureFixture) -> None:
+    summarize_times(
+        kind=ClassifierKind.LR, runtime=RuntimeClass.Fast, repeats=5, _capsys=capsys
+    )
+
+
+def test_mlp_fast(capsys: CaptureFixture) -> None:
+    summarize_times(
+        kind=ClassifierKind.MLP, runtime=RuntimeClass.Fast, repeats=5, _capsys=capsys
+    )
