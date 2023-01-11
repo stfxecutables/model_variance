@@ -24,6 +24,7 @@ from torch.utils.data import DataLoader, TensorDataset
 
 from src.constants import BATCH_SIZE
 from src.dataset import Dataset
+from src.enumerables import RuntimeClass
 from src.hparams.hparams import Hparams
 from src.models.model import ClassifierModel
 
@@ -77,6 +78,7 @@ class DLModel(ClassifierModel):
             logger=TensorBoardLogger(str(self.logdir), name=None),
             callbacks=callbacks(),
             accelerator=accel,
+            devices=1 if self.dataset.name in RuntimeClass.Fast.members() else -1,
             enable_checkpointing=True,
             max_epochs=self.max_epochs,
             enable_progress_bar=False,

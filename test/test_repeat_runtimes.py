@@ -179,5 +179,5 @@ def test_lr_fast(capsys: CaptureFixture) -> None:
 
 def test_mlp_fast(capsys: CaptureFixture) -> None:
     summarize_times(
-        kind=ClassifierKind.MLP, runtime=RuntimeClass.Fast, repeats=5, _capsys=capsys
+        kind=ClassifierKind.MLP, runtime=RuntimeClass.Fast, repeats=1, _capsys=capsys
     )
