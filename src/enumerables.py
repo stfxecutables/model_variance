@@ -121,7 +121,6 @@ class RuntimeClass(Enum):
             RuntimeClass.Fast: [  # <1min on one core
                 DatasetName.Arrhythmia,
                 DatasetName.Kc1,
-                DatasetName.BankMarketing,
                 DatasetName.BloodTransfusion,
                 DatasetName.Cnae9,
                 DatasetName.Nomao,
@@ -143,6 +142,7 @@ class RuntimeClass(Enum):
                 DatasetName.Vehicle,
             ],
             RuntimeClass.Mid: [  # 1-20 minutes on one core
+                DatasetName.BankMarketing,
                 DatasetName.Dionis,
                 DatasetName.ClickPrediction,
                 DatasetName.CreditCardFraud,

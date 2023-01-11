@@ -1,3 +1,4 @@
+import traceback
 from argparse import Namespace
 from dataclasses import dataclass
 from random import choice
@@ -78,37 +79,40 @@ def get_evaluator(targs: TimingArgs) -> Evaluator:
 
 
 def get_time(targs: TimingArgs) -> DataFrame:
+    duration = DataFrame(
+        {"elapsed_s": float("nan"), "dataset": targs.dsname.name},
+        index=[0],
+    )
     try:
         start = time()
         evaluator = get_evaluator(targs)
-        duration = DataFrame(
-            {"elapsed_s": float("nan"), "dataset": evaluator.dataset_name.name},
-            index=[0],
-        )
 
         evaluator.evaluate(no_pred=False)
         elapsed = time() - start
         duration = DataFrame(
-            {"elapsed_s": elapsed, "dataset": evaluator.dataset_name.name},
+            {"elapsed_s": elapsed, "dataset": targs.dsname.name},
             index=[0],
         )
         assert (evaluator.preds_dir / "preds.npz").exists()
         if evaluator.logdir.exists():
             rmtree(evaluator.logdir)
-    except Exception as e:
+    except Exception:
         if evaluator.logdir.exists():  # type: ignore
             rmtree(evaluator.logdir)  # type: ignore
-        raise e
+        traceback.print_exc()
+        return duration
     return duration
 
 
 def get_times(
-    kind: ClassifierKind, runtime: RuntimeClass, _capsys: CaptureFixture
+    kind: ClassifierKind, runtime: RuntimeClass, repeats: int, _capsys: CaptureFixture
 ) -> DataFrame:
     print("")
 
     dsnames = runtime.members()
-    targs = [TimingArgs(kind=kind, dsname=name) for name in dsnames]
+    targs = []
+    for _ in range(repeats):
+        targs.extend([TimingArgs(kind=kind, dsname=name) for name in dsnames])
     with _capsys.disabled():
         times = process_map(
             get_time, targs, total=len(targs), desc=f"Fitting {runtime.value} models"
@@ -117,15 +121,11 @@ def get_times(
 
 
 def summarize_times(
-    kind: ClassifierKind, runtime: RuntimeClass, _capsys: CaptureFixture
+    kind: ClassifierKind, runtime: RuntimeClass, repeats: int, _capsys: CaptureFixture
 ) -> None:
-    times = []
-    for r in range(5):
-        with _capsys.disabled():
-            print(f"Repeat {r}:")
-            times.extend(get_times(kind=kind, runtime=runtime, _capsys=_capsys))
+    with _capsys.disabled():
+        df = get_times(kind=kind, runtime=runtime, repeats=repeats, _capsys=_capsys)
 
-    df = pd.concat(times, axis=0, ignore_index=True)
     outfile = {
         RuntimeClass.Fast: FAST_RUNTIMES,
         RuntimeClass.Mid: MED_RUNTIMES,
@@ -147,4 +147,6 @@ def summarize_times(
 
 
 def test_svm_fast(capsys: CaptureFixture) -> None:
-    summarize_times(kind=ClassifierKind.SVM, runtime=RuntimeClass.Fast, _capsys=capsys)
+    summarize_times(
+        kind=ClassifierKind.SVM, runtime=RuntimeClass.Fast, repeats=5, _capsys=capsys
+    )
