@@ -1,4 +1,3 @@
-import random
 from argparse import Namespace
 from shutil import rmtree
 
@@ -11,6 +10,7 @@ from tqdm import tqdm
 from src.dataset import Dataset
 from src.enumerables import ClassifierKind, DataPerturbation, DatasetName, RuntimeClass
 from src.evaluator import Evaluator
+from src.hparams.hparams import Hparams
 from src.hparams.logistic import LRHparams
 from src.hparams.mlp import MLPHparams
 from src.hparams.svm import SVMHparams
@@ -19,13 +19,17 @@ from src.hparams.xgboost import XGBoostHparams
 FASTS = RuntimeClass.very_fasts()
 
 
-def get_evaluator(kind: ClassifierKind, i: int) -> Evaluator:
-    hps = {
+def get_evaluator(kind: ClassifierKind, random: bool, i: int) -> Evaluator:
+    hp: Hparams = {
         ClassifierKind.XGBoost: XGBoostHparams,
         ClassifierKind.SVM: SVMHparams,
         ClassifierKind.LR: LRHparams,
         ClassifierKind.MLP: MLPHparams,
-    }[kind]().random()
+    }[kind]()
+    if random:
+        hps = hp.random()
+    else:
+        hps = hp.defaults()
     ds = FASTS[i]
     return Evaluator(
         dataset_name=ds,
@@ -42,13 +46,13 @@ def get_evaluator(kind: ClassifierKind, i: int) -> Evaluator:
     )
 
 
-def helper(kind: ClassifierKind, _capsys: CaptureFixture) -> None:
+def helper(kind: ClassifierKind, random: bool, _capsys: CaptureFixture) -> None:
     print("")
     with _capsys.disabled():
         pbar = tqdm(desc=f"{kind.value}: {'':<20}", total=len(FASTS), ncols=80)
     for i in range(len(FASTS)):
         try:
-            evaluator = get_evaluator(kind=kind, i=i)
+            evaluator = get_evaluator(kind=kind, random=random, i=i)
             with _capsys.disabled():
                 pbar.set_description(f"{kind.value}: {evaluator.dataset_name.name:<20}")
             evaluator.evaluate(no_pred=False)
@@ -66,22 +70,44 @@ def helper(kind: ClassifierKind, _capsys: CaptureFixture) -> None:
 
 
 @pytest.mark.medium
-def test_svm(capsys: CaptureFixture) -> None:
-    helper(ClassifierKind.SVM, capsys)
+def test_svm_random(capsys: CaptureFixture) -> None:
+    helper(ClassifierKind.SVM, random=True, _capsys=capsys)
 
 
 @pytest.mark.medium
-def test_xgb(capsys: CaptureFixture) -> None:
-    helper(ClassifierKind.XGBoost, capsys)
+def test_xgb_random(capsys: CaptureFixture) -> None:
+    helper(ClassifierKind.XGBoost, random=True, _capsys=capsys)
 
 
 @pytest.mark.medium
-def test_lr(capsys: CaptureFixture) -> None:
+def test_lr_random(capsys: CaptureFixture) -> None:
     with capsys.disabled():
-        helper(ClassifierKind.LR, capsys)
+        helper(ClassifierKind.LR, random=True, _capsys=capsys)
 
 
 @pytest.mark.medium
-def test_mlp(capsys: CaptureFixture) -> None:
+def test_mlp_random(capsys: CaptureFixture) -> None:
     with capsys.disabled():
-        helper(ClassifierKind.MLP, capsys)
+        helper(ClassifierKind.MLP, random=True, _capsys=capsys)
+
+
+@pytest.mark.medium
+def test_svm_default(capsys: CaptureFixture) -> None:
+    helper(ClassifierKind.SVM, random=False, _capsys=capsys)
+
+
+@pytest.mark.medium
+def test_xgb_default(capsys: CaptureFixture) -> None:
+    helper(ClassifierKind.XGBoost, random=False, _capsys=capsys)
+
+
+@pytest.mark.medium
+def test_lr_default(capsys: CaptureFixture) -> None:
+    with capsys.disabled():
+        helper(ClassifierKind.LR, random=False, _capsys=capsys)
+
+
+@pytest.mark.medium
+def test_mlp_default(capsys: CaptureFixture) -> None:
+    with capsys.disabled():
+        helper(ClassifierKind.MLP, random=False, _capsys=capsys)

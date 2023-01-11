@@ -8,13 +8,56 @@ sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
 from pathlib import Path
-from typing import Collection, Sequence
+from typing import Any, Collection, Sequence
 
 from src.constants import DROPOUT_DEFAULT as P
 from src.constants import MLP_LR_INIT_DEFAULT as LR
 from src.constants import MLP_WIDTH_DEFAULT as WIDTH
-from src.constants import WD_DEFAULT as WD
+from src.constants import MLP_WD_DEFAULT as WD
+from src.enumerables import DatasetName
 from src.hparams.hparams import ContinuousHparam, Hparam, Hparams, OrdinalHparam
+
+TUNED: dict[DatasetName, dict[str, Any] | None] = {
+    DatasetName.Arrhythmia: None,
+    DatasetName.Kc1: None,
+    DatasetName.ClickPrediction: None,
+    DatasetName.BankMarketing: None,
+    DatasetName.BloodTransfusion: None,
+    DatasetName.Cnae9: None,
+    DatasetName.Ldpa: None,
+    DatasetName.Nomao: None,
+    DatasetName.Phoneme: None,
+    DatasetName.SkinSegmentation: None,
+    DatasetName.WalkingActivity: None,
+    DatasetName.Adult: None,
+    DatasetName.Higgs: None,
+    DatasetName.Numerai28_6: None,
+    DatasetName.Kr_vs_kp: None,
+    DatasetName.Connect4: None,
+    DatasetName.Shuttle: None,
+    # DevnagariScript = "devnagari-script: None"
+    DatasetName.Car: None,
+    DatasetName.Australian: None,
+    DatasetName.Segment: None,
+    # FashionMnist = "fashion-mnist: None"
+    DatasetName.JungleChess: None,
+    DatasetName.Christine: None,
+    DatasetName.Jasmine: None,
+    DatasetName.Sylvine: None,
+    DatasetName.Miniboone: None,
+    DatasetName.Dilbert: None,
+    DatasetName.Fabert: None,
+    DatasetName.Volkert: None,
+    DatasetName.Dionis: None,
+    DatasetName.Jannis: None,
+    DatasetName.Helena: None,
+    DatasetName.Aloi: None,
+    DatasetName.CreditCardFraud: None,
+    DatasetName.Credit_g: None,
+    DatasetName.Anneal: None,
+    DatasetName.MfeatFactors: None,
+    DatasetName.Vehicle: None,
+}
 
 
 def mlp_hparams(
@@ -44,3 +87,9 @@ class MLPHparams(Hparams):
         if hparams is None:
             hparams = mlp_hparams()
         super().__init__(hparams)
+
+    def tuned_dict(self, dsname: DatasetName) -> dict[str, Any]:
+        hps = TUNED[dsname]
+        if hps is None:
+            return self.defaults().to_dict()
+        return hps

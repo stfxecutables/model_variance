@@ -668,7 +668,7 @@ class Hparams(DirJSONable):
         return cls(defaulteds)
 
     @abstractmethod
-    def tuned(self, dsname: DatasetName) -> Hparams:
+    def tuned_dict(self, dsname: DatasetName) -> Hparams:
         ...
 
     def perturbed(
