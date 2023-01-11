@@ -186,3 +186,29 @@ def test_mlp_fast(capsys: CaptureFixture) -> None:
     summarize_times(
         kind=ClassifierKind.MLP, runtime=RuntimeClass.Fast, repeats=1, _capsys=capsys
     )
+
+
+# mediums
+
+def test_svm_med(capsys: CaptureFixture) -> None:
+    summarize_times(
+        kind=ClassifierKind.SVM, runtime=RuntimeClass.Mid, repeats=5, _capsys=capsys
+    )
+
+
+def test_xgb_med(capsys: CaptureFixture) -> None:
+    summarize_times(
+        kind=ClassifierKind.XGBoost, runtime=RuntimeClass.Mid, repeats=5, _capsys=capsys
+    )
+
+
+def test_lr_med(capsys: CaptureFixture) -> None:
+    summarize_times(
+        kind=ClassifierKind.LR, runtime=RuntimeClass.Mid, repeats=5, _capsys=capsys
+    )
+
+
+def test_mlp_med(capsys: CaptureFixture) -> None:
+    summarize_times(
+        kind=ClassifierKind.MLP, runtime=RuntimeClass.Mid, repeats=1, _capsys=capsys
+    )
