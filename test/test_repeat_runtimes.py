@@ -1,3 +1,5 @@
+from argparse import Namespace
+from dataclasses import dataclass
 from random import choice
 from shutil import rmtree
 from time import time
@@ -6,9 +8,10 @@ import pandas as pd
 from pandas import DataFrame
 from pytest import CaptureFixture
 from tqdm import tqdm
+from tqdm.contrib.concurrent import process_map
 
 from src.constants import RESULTS, ensure_dir
-from src.enumerables import ClassifierKind, RuntimeClass
+from src.enumerables import ClassifierKind, DatasetName, RuntimeClass
 from src.evaluator import Evaluator
 from src.hparams.hparams import Hparams
 from src.hparams.logistic import LRHparams
@@ -32,7 +35,13 @@ MEDS = RuntimeClass.Mid.members()
 SLOWS = RuntimeClass.Slow.members()
 
 
-def unfuck_pandas_printing() -> None:
+@dataclass
+class TimingArgs:
+    kind: ClassifierKind
+    dsname: DatasetName
+
+
+def set_long_print() -> None:
     pd.options.display.max_rows = 5000
     pd.options.display.max_info_rows = 5000
     pd.options.display.max_columns = 1000
@@ -42,7 +51,10 @@ def unfuck_pandas_printing() -> None:
     pd.options.display.width = 200
 
 
-def get_evaluator(kind: ClassifierKind, runtime: RuntimeClass, i: int) -> Evaluator:
+def get_evaluator(targs: TimingArgs) -> Evaluator:
+    kind = targs.kind
+    dsname = targs.dsname
+
     hp: Hparams = {
         ClassifierKind.XGBoost: XGBoostHparams,
         ClassifierKind.SVM: SVMHparams,
@@ -50,9 +62,8 @@ def get_evaluator(kind: ClassifierKind, runtime: RuntimeClass, i: int) -> Evalua
         ClassifierKind.MLP: MLPHparams,
     }[kind]()
     hps = hp.random()
-    ds = runtime.members()[i]
     return Evaluator(
-        dataset_name=ds,
+        dataset_name=dsname,
         classifier_kind=kind,
         repeat=choice(range(50)),
         run=choice(range(50)),
@@ -66,55 +77,74 @@ def get_evaluator(kind: ClassifierKind, runtime: RuntimeClass, i: int) -> Evalua
     )
 
 
-def helper(
-    kind: ClassifierKind, runtime: RuntimeClass, _capsys: CaptureFixture
-) -> list[DataFrame]:
-    print("")
-    with _capsys.disabled():
-        pbar = tqdm(desc=f"{kind.value}: {'':<20}", total=len(FASTS), ncols=80)
-    times = []
-    for i in range(len(runtime.members())):
+def get_time(targs: TimingArgs) -> DataFrame:
+    try:
         start = time()
-        try:
-            evaluator = get_evaluator(kind=kind, runtime=runtime, i=i)
-            with _capsys.disabled():
-                pbar.set_description(f"{kind.value}: {evaluator.dataset_name.name:<20}")
-            evaluator.evaluate(no_pred=False)
-            elapsed = time() - start
-            times.append(
-                DataFrame(
-                    {"elapsed_s": elapsed, "dataset": evaluator.dataset_name.name},
-                    index=[0],
-                )
-            )
-            assert (evaluator.preds_dir / "preds.npz").exists()
-            if evaluator.logdir.exists():
-                rmtree(evaluator.logdir)
-            with _capsys.disabled():
-                pbar.update()
-        except Exception as e:
-            pbar.close()
-            if evaluator.logdir.exists():  # type: ignore
-                rmtree(evaluator.logdir)  # type: ignore
-            raise e
-    pbar.close()
-    return times
+        evaluator = get_evaluator(targs)
+        duration = DataFrame(
+            {"elapsed_s": float("nan"), "dataset": evaluator.dataset_name.name},
+            index=[0],
+        )
+
+        evaluator.evaluate(no_pred=False)
+        elapsed = time() - start
+        duration = DataFrame(
+            {"elapsed_s": elapsed, "dataset": evaluator.dataset_name.name},
+            index=[0],
+        )
+        assert (evaluator.preds_dir / "preds.npz").exists()
+        if evaluator.logdir.exists():
+            rmtree(evaluator.logdir)
+    except Exception as e:
+        if evaluator.logdir.exists():  # type: ignore
+            rmtree(evaluator.logdir)  # type: ignore
+        raise e
+    return duration
 
 
-def test_svm_fast(capsys: CaptureFixture) -> None:
+def get_times(
+    kind: ClassifierKind, runtime: RuntimeClass, _capsys: CaptureFixture
+) -> DataFrame:
+    print("")
+
+    dsnames = runtime.members()
+    targs = [TimingArgs(kind=kind, dsname=name) for name in dsnames]
+    with _capsys.disabled():
+        times = process_map(
+            get_time, targs, total=len(targs), desc=f"Fitting {runtime.value} models"
+        )
+    return pd.concat(times, axis=0, ignore_index=True)
+
+
+def summarize_times(
+    kind: ClassifierKind, runtime: RuntimeClass, _capsys: CaptureFixture
+) -> None:
     times = []
-    for r in range(2):
-        with capsys.disabled():
+    for r in range(5):
+        with _capsys.disabled():
             print(f"Repeat {r}:")
-        runtime = helper(ClassifierKind.SVM, runtime=RuntimeClass.Fast, _capsys=capsys)
-        times.extend(runtime)
+            times.extend(get_times(kind=kind, runtime=runtime, _capsys=_capsys))
 
     df = pd.concat(times, axis=0, ignore_index=True)
-    with capsys.disabled():
-        unfuck_pandas_printing()
+    outfile = {
+        RuntimeClass.Fast: FAST_RUNTIMES,
+        RuntimeClass.Mid: MED_RUNTIMES,
+        RuntimeClass.Slow: SLOW_RUNTIMES,
+    }[runtime] / f"{runtime.value}_runtimes.json"
+    df.to_json(outfile)
+    with _capsys.disabled():
+        set_long_print()
         runtimes = (
             df.groupby("dataset")
             .describe()["elapsed_s"]  # type:ignore
             .sort_values(by="max", ascending=False)
         )
         print(runtimes)
+        print(f"Saved all {runtime.value} runtimes to {outfile}")
+        summary_out = outfile.parent / f"{outfile.stem}_summary.json"
+        runtimes.to_json(summary_out)
+        print(f"Saved {runtime.value} runtime summaries to {summary_out}")
+
+
+def test_svm_fast(capsys: CaptureFixture) -> None:
+    summarize_times(kind=ClassifierKind.SVM, runtime=RuntimeClass.Fast, _capsys=capsys)
