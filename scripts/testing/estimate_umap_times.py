@@ -9,48 +9,25 @@ sys.path.append(str(ROOT))  # isort: skip
 
 
 import sys
-from argparse import ArgumentParser, Namespace
-from dataclasses import dataclass
-from enum import Enum
 from math import ceil
 from pathlib import Path
 from time import time
 from traceback import print_exc
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    Union,
-    cast,
-    no_type_check,
-)
-from warnings import catch_warnings, filterwarnings, simplefilter
+from warnings import catch_warnings, filterwarnings
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import pytest
-from numpy import ndarray
 from numpy.typing import NDArray
-from pandas import CategoricalDtype, DataFrame, Series
+from pandas import CategoricalDtype, DataFrame
 from pandas.errors import PerformanceWarning
-from sklearn.ensemble import GradientBoostingClassifier as GBC
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from tqdm import tqdm
-from tqdm.contrib.concurrent import process_map
-from typing_extensions import Literal
 from umap import UMAP
 from xgboost import XGBClassifier
 
 from src.constants import CAT_REDUCED, CONT_REDUCED
 from src.dataset import Dataset
-from src.enumerables import DatasetName, RuntimeClass
+from src.enumerables import RuntimeClass
 
 filterwarnings("ignore", category=PerformanceWarning)
 
@@ -72,14 +49,14 @@ def embed_categoricals(ds: Dataset) -> NDArray[np.float64] | None:
         reduced: NDArray = np.load(outfile)
         return reduced
     df = ds.data.drop(columns="__target")
-    cats = df.select_dtypes(include=[CategoricalDtype])
+    cats = df.select_dtypes(include=[CategoricalDtype])  # type: ignore
     if cats.shape[1] == 0:
         return OneHotEncoder().fit_transform(cats).astype(np.float64)
     x = pd.get_dummies(cats).astype(np.float64).to_numpy()
     umap = UMAP(n_components=2, metric="jaccard")
     with catch_warnings():
         filterwarnings("ignore", message="gradient function", category=UserWarning)
-        reduced = umap.fit_transform(x)
+        reduced = umap.fit_transform(x)  # type: ignore
     np.save(outfile, reduced)
     return reduced
 
@@ -92,13 +69,15 @@ def embed_continuous(ds_perc: tuple[Dataset, int]) -> NDArray[np.float64] | None
         return reduced
 
     df = ds.data.drop(columns="__target")
-    X_float = df.select_dtypes(exclude=[CategoricalDtype]).astype(np.float64)
+    X_float = df.select_dtypes(exclude=[CategoricalDtype]).astype(  # type: ignore
+        np.float64
+    )
     X_float -= X_float.mean(axis=0)
     X_float /= X_float.std(axis=0)
 
     n_components = ceil((percent / 100) * X_float.shape[1])
-    umap = UMAP(n_components=n_components)
-    reduced = umap.fit_transform(X_float)
+    umap = UMAP(n_components=n_components)  # type: ignore
+    reduced = umap.fit_transform(X_float)  # type: ignore
     np.save(outfile, reduced)
     return reduced
 
@@ -143,7 +122,7 @@ def estimate_continuous_embed_time(ds_perc: tuple[Dataset, int]) -> DataFrame | 
 
     except Exception as e:
         print_exc()
-        print(f"Got error: {e} for {ds.name}")
+        print(f"Got error: {e} for {ds.name}")  # type: ignore
         return None
 
 
@@ -155,6 +134,7 @@ def compute_estimate_categorical_embedding_times(runtime: RuntimeClass) -> None:
     runtimes = []
     desc = "Computing embeddings: {ds}"
     pbar = tqdm(datasets, desc=desc.format(ds=""))
+    ds: Dataset
     for ds in pbar:
         # /gpfs/fs0/scratch/j/jlevman/dberger/model_variance/.venv/lib/python3.9/site-packages/umap/umap_.py:132:
         # UserWarning: A large number of your vertices were disconnected
@@ -163,9 +143,9 @@ def compute_estimate_categorical_embedding_times(runtime: RuntimeClass) -> None:
         # remove these points from your data.
 
         pbar.set_description(desc.format(ds=str(ds)))
-        runtime = estimate_cat_embed_time(ds)
-        if runtime is not None:
-            runtimes.append(runtime)
+        elapsed = estimate_cat_embed_time(ds)
+        if elapsed is not None:
+            runtimes.append(elapsed)
     pbar.close()
     runtimes = pd.concat(runtimes, ignore_index=True, axis=0)
     runtimes.to_json(outfile)
@@ -186,9 +166,9 @@ def compute_estimate_continuous_embedding_times(
     for ds_perc in pbar:
         ds, perc = ds_perc
         pbar.set_description(desc.format(ds=f"{ds}@{perc}%"))
-        runtime = estimate_continuous_embed_time(ds_perc)
-        if runtime is not None:
-            runtimes.append(runtime)
+        elapsed = estimate_continuous_embed_time(ds_perc)
+        if elapsed is not None:
+            runtimes.append(elapsed)
     pbar.close()
     runtimes = pd.concat(runtimes, ignore_index=True, axis=0)
     runtimes.to_json(outfile)
@@ -200,7 +180,7 @@ def get_float_X(df: DataFrame) -> DataFrame:
         infer_objects=False,
         convert_string=True,
         convert_integer=False,
-        convert_floating=True,
+        convert_floating=True,  # type: ignore
     )
     cat_dtypes = list(
         filter(
@@ -229,7 +209,7 @@ def estimate_runtime_xgb(dataset: Dataset) -> DataFrame | None:
 
         X = get_float_X(df)
         y = df["__target"]
-        y = LabelEncoder().fit_transform(y).astype(np.float64)
+        y = LabelEncoder().fit_transform(y).astype(np.float64)  # type: ignore
 
         n_jobs = 1 if len(X) < 50000 else 80
         xgb = XGBClassifier(enable_categorical=True, tree_method="hist", n_jobs=n_jobs)
@@ -251,7 +231,7 @@ def check_conversions(dataset: Dataset) -> None:
         df = dataset.data
         get_float_X(df)
         y = df["__target"]
-        LabelEncoder().fit_transform(y).astype(np.float64)
+        LabelEncoder().fit_transform(y).astype(np.float64)  # type: ignore
     except Exception as e:
         print_exc()
         print(f"Got error: {e} on dataset: {dataset.name} (id={dataset.did})")

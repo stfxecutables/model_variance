@@ -1,4 +1,6 @@
-from abc import ABC, abstractclassmethod, abstractmethod, abstractstaticmethod
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Generic, TypeVar
 
@@ -13,8 +15,10 @@ class FileJSONable(ABC, Generic[T]):
     def to_json(self, path: Path) -> None:
         ...
 
-    @abstractstaticmethod
-    def from_json(path: Path) -> T:
+    # see https://github.com/python/typeshed/issues/7134#issuecomment-1030570063
+    @abstractmethod
+    @staticmethod
+    def from_json(path: Path) -> FileJSONable[T]:
         ...
 
 
@@ -26,6 +30,7 @@ class DirJSONable(ABC, Generic[T]):
     def to_json(self, root: Path) -> None:
         ...
 
-    @abstractclassmethod
+    @abstractmethod
+    @classmethod
     def from_json(cls, root: Path) -> T:
         ...

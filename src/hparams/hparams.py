@@ -23,8 +23,8 @@ from src.enumerables import DatasetName, HparamPerturbation
 from src.perturb import sig_perturb_plus
 from src.serialize import DirJSONable, FileJSONable
 
-T = TypeVar("T")
-H = TypeVar("H", bound="Hparam")
+T = TypeVar("T", covariant=True)
+H = TypeVar("H", bound="Hparam", covariant=True)
 
 
 class HparamKind(Enum):
@@ -34,7 +34,7 @@ class HparamKind(Enum):
     Fixed = "fixed"
 
 
-class Hparam(FileJSONable[H], Generic[T, H]):
+class Hparam(FileJSONable["Hparam"], Generic[T, H]):
     def __init__(self, name: str, value: T | None, default: T | None = None) -> None:
         super().__init__()
         self.name: str = name
@@ -69,7 +69,7 @@ class Hparam(FileJSONable[H], Generic[T, H]):
         ...
 
     @abstractmethod
-    def new(self, value: T) -> Hparam:
+    def new(self, value: T | None) -> Hparam:
         ...
 
     @abstractmethod
@@ -110,7 +110,7 @@ class ContinuousHparam(Hparam):
         max: float,
         min: float,
         log_scale: bool = False,
-        default: T | None = None,
+        default: float | None = None,
     ) -> None:
         super().__init__(name=name, value=value, default=default)
         self.name: str = name
@@ -168,7 +168,7 @@ class ContinuousHparam(Hparam):
             rng = np.random.default_rng()
         mag = method.magnitude()
         if method in [HparamPerturbation.SigOne, HparamPerturbation.SigZero]:
-            value = float(sig_perturb_plus(self.value, n_digits=mag))
+            value = float(sig_perturb_plus(self.value, n_digits=int(mag)))
         elif method is HparamPerturbation.RelPercent10:
             val = np.log10(self.value) if self.log_scale else self.value
             delta = mag * val  # mag = 0.10
@@ -188,6 +188,8 @@ class ContinuousHparam(Hparam):
         return self.new(value=val)
 
     def val_perturb_10(self, rng: Generator) -> float:
+        if self.value is None:
+            raise ValueError("Cannot perturn hparam if value is None.")
         if self.log_scale:
             # Example most extreme possible perturbed values:
             #
@@ -278,7 +280,7 @@ class OrdinalHparam(Hparam):
         value: int | None,
         max: int,
         min: int = 0,
-        default: T | None = None,
+        default: int | None = None,
     ) -> None:
         super().__init__(name=name, value=value, default=default)
         self.name: str = name
@@ -366,7 +368,7 @@ class OrdinalHparam(Hparam):
             )
 
     @staticmethod
-    def from_json(path: Path) -> ContinuousHparam:
+    def from_json(path: Path) -> OrdinalHparam:
         with open(path, "r") as handle:
             d = Namespace(**json.load(handle))
         return OrdinalHparam(
@@ -409,7 +411,7 @@ class CategoricalHparam(Hparam):
         name: str,
         value: str | None,
         categories: Sequence[str] | Collection[str],
-        default: T | None = None,
+        default: str | None = None,
     ) -> None:
         super().__init__(name=name, value=value, default=default)
         self.name: str = name
@@ -474,7 +476,7 @@ class CategoricalHparam(Hparam):
             )
 
     @staticmethod
-    def from_json(path: Path) -> ContinuousHparam:
+    def from_json(path: Path) -> CategoricalHparam:
         with open(path, "r") as handle:
             d = Namespace(**json.load(handle))
         return CategoricalHparam(
@@ -510,23 +512,23 @@ class CategoricalHparam(Hparam):
     __repr__ = __str__
 
 
-class FixedHparam(Hparam):
-    def __init__(self, name: str, value: Any | None, default: Any | None = None) -> None:
+class FixedHparam(Hparam, Generic[T]):
+    def __init__(self, name: str, value: T, default: Any | None = None) -> None:
         super().__init__(name=name, value=value, default=default)
         self.name: str = name
         self.kind: HparamKind = HparamKind.Fixed
-        self._value: Any | None = value
-        self._default: Any | None = value
+        self._value: T = value
+        self._default: T = value
 
-    def new(self, value: Any) -> CategoricalHparam:
-        cls: Type[CategoricalHparam] = self.__class__
+    def new(self, value: T | None) -> FixedHparam:
+        cls: Type[FixedHparam] = self.__class__
         return cls(
             name=self.name,
             value=self.value,
         )
 
     def clone(self) -> Hparam:
-        cls: Type[CategoricalHparam] = self.__class__
+        cls: Type[FixedHparam] = self.__class__
         return cls(
             name=self.name,
             value=self.value,
@@ -539,7 +541,7 @@ class FixedHparam(Hparam):
     ) -> Hparam:
         return self.new(self.value)
 
-    def random(self, rng: Generator | None = None) -> CategoricalHparam:
+    def random(self, rng: Generator | None = None) -> FixedHparam:
         return self.new(self.value)
 
     def to_json(self, path: Path) -> None:
@@ -556,7 +558,7 @@ class FixedHparam(Hparam):
             )
 
     @staticmethod
-    def from_json(path: Path) -> ContinuousHparam:
+    def from_json(path: Path) -> FixedHparam:
         with open(path, "r") as handle:
             d = Namespace(**json.load(handle))
         return FixedHparam(
@@ -680,7 +682,7 @@ class Hparams(DirJSONable):
             hparam.to_json(path=path)
 
     @classmethod
-    def from_json(cls: Hparams, root: Path) -> ContinuousHparam:
+    def from_json(cls: Type[Hparams], root: Path) -> Hparams:
         jsons = sorted(root.rglob("*.json"))
         hparams = []
         for path in jsons:
@@ -714,7 +716,7 @@ class Hparams(DirJSONable):
 
     def __sub__(self, o: Hparams) -> float:
         if not isinstance(o, Hparams):
-            raise ValueError(f"Can only find difference between instance of Hparams.")
+            raise ValueError("Can only find difference between instance of Hparams.")
         if sorted(self.hparams.keys()) != sorted(o.hparams.keys()):
             names1 = set(self.hparams.keys())
             names2 = set(o.hparams.keys())

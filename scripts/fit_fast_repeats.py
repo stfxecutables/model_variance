@@ -9,42 +9,11 @@ sys.path.append(str(ROOT))  # isort: skip
 
 
 import sys
-from argparse import ArgumentParser, Namespace
-from dataclasses import dataclass
-from enum import Enum
+from argparse import Namespace
 from pathlib import Path
 from time import time
-from traceback import print_exc
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    Union,
-    cast,
-    no_type_check,
-)
-from warnings import filterwarnings
 
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import pytest
-from numpy import ndarray
-from pandas import CategoricalDtype, DataFrame, Series
-from pandas.errors import PerformanceWarning
-from sklearn.ensemble import GradientBoostingClassifier as GBC
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import ParameterGrid
-from sklearn.preprocessing import LabelEncoder, StandardScaler
-from tqdm import tqdm
-from tqdm.contrib.concurrent import process_map
-from typing_extensions import Literal
-from xgboost import XGBClassifier
 
 from src.dataset import Dataset
 from src.enumerables import DataPerturbation, RuntimeClass
@@ -68,7 +37,7 @@ if __name__ == "__main__":
         level=["sample", "label"],
     )
 
-    ARGS = [Namespace(**d) for d in list(ParameterGrid(grid))]
+    ARGS = [Namespace(**d) for d in list(ParameterGrid(GRID))]
     fmt = (
         "{dsname}: train_size={down}, reduce={red}, rep={rep}, "
         "run={run}, cont_pert={cont}, cat_pert={cat}, cat_level={level}"
@@ -113,5 +82,4 @@ if __name__ == "__main__":
     except Exception as e:
         raise e
     finally:
-        pbar.clear()
-        pbar.close()
+        pass

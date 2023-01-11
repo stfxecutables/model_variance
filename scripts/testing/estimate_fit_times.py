@@ -9,40 +9,18 @@ sys.path.append(str(ROOT))  # isort: skip
 
 
 import sys
-from argparse import ArgumentParser, Namespace
-from dataclasses import dataclass
-from enum import Enum
 from pathlib import Path
 from time import time
 from traceback import print_exc
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    Union,
-    cast,
-    no_type_check,
-)
 from warnings import filterwarnings
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import pytest
-from numpy import ndarray
-from pandas import CategoricalDtype, DataFrame, Series
+from pandas import CategoricalDtype, DataFrame
 from pandas.errors import PerformanceWarning
-from sklearn.ensemble import GradientBoostingClassifier as GBC
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder
 from tqdm import tqdm
 from tqdm.contrib.concurrent import process_map
-from typing_extensions import Literal
 from xgboost import XGBClassifier
 
 from src.dataset import Dataset
@@ -55,7 +33,7 @@ def get_xgboost_X(df: DataFrame) -> DataFrame:
         infer_objects=False,
         convert_string=True,
         convert_integer=False,
-        convert_floating=True,
+        convert_floating=True,  # type: ignore
     )
     cat_dtypes = list(
         filter(
@@ -84,7 +62,7 @@ def estimate_runtime_xgb(dataset: Dataset) -> DataFrame | None:
 
         X = get_xgboost_X(df)
         y = df["__target"]
-        y = LabelEncoder().fit_transform(y).astype(np.float64)
+        y = LabelEncoder().fit_transform(y).astype(np.float64)  # type: ignore
 
         n_jobs = 1 if len(X) < 50000 else 80
         xgb = XGBClassifier(enable_categorical=True, tree_method="hist", n_jobs=n_jobs)
@@ -106,7 +84,7 @@ def check_conversions(dataset: Dataset) -> None:
         df = dataset.data
         get_xgboost_X(df)
         y = df["__target"]
-        LabelEncoder().fit_transform(y).astype(np.float64)
+        LabelEncoder().fit_transform(y).astype(np.float64)  # type: ignore
     except Exception as e:
         print_exc()
         print(f"Got error: {e} on dataset: {dataset.name} (id={dataset.did})")

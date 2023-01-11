@@ -10,16 +10,16 @@ sys.path.append(str(ROOT))  # isort: skip
 
 import sys
 from pathlib import Path
-from typing import Callable, Mapping
+from typing import Mapping
 from warnings import catch_warnings, filterwarnings
 
 import numpy as np
 import torch
 from numpy import ndarray
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.plugins.environments import SLURMEnvironment
+from pytorch_lightning.plugins.environments import SLURMEnvironment  # type: ignore
 from torch.utils.data import DataLoader, TensorDataset
 
 from src.constants import BATCH_SIZE
@@ -29,7 +29,7 @@ from src.models.model import ClassifierModel
 
 
 class DisabledSLURMEnvironment(SLURMEnvironment):
-    def detect() -> bool:
+    def detect(self) -> bool:
         return False
 
     @staticmethod
@@ -51,7 +51,7 @@ def loader(
     return DataLoader(ds, batch_size=batch_size, shuffle=shuffle)
 
 
-def callbacks() -> list[Callable]:
+def callbacks() -> list[Callback]:
     return [
         ModelCheckpoint(
             monitor="train/acc", save_last=True, mode="max", every_n_epochs=1
@@ -93,15 +93,15 @@ class DLModel(ClassifierModel):
         self.fitted = True
 
     def predict(self, X: ndarray, y: ndarray) -> tuple[ndarray, ndarray]:
-        if self.fitted is False:
+        if self.fitted is False or self.trainer is None:
             raise RuntimeError("Model has not yet been fitted.")
 
         test_loader = loader(X=X, y=y, shuffle=False)
-        trainer = self.trainer
+        trainer: Trainer = self.trainer
         with catch_warnings():
             # stfu Lightning
             filterwarnings("ignore", message="The dataloader")
-            results: list[dict[str, ndarray]] = trainer.predict(
+            results: list[dict[str, ndarray]] = trainer.predict(  # type: ignore
                 model=self.model,
                 dataloaders=test_loader,
                 ckpt_path="last",

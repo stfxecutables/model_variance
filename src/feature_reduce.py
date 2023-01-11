@@ -19,13 +19,13 @@ from xgboost import XGBClassifier
 from src.dataset import Dataset
 
 if __name__ == "__main__":
-    ds = list(filter(lambda ds: "devna" in ds.name, Dataset.load_all()))[0]
+    ds = list(filter(lambda ds: "devna" in ds.name.value, Dataset.load_all()))[0]
     # ds = list(filter(lambda ds: "ldpa" in ds.name, Dataset.load_all()))[0]
     print("Loading...", end="", flush=True)
     start = time()
     X = ds.data.drop(columns="__target").to_numpy()
     y = ds.data["__target"].to_numpy()
-    y = LabelEncoder().fit_transform(y).astype(np.float64)
+    y = LabelEncoder().fit_transform(y).astype(np.float64)  # type: ignore
     # y /= y.max()
     elapsed = time() - start
     print(f"done. Took {int(elapsed)} seconds. ")

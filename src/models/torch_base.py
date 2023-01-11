@@ -14,6 +14,7 @@ from typing import Any, List, Tuple, no_type_check
 
 import numpy as np
 import torch
+from numpy import ndarray
 from pytorch_lightning import LightningModule
 from torch import Tensor
 from torch.nn import (
@@ -53,7 +54,9 @@ class BaseModel(LightningModule):
         self.max_epochs: int = LR_MAX_EPOCHS
 
         # task = "binary" if self.num_classes == 2 else "multiclass"
-        acc_args = dict(task="multiclass", num_classes=self.num_classes, top_k=1)
+        acc_args: dict[str, Any] = dict(
+            task="multiclass", num_classes=self.num_classes, top_k=1
+        )
         self.train_acc = Accuracy(**acc_args)
         self.val_acc = Accuracy(**acc_args)
         self.test_acc = Accuracy(**acc_args)
@@ -95,7 +98,7 @@ class BaseModel(LightningModule):
     @no_type_check
     def test_step(
         self, batch: Tuple[Tensor, Tensor], batch_idx: int, *args, **kwargs
-    ) -> Tensor:
+    ) -> dict[str, ndarray]:
         preds, loss = self._shared_step(batch)[:2]
         self.test_acc(preds=preds, target=batch[1])
         self.log("test/loss", loss)
@@ -108,7 +111,7 @@ class BaseModel(LightningModule):
     @no_type_check
     def predict_step(
         self, batch: Tuple[Tensor, Tensor], batch_idx: int, *args, **kwargs
-    ) -> Tensor:
+    ) -> dict[str, ndarray]:
         preds, loss = self._shared_step(batch)[:2]
         return {
             "pred": preds.cpu().numpy(),
@@ -117,7 +120,7 @@ class BaseModel(LightningModule):
         }
 
     @no_type_check
-    def test_epoch_end(self, outputs: list[dict[str, Tensor]]) -> None:
+    def test_epoch_end(self, outputs: list[dict[str, Tensor]]) -> dict[str, ndarray]:
         """Save predictions each epoch. We will compare to true values after."""
         if self.trainer is None:
             raise RuntimeError(f"LightningModule {self} has empty .trainer property")

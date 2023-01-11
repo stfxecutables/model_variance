@@ -38,6 +38,7 @@ def sig_perturb_plus(
 
 def percent_perturb(x: float, xmin: float, xmax: float, magnitude: float) -> ndarray:
     """Perturb to within `magnitude` percent of the range of `x`"""
+    raise NotImplementedError()
 
 
 def neighbour_perturb(

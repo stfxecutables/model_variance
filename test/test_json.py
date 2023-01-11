@@ -12,28 +12,26 @@ from pathlib import Path
 from random import choice
 from shutil import rmtree
 from tempfile import mkdtemp
+from typing import Literal
 
 import numpy as np
 
-from src.enumerables import ClassifierKind, DataPerturbation, DatasetName
-from src.evaluator import Evaluator
-from src.hparams.hparams import (
-    CategoricalHparam,
-    ContinuousHparam,
-    Hparams,
-    OrdinalHparam,
+from src.enumerables import (
+    ClassifierKind,
+    DataPerturbation,
+    DatasetName,
+    HparamPerturbation,
 )
+from src.evaluator import Evaluator
+from src.hparams.hparams import CategoricalHparam, ContinuousHparam, OrdinalHparam
 from src.hparams.logistic import LRHparams
 from src.hparams.mlp import MLPHparams
 from src.hparams.svm import SVMHparams
 from src.hparams.xgboost import XGBoostHparams
 from src.utils import missing_keys
-from test.helpers import (
-    random_categorical,
-    random_continuous,
-    random_hparams,
-    random_ordinal,
-)
+from test.helpers import random_categorical, random_continuous, random_ordinal
+
+Percentage = Literal[None, 25, 50, 75]
 
 ROOT = Path(__file__).resolve().parent.parent  # isort: skip
 DIR = ROOT / "__test_temp__"
@@ -87,23 +85,6 @@ def test_hparam_ordinal() -> None:
         rmtree(tempdir)
 
 
-def test_hparams_list() -> None:
-    try:
-        tempdir = Path(mkdtemp(dir=DIR))
-        outdir = DIR / f"{tempdir.name}/hps"
-        for _ in range(50):
-            hps = Hparams(random_hparams())
-            hps.to_json(root=outdir)
-            hp = Hparams.from_json(root=outdir)
-            assert hps - hp < 1e-14
-            assert hp - hps < 1e-14
-            rmtree(outdir)
-    except Exception as e:
-        raise e
-    finally:
-        rmtree(tempdir)
-
-
 def test_hparams_xgb() -> None:
     try:
         tempdir = Path(mkdtemp(dir=DIR))
@@ -118,7 +99,8 @@ def test_hparams_xgb() -> None:
     except Exception as e:
         raise e
     finally:
-        rmtree(tempdir)
+        if tempdir.exists():  # type: ignore
+            rmtree(tempdir)  # type: ignore
 
 
 def test_hparams_svm() -> None:
@@ -135,7 +117,7 @@ def test_hparams_svm() -> None:
     except Exception as e:
         raise e
     finally:
-        rmtree(tempdir)
+        rmtree(tempdir)  # type: ignore
 
 
 def test_evaluator() -> None:
@@ -149,12 +131,12 @@ def test_evaluator() -> None:
             MLPHparams: ClassifierKind.MLP,
         }[hp_cls]
         hps = hp_cls().random()
-        dim_reduce = choice([25, 50, 75, None])
+        dim_reduce: Percentage | None = choice([25, 50, 75, None])
         cont_perturb = choice([*DataPerturbation, None])
         cat_perturb = choice([None, 0.1, 0.2])
-        h_perturb = choice([25, 50, 75, None])
-        train_downsample = choice([25, 50, 75, None])
-        cat_perturb_level = choice(["sample", "label"])
+        h_perturb: HparamPerturbation = choice([*HparamPerturbation])
+        train_downsample: Percentage = choice([25, 50, 75, None])
+        cat_perturb_level: Literal["sample", "label"] = choice(["sample", "label"])
         ev = Evaluator(
             dataset_name=ds,
             classifier_kind=classifier_kind,

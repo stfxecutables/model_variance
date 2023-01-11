@@ -16,7 +16,7 @@ from base64 import urlsafe_b64encode
 from enum import Enum, EnumMeta
 from shutil import rmtree
 from time import strftime
-from typing import Literal, Type, TypeVar
+from typing import Any, Literal, Type, TypeVar
 from uuid import uuid4
 
 import numpy as np
@@ -127,7 +127,7 @@ class Evaluator(DirJSONable):
             if kind in [ClassifierKind.LR, ClassifierKind.SVM]
             else self.dl_dir
         )
-        args = dict(
+        args: dict[str, Any] = dict(
             hparams=self.hparams,
             dataset=self.dataset,
             logdir=logdir,

@@ -9,6 +9,7 @@ sys.path.append(str(ROOT))  # isort: skip
 
 import json
 import os
+from typing import Any
 
 import numpy as np
 from numpy.random import Generator, SeedSequence
@@ -41,11 +42,12 @@ def save_seed_seqs(
 
 def load_seed_seqs(outfile: Path = DEFAULT_SEEDS) -> dict[int, SeedSequence]:
     with open(outfile, "r") as fp:
-        d: dict[int, dict[str, int | tuple[int, ...]]] = json.load(fp)
+        d: dict[int, Any] = json.load(fp)
     seqs = {}
     for i, args in d.items():
         seqs[int(i)] = SeedSequence(
-            entropy=int(args["entropy"]), spawn_key=tuple(args["spawn_key"])
+            entropy=int(args["entropy"]),
+            spawn_key=tuple(args["spawn_key"]),
         )
     return seqs
 

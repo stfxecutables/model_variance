@@ -27,7 +27,6 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from tqdm.contrib.concurrent import process_map
-from typing_extensions import Literal
 
 from src.constants import CAT_REDUCED, CONT_REDUCED, DISTANCES
 from src.enumerables import DataPerturbation, DatasetName
@@ -92,14 +91,14 @@ def reduce_continuous(dataset: Dataset, percent: int) -> NDArray[np.float64] | N
         return reduced
 
     df = dataset.data.drop(columns="__target")
-    X_float = df.select_dtypes(exclude=[CategoricalDtype]).astype(np.float64)
+    X_float = df.select_dtypes(exclude=[CategoricalDtype]).astype(np.float64)  # type: ignore # noqa
     X_float -= X_float.mean(axis=0)
     X_float /= X_float.std(axis=0)
 
     n_components = ceil((percent / 100) * X_float.shape[1])
-    umap = UMAP(n_components=n_components)
+    umap = UMAP(n_components=n_components)  # type: ignore
     filterwarnings("ignore", category=PerformanceWarning)
-    reduced = umap.fit_transform(X_float)
+    reduced = umap.fit_transform(X_float)  # type: ignore
     np.save(outfile, reduced)
     return reduced
 
@@ -123,15 +122,17 @@ def reduce_categoricals(dataset: Dataset) -> NDArray[np.float64] | None:
         reduced: NDArray[np.float64] = np.load(outfile)
         return reduced
     df = dataset.data.drop(columns="__target")
-    cats = df.select_dtypes(include=[CategoricalDtype])
+    cats = df.select_dtypes(include=[CategoricalDtype])  # type: ignore
     if cats.shape[1] == 0:
-        return OneHotEncoder(sparse=False).fit_transform(cats).astype(np.float64)  # type: ignore
+        return (
+            OneHotEncoder(sparse=False).fit_transform(cats).astype(np.float64)
+        )  # type: ignore
     x = pd.get_dummies(cats).astype(np.float64).to_numpy()
     filterwarnings("ignore", category=PerformanceWarning)
-    umap = UMAP(n_components=2, metric="jaccard")
+    umap = UMAP(n_components=2, metric="jaccard")  # type: ignore
     with catch_warnings():
         filterwarnings("ignore", message="gradient function", category=UserWarning)
-        reduced = umap.fit_transform(x)
+        reduced = umap.fit_transform(x)  # type: ignore
     np.save(outfile, reduced)
     return reduced
 
@@ -188,7 +189,9 @@ class Dataset:
 
         df = self.data.drop(columns="__target")
         X_f: ndarray = np.asarray(
-            df.select_dtypes(exclude=[CategoricalDtype]).astype(np.float64)
+            df.select_dtypes(exclude=[CategoricalDtype]).astype(  # type: ignore
+                np.float64
+            )
         )
         if X_f.size == 0:
             return None
@@ -214,6 +217,10 @@ class Dataset:
             # d_nn = sqrt(|x^2 - x_nn^2|) for sample x and nearest neighor x_nn
             scale = 2 if perturbation is DataPerturbation.HalfNeighbor else 4
             distances = self.nearest_distances(reduction=reduction)
+            if distances is None:
+                raise ValueError(
+                    f"Computed distances missing or undefined for {self.name.name}"
+                )
             perturbed = neighbour_perturb(X_f, distances=distances, scale=scale, rng=rng)
             return perturbed
         if perturbation in [DataPerturbation.SigDigOne, DataPerturbation.SigDigZero]:
@@ -291,20 +298,24 @@ class Dataset:
         """
         if reduction not in [None, 25, 50, 75]:
             raise ValueError("`percent` must be in [None, 25, 50, 75]")
-        if reduction is not None and perturbation_prob > 0:
-            raise ValueError(
-                "Cannot perturb dimenion-reduced categoricals in this manner."
-            )
         if perturbation_prob is None:
             perturbation_prob = 0
+        if (reduction is not None) and (perturbation_prob > 0):
+            raise ValueError(
+                "Cannot perturb dimension-reduced categoricals in this manner."
+            )
         if perturbation_prob > 1:
             raise ValueError("`perturbation_prob` must be <= 1")
 
         if reduction is None:
             df = self.data.drop(columns="__target")
-            cats = df.select_dtypes(include=[CategoricalDtype])
+            cats = df.select_dtypes(include=[CategoricalDtype])  # type: ignore
             if cats.shape[1] == 0:
-                return OneHotEncoder(sparse=False).fit_transform(cats).astype(np.float64)  # type: ignore
+                return (
+                    OneHotEncoder(sparse=False)
+                    .fit_transform(cats)
+                    .astype(np.float64)  # type: ignore
+                )
             if perturbation_prob > 0:
                 rng = np.random.default_rng() if rng is None else rng
                 if perturb_level == "sample":
@@ -316,7 +327,7 @@ class Dataset:
                     rands = cats.copy()  # df of random category values
                     for column in rands.columns:
                         c: Series = rands[column]
-                        dtype: CategoricalDtype = c.dtype
+                        dtype: CategoricalDtype = c.dtype  # type: ignore
                         categories = dtype.categories.to_numpy()
                         new = rng.choice(categories, size=len(c), replace=True)
                         rands[column] = new
@@ -329,7 +340,7 @@ class Dataset:
                     rands = cats.copy()
                     for column in cats.columns:
                         c: Series = cats[column]
-                        dtype: CategoricalDtype = c.dtype
+                        dtype: CategoricalDtype = c.dtype  # type: ignore
                         categories = dtype.categories.to_numpy()
                         new = rng.choice(categories, size=len(c), replace=True)
                         rands[column] = new
@@ -381,16 +392,19 @@ class Dataset:
             reduction=reduction,
             rng=rng,
         )
-        y = self.data["__target"]
-        y = LabelEncoder().fit_transform(y).astype(np.float64)
+        t = self.data["__target"]
+        y: ndarray = LabelEncoder().fit_transform(t).astype(np.float64)  # type: ignore
+        X: ndarray
         if X_cat is None and X_cont is None:
             raise ValueError("No data for dataset.")
-        if X_cont is None:
+        elif (X_cont is None) and (X_cat is not None):
             X = X_cat
-        elif X_cat is None:
+        elif (X_cont is not None) and (X_cat is None):
             X = X_cont
-        else:
+        elif isinstance(X_cont, ndarray) and isinstance(X_cat, ndarray):
             X = np.concatenate([X_cat, X_cont], axis=1)
+        else:
+            raise RuntimeError("Impossible!")
         return X, y
 
     @property
@@ -436,7 +450,7 @@ class Dataset:
             df.drop(index=DROP_ROWS[self.name], inplace=True)
 
     def remove_constant(self, df: DataFrame) -> None:
-        cont = df.select_dtypes(exclude=[CategoricalDtype])
+        cont = df.select_dtypes(exclude=[CategoricalDtype])  # type: ignore
         cols = cont.columns.to_numpy()
         sds = cont.std(axis=0).to_numpy()
         drop = cols[sds == 0]
@@ -448,7 +462,7 @@ class Dataset:
         label = "" if reduction is None else f"_reduce={int(reduction):02d}"
         outfile = DISTANCES / f"{self.name.name}{label}_distances.npz"
 
-        X = self.get_X_continuous(reduction)
+        X = self.get_X_continuous(perturbation=None, reduction=reduction)
         if X is None or X.shape[1] == 0:
             return None
 
@@ -467,7 +481,8 @@ class Dataset:
         dists: ndarray = nn.kneighbors(X, n_neighbors=2, return_distance=True)[0][:, 1]
         np.savez_compressed(outfile, distances=dists.astype(np.float32))
         print(
-            f"Saved precomputed distances for {self.name.name}@reduction={reduction} to {outfile}"
+            f"Saved precomputed distances for {self.name.name}"
+            f"@reduction={reduction} to {outfile}"
         )
         return dists
 
@@ -553,7 +568,7 @@ class Dataset:
         self,
         train_downsample: Percentage | None,
         cont_perturb: DataPerturbation | None = None,
-        cat_perturb_prob: float = 0,
+        cat_perturb_prob: float | None = None,
         cat_perturb_level: Literal["sample", "label"] = "label",
         reduction: int | None = None,
         repeat: int = 0,
@@ -569,6 +584,8 @@ class Dataset:
         """
         if train_downsample not in [None, 25, 50, 75]:
             raise ValueError("`train_downsample` must be in [None, 25, 50, 75]")
+        if cat_perturb_prob is None:
+            cat_perturb_prob = 0
         shuffle_rng = load_repeat_rng(repeat=repeat)
         X_orig, y = self.get_X_y(
             cont_perturb=None,

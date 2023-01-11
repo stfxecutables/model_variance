@@ -60,7 +60,7 @@ TUNED: dict[DatasetName, dict[str, Any] | None] = {
 def svm_hparams(
     C: float | None = None,
     gamma: float | None = None,
-) -> list[Hparams]:
+) -> list[Hparam]:
     # see https://jcheminf.biomedcentral.com/articles/10.1186/s13321-015-0088-0#Sec6
     # for a possible tuning range on C, gamma
     return [

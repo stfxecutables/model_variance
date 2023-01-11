@@ -1,5 +1,6 @@
 from pathlib import Path
 from random import choice
+from typing import Any
 from uuid import uuid4
 
 import numpy as np
@@ -28,7 +29,7 @@ def random_continuous() -> ContinuousHparam:
     )
 
 
-def random_fixed() -> FixedHparam:
+def random_fixed() -> FixedHparam[float]:
     value = np.random.uniform(0, 1)
     hsh = uuid4().hex
     return FixedHparam(f"test_fixed_{hsh}", value=value)
@@ -49,7 +50,7 @@ def random_ordinal() -> OrdinalHparam:
     return OrdinalHparam(f"test_ord_{hsh}", value=value, min=0, max=mx)
 
 
-def random_hparams() -> list[Hparam]:
+def random_hparams() -> list[Hparam[Any, Any]]:
     n = choice(list(range(1, 100)))
     choices = [random_categorical, random_continuous, random_ordinal, random_fixed]
     return [choice(choices)() for _ in range(n)]

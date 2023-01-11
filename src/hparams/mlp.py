@@ -66,7 +66,7 @@ def mlp_hparams(
     dropout: float | None = None,
     w1: int | None = None,
     w2: int | None = None,
-) -> list[Hparams]:
+) -> list[Hparam]:
     return [
         ContinuousHparam("lr", lr, max=5e-1, min=1e-5, default=LR, log_scale=True),
         ContinuousHparam("wd", wd, max=5e-1, min=1e-8, default=WD, log_scale=True),

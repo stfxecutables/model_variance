@@ -74,13 +74,13 @@ class TestFixed:
             h1 = random_fixed()
             h2 = random_fixed()
             with raises(ValueError):
-                h1 - h2
+                h1 - h2  # type: ignore
         for _ in range(N):
             h1 = random_fixed()
             h2 = h1.clone()
-            h2._value = h1.value + 1
+            h2._value = h1._value + 1
             with raises(RuntimeError):
-                h1 - h2
+                h1 - h2  # type: ignore
 
 
 class TestOrdinal:
@@ -101,9 +101,10 @@ class TestOrdinal:
 
     def test_perturb_rel_10(self) -> None:
         method = HparamPerturbation.RelPercent10
-        mag = method.magnitude()
+        mag = float(method.magnitude())
         for _ in range(self.N):
             hp = random_ordinal()
+            assert hp.value is not None
             delta = ceil(mag * hp.value)
             h2 = hp.perturbed(method=method)
             assert (hp - h2) <= delta
@@ -147,6 +148,8 @@ class TestContinuous:
             # delta = ceil(mag * hp.value)
             h2 = hp.perturbed(method=method)
             equals.append(hp == h2)
+            assert hp.value is not None
+            assert h2.value is not None
             if hp.log_scale:
                 diff = abs(np.log10(hp.value) - np.log10(h2.value))
                 assert diff <= abs(mag * np.log10(hp.value))

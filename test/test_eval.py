@@ -59,8 +59,8 @@ def helper(kind: ClassifierKind, random: bool, _capsys: CaptureFixture) -> None:
                 pbar.update()
         except Exception as e:
             pbar.close()
-            if evaluator.logdir.exists():
-                rmtree(evaluator.logdir)
+            if evaluator.logdir.exists():  # type: ignore
+                rmtree(evaluator.logdir)  # type: ignore
             raise e
     pbar.close()
 

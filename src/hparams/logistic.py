@@ -61,7 +61,7 @@ TUNED: dict[DatasetName, dict[str, Any] | None] = {
 def lr_hparams(
     lr: float | None = None,
     wd: float | None = None,
-) -> list[Hparams]:
+) -> list[Hparam]:
     return [
         ContinuousHparam("lr", lr, max=5e-1, min=1e-5, default=LR, log_scale=True),
         ContinuousHparam("wd", wd, max=5e-1, min=1e-8, default=WD, log_scale=True),

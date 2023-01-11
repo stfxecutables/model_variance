@@ -189,9 +189,11 @@ class RuntimeClass(Enum):
 
     @staticmethod
     def from_dataset(dsname: DatasetName) -> RuntimeClass:
+        cls: RuntimeClass
         for cls in RuntimeClass:
             if dsname in cls.members():
                 return cls
+        raise RuntimeError(f"Impossible! Invalid DatasetName: {dsname}")
 
 
 # class HparamPerturbation(Enum):
