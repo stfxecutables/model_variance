@@ -5,6 +5,7 @@ from random import choice
 from shutil import rmtree
 from time import time
 
+import numpy as np
 import pandas as pd
 from pandas import DataFrame
 from pytest import CaptureFixture
@@ -120,6 +121,16 @@ def get_times(
     return pd.concat(times, axis=0, ignore_index=True)
 
 
+def to_readable(duration_s: float) -> str:
+    if duration_s <= 120:
+        return f"{np.round(duration_s, 1):03.1f} sec"
+    mins = duration_s / 60
+    if mins <= 120:
+        return f"{np.round(mins, 1):03.1f} min"
+    hrs = mins / 60
+    return f"{np.round(hrs, 2):03.2f} hrs"
+
+
 def summarize_times(
     kind: ClassifierKind, runtime: RuntimeClass, repeats: int, _capsys: CaptureFixture
 ) -> None:
@@ -138,6 +149,8 @@ def summarize_times(
             df.groupby("dataset")
             .describe()["elapsed_s"]  # type:ignore
             .sort_values(by="max", ascending=False)
+            .drop(columns="count")
+            .applymap(to_readable)
         )
         print(runtimes)
         print(f"Saved all {runtime.value} runtimes to {outfile}")
@@ -151,7 +164,8 @@ def test_svm_fast(capsys: CaptureFixture) -> None:
         kind=ClassifierKind.SVM, runtime=RuntimeClass.Fast, repeats=5, _capsys=capsys
     )
 
+
 def test_xgb_fast(capsys: CaptureFixture) -> None:
     summarize_times(
-        kind=ClassifierKind.SVM, runtime=RuntimeClass.Fast, repeats=5, _capsys=capsys
+        kind=ClassifierKind.XGBoost, runtime=RuntimeClass.Fast, repeats=5, _capsys=capsys
     )
