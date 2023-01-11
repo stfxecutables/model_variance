@@ -16,8 +16,8 @@ class FileJSONable(ABC, Generic[T]):
         ...
 
     # see https://github.com/python/typeshed/issues/7134#issuecomment-1030570063
-    @abstractmethod
     @staticmethod
+    @abstractmethod
     def from_json(path: Path) -> FileJSONable[T]:
         ...
 
@@ -30,7 +30,7 @@ class DirJSONable(ABC, Generic[T]):
     def to_json(self, root: Path) -> None:
         ...
 
-    @abstractmethod
     @classmethod
+    @abstractmethod
     def from_json(cls, root: Path) -> T:
         ...

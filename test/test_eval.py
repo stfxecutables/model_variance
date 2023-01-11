@@ -1,10 +1,12 @@
 from shutil import rmtree
+from time import time
 
 import pytest
+from pandas import DataFrame
 from pytest import CaptureFixture
 from tqdm import tqdm
 
-from src.enumerables import ClassifierKind, RuntimeClass
+from src.enumerables import ClassifierKind, DatasetName, RuntimeClass
 from src.evaluator import Evaluator
 from src.hparams.hparams import Hparams
 from src.hparams.logistic import LRHparams
@@ -42,16 +44,27 @@ def get_evaluator(kind: ClassifierKind, random: bool, i: int) -> Evaluator:
     )
 
 
-def helper(kind: ClassifierKind, random: bool, _capsys: CaptureFixture) -> None:
+def helper(
+    kind: ClassifierKind, random: bool, _capsys: CaptureFixture
+) -> list[DataFrame]:
     print("")
     with _capsys.disabled():
         pbar = tqdm(desc=f"{kind.value}: {'':<20}", total=len(FASTS), ncols=80)
+    times = []
     for i in range(len(FASTS)):
+        start = time()
         try:
             evaluator = get_evaluator(kind=kind, random=random, i=i)
             with _capsys.disabled():
                 pbar.set_description(f"{kind.value}: {evaluator.dataset_name.name:<20}")
             evaluator.evaluate(no_pred=False)
+            elapsed = time() - start
+            times.append(
+                DataFrame(
+                    {"elapsed_s": elapsed, "dataset": evaluator.dataset_name.name},
+                    index=[0],
+                )
+            )
             assert (evaluator.preds_dir / "preds.npz").exists()
             if evaluator.logdir.exists():
                 rmtree(evaluator.logdir)
@@ -63,47 +76,48 @@ def helper(kind: ClassifierKind, random: bool, _capsys: CaptureFixture) -> None:
                 rmtree(evaluator.logdir)  # type: ignore
             raise e
     pbar.close()
+    return times
 
 
 @pytest.mark.medium
-def test_svm_random(capsys: CaptureFixture) -> None:
-    helper(ClassifierKind.SVM, random=True, _capsys=capsys)
+def test_svm_random(capsys: CaptureFixture) -> list[DataFrame]:
+    return helper(ClassifierKind.SVM, random=True, _capsys=capsys)
 
 
 @pytest.mark.medium
-def test_xgb_random(capsys: CaptureFixture) -> None:
-    helper(ClassifierKind.XGBoost, random=True, _capsys=capsys)
+def test_xgb_random(capsys: CaptureFixture) -> list[DataFrame]:
+    return helper(ClassifierKind.XGBoost, random=True, _capsys=capsys)
 
 
 @pytest.mark.medium
-def test_lr_random(capsys: CaptureFixture) -> None:
+def test_lr_random(capsys: CaptureFixture) -> list[DataFrame]:
     with capsys.disabled():
-        helper(ClassifierKind.LR, random=True, _capsys=capsys)
+        return helper(ClassifierKind.LR, random=True, _capsys=capsys)
 
 
 @pytest.mark.medium
-def test_mlp_random(capsys: CaptureFixture) -> None:
+def test_mlp_random(capsys: CaptureFixture) -> list[DataFrame]:
     with capsys.disabled():
-        helper(ClassifierKind.MLP, random=True, _capsys=capsys)
+        return helper(ClassifierKind.MLP, random=True, _capsys=capsys)
 
 
 @pytest.mark.medium
-def test_svm_default(capsys: CaptureFixture) -> None:
-    helper(ClassifierKind.SVM, random=False, _capsys=capsys)
+def test_svm_default(capsys: CaptureFixture) -> list[DataFrame]:
+    return helper(ClassifierKind.SVM, random=False, _capsys=capsys)
 
 
 @pytest.mark.medium
-def test_xgb_default(capsys: CaptureFixture) -> None:
-    helper(ClassifierKind.XGBoost, random=False, _capsys=capsys)
+def test_xgb_default(capsys: CaptureFixture) -> list[DataFrame]:
+    return helper(ClassifierKind.XGBoost, random=False, _capsys=capsys)
 
 
 @pytest.mark.medium
-def test_lr_default(capsys: CaptureFixture) -> None:
+def test_lr_default(capsys: CaptureFixture) -> list[DataFrame]:
     with capsys.disabled():
-        helper(ClassifierKind.LR, random=False, _capsys=capsys)
+        return helper(ClassifierKind.LR, random=False, _capsys=capsys)
 
 
 @pytest.mark.medium
-def test_mlp_default(capsys: CaptureFixture) -> None:
+def test_mlp_default(capsys: CaptureFixture) -> list[DataFrame]:
     with capsys.disabled():
-        helper(ClassifierKind.MLP, random=False, _capsys=capsys)
+        return helper(ClassifierKind.MLP, random=False, _capsys=capsys)

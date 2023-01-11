@@ -8,6 +8,7 @@ sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
 
+import os
 import sys
 from argparse import Namespace
 from pathlib import Path
@@ -30,14 +31,17 @@ if __name__ == "__main__":
         dsname=RuntimeClass.Fast.members(),
         down=[None, 25, 50, 75],
         red=[None],  # we don't perturb UMAP reductions
-        rep=list(range(2)),
-        run=list(range(2)),
+        rep=list(range(10)),
+        run=list(range(10)),
         cont=CONT_PERTURBS,
         cat=[0, 0.1],
         level=["sample", "label"],
     )
 
     ARGS = [Namespace(**d) for d in list(ParameterGrid(GRID))]
+    if os.environ.get("CC_CLUSTER") is None:
+        print(f"Run will require {len(ARGS)} iterations.")
+        sys.exit(1)
     fmt = (
         "{dsname}: train_size={down}, reduce={red}, rep={rep}, "
         "run={run}, cont_pert={cont}, cat_pert={cat}, cat_level={level}"
