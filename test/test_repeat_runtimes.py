@@ -150,3 +150,8 @@ def test_svm_fast(capsys: CaptureFixture) -> None:
     summarize_times(
         kind=ClassifierKind.SVM, runtime=RuntimeClass.Fast, repeats=5, _capsys=capsys
     )
+
+def test_xgb_fast(capsys: CaptureFixture) -> None:
+    summarize_times(
+        kind=ClassifierKind.SVM, runtime=RuntimeClass.Fast, repeats=5, _capsys=capsys
+    )
