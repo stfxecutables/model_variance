@@ -74,11 +74,20 @@ class DLModel(ClassifierModel):
     def fit(self, X: ndarray, y: ndarray) -> None:
         train_loader = loader(X, y, shuffle=True)
         accel = "gpu" if torch.cuda.is_available() else "cpu"
+        is_fast = self.dataset.name in RuntimeClass.Fast.members()
+        is_mid = self.dataset.name in RuntimeClass.Mid.members()
+        if accel == "gpu":
+            devices = 1
+        else:  # shouldn't be running in this case...
+            if is_fast or is_mid:
+                devices = 1
+            else:  # use all
+                devices = 1
         self.trainer = Trainer(
             logger=TensorBoardLogger(str(self.logdir), name=None),
             callbacks=callbacks(),
             accelerator=accel,
-            devices=1 if self.dataset.name in RuntimeClass.Fast.members() else -1,
+            devices=devices,
             enable_checkpointing=True,
             max_epochs=self.max_epochs,
             enable_progress_bar=False,

@@ -44,19 +44,20 @@ def to_readable(duration_s: float) -> str:
 if __name__ == "__main__":
     set_long_print()
 
-    times = CC_RESULTS / "niagara/results/runtimes"
+    times = CC_RESULTS
     jsons = sorted(times.rglob("*runtimes.json"))
     dfs = []
     for js in jsons:
         df = pd.read_json(js)
         df["classifier"] = js.name[: js.name.find("_")]
+        df["cluster"] = js.parent.parent.parent.parent.name
         dfs.append(df)
 
     df = pd.concat(dfs, axis=0, ignore_index=True)
     summaries = (
-        df.groupby(["classifier", "dataset"])
+        df.groupby(["cluster", "classifier", "dataset"])
         .describe()["elapsed_s"]
         .drop(columns="count")
-        .sort_values(by="max", ascending=False)  # type: ignore
+        .sort_values(by=["cluster", "classifier", "max"], ascending=False)  # type: ignore
     )
     print(summaries.applymap(to_readable))

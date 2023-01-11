@@ -114,9 +114,14 @@ def get_times(
     targs = []
     for _ in range(repeats):
         targs.extend([TimingArgs(kind=kind, dsname=name) for name in dsnames])
+    args = dict(max_workers=1) if kind is ClassifierKind.MLP else dict()
     with _capsys.disabled():
         times = process_map(
-            get_time, targs, total=len(targs), desc=f"Fitting {runtime.value} models"
+            get_time,
+            targs,
+            total=len(targs),
+            desc=f"Fitting {runtime.value} models",
+            **args,
         )
     return pd.concat(times, axis=0, ignore_index=True)
 
