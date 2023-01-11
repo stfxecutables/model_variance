@@ -130,7 +130,7 @@ def summarize_times(
         RuntimeClass.Fast: FAST_RUNTIMES,
         RuntimeClass.Mid: MED_RUNTIMES,
         RuntimeClass.Slow: SLOW_RUNTIMES,
-    }[runtime] / f"{runtime.value}_runtimes.json"
+    }[runtime] / f"{kind.value}_{runtime.value}_runtimes.json"
     df.to_json(outfile)
     with _capsys.disabled():
         set_long_print()
