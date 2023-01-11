@@ -18,6 +18,8 @@ data/parquet/continuous_reductions/FashionMnist_75percent.npy
 debug_logs
 logs
 
+**/__pycache__
+
 
 
 ################################################################################
