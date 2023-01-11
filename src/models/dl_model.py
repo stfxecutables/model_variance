@@ -9,38 +9,21 @@ sys.path.append(str(ROOT))  # isort: skip
 
 
 import sys
-from abc import ABC
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    List,
-    Mapping,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-    cast,
-    no_type_check,
-)
+from typing import Callable, Mapping
 from warnings import catch_warnings, filterwarnings
 
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import torch
 from numpy import ndarray
-from pandas import DataFrame, Series
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from torch.utils.data import DataLoader, TensorDataset
-from typing_extensions import Literal
 
 from src.constants import BATCH_SIZE
 from src.dataset import Dataset
-from src.enumerables import RuntimeClass
 from src.hparams.hparams import Hparams
 from src.models.model import ClassifierModel
 

@@ -9,13 +9,13 @@ sys.path.append(str(ROOT))  # isort: skip
 
 import sys
 from pathlib import Path
-from typing import Any, Type
+from typing import Type
 
 from numpy import ndarray
 from xgboost import XGBClassifier
 
 from src.dataset import Dataset
-from src.enumerables import ClassifierKind, DatasetName, RuntimeClass
+from src.enumerables import ClassifierKind
 from src.hparams.xgboost import XGBoostHparams
 from src.models.model import ClassifierModel
 

@@ -83,4 +83,3 @@ class LRHparams(Hparams):
         if hps is None:
             return self.defaults().to_dict()
         return hps
-

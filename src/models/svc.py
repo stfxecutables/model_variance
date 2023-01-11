@@ -15,7 +15,7 @@ from numpy import ndarray
 from sklearn.svm import SVC
 
 from src.dataset import Dataset
-from src.enumerables import ClassifierKind, DatasetName, RuntimeClass
+from src.enumerables import ClassifierKind, DatasetName
 from src.hparams.svm import SVMHparams
 from src.models.model import ClassifierModel
 

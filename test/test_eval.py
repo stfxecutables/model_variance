@@ -1,14 +1,10 @@
-from argparse import Namespace
 from shutil import rmtree
 
-import numpy as np
 import pytest
 from pytest import CaptureFixture
-from sklearn.model_selection import ParameterGrid
 from tqdm import tqdm
 
-from src.dataset import Dataset
-from src.enumerables import ClassifierKind, DataPerturbation, DatasetName, RuntimeClass
+from src.enumerables import ClassifierKind, RuntimeClass
 from src.evaluator import Evaluator
 from src.hparams.hparams import Hparams
 from src.hparams.logistic import LRHparams

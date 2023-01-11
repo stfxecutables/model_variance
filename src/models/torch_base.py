@@ -8,60 +8,28 @@ sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
 import sys
-from argparse import ArgumentParser, Namespace
-from dataclasses import dataclass
-from enum import Enum
+from argparse import Namespace
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    Union,
-    cast,
-    no_type_check,
-)
+from typing import Any, List, Tuple, no_type_check
 
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-import pytest
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.nn.init as init
-from numpy import ndarray
-from pandas import DataFrame, Series
-from pytorch_lightning import LightningModule, Trainer, seed_everything
-from pytorch_lightning.callbacks import (
-    Callback,
-    EarlyStopping,
-    LearningRateMonitor,
-    ModelCheckpoint,
-)
+from pytorch_lightning import LightningModule
 from torch import Tensor
-from torch.autograd import Variable
 from torch.nn import (
     BatchNorm1d,
     CrossEntropyLoss,
     Dropout,
-    Identity,
     LeakyReLU,
     Linear,
     Module,
     Sequential,
 )
-from torch.optim import Adam, AdamW
+from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR, _LRScheduler
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Accuracy
 from torchmetrics.functional import accuracy
-from typing_extensions import Literal
 
 from src.constants import LR_MAX_EPOCHS, MLP_MAX_EPOCHS
 from src.dataset import Dataset

@@ -12,8 +12,8 @@ from typing import Any, Collection, Sequence
 
 from src.constants import DROPOUT_DEFAULT as P
 from src.constants import MLP_LR_INIT_DEFAULT as LR
-from src.constants import MLP_WIDTH_DEFAULT as WIDTH
 from src.constants import MLP_WD_DEFAULT as WD
+from src.constants import MLP_WIDTH_DEFAULT as WIDTH
 from src.enumerables import DatasetName
 from src.hparams.hparams import ContinuousHparam, Hparam, Hparams, OrdinalHparam
 

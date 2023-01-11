@@ -8,16 +8,11 @@ sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 from numpy import ndarray
-from sklearn.svm import SVC
-from xgboost import XGBClassifier
 
 from src.enumerables import ClassifierKind, ThridPartyClassifierModel
 from src.hparams.hparams import Hparams
-from src.hparams.svm import SVMHparams
-from src.hparams.xgboost import XGBoostHparams
 
 
 class Classifier(ABC):

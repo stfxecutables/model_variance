@@ -7,35 +7,8 @@ ROOT = Path(__file__).resolve().parent.parent.parent  # isort: skip
 sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
-from abc import ABC
-from argparse import ArgumentParser, Namespace
-from dataclasses import dataclass
-from enum import Enum
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    Collection,
-    Dict,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    Union,
-    cast,
-    no_type_check,
-)
-
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import pytest
-from matplotlib.axes import Axes
-from matplotlib.figure import Figure
-from numpy import ndarray
-from pandas import DataFrame, Series
-from typing_extensions import Literal
+from typing import Any, Collection, Sequence
 
 from src.enumerables import DatasetName
 from src.hparams.hparams import (

@@ -9,11 +9,11 @@ sys.path.append(str(ROOT))  # isort: skip
 
 import sys
 from pathlib import Path
-from typing import Mapping, Type
+from typing import Type
 
 from src.constants import MLP_MAX_EPOCHS
 from src.dataset import Dataset
-from src.enumerables import ClassifierKind, RuntimeClass
+from src.enumerables import ClassifierKind
 from src.hparams.mlp import MLPHparams
 from src.models.dl_model import DLModel
 from src.models.torch_base import MLP

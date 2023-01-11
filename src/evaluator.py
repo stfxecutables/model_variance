@@ -17,12 +17,11 @@ from enum import Enum, EnumMeta
 from shutil import rmtree
 from time import strftime
 from typing import Literal, Type, TypeVar
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import numpy as np
 from numpy import ndarray
 
-from src.classifier import Classifier
 from src.constants import DEBUG_LOGS, LOGS, ensure_dir
 from src.dataset import Dataset
 from src.enumerables import (
@@ -30,15 +29,14 @@ from src.enumerables import (
     DataPerturbation,
     DatasetName,
     HparamPerturbation,
-    RuntimeClass,
 )
-from src.hparams.hparams import Hparam, Hparams
+from src.hparams.hparams import Hparams
 from src.models.logistic import LRModel
 from src.models.mlp import MLPModel
 from src.models.model import ClassifierModel
 from src.models.svc import SVCModel
 from src.models.xgb import XGBoostModel
-from src.serialize import DirJSONable, FileJSONable
+from src.serialize import DirJSONable
 from src.utils import missing_keys
 
 Percentage = Literal[25, 50, 75]

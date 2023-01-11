@@ -54,6 +54,7 @@ def load_rngs(seedfile: Path = DEFAULT_SEEDS) -> list[Generator]:
     seqs = load_seed_seqs(outfile=seedfile)
     return [np.random.default_rng(ss) for ss in seqs]
 
+
 def load_repeat_rng(repeat: int, seedfile: Path = DEFAULT_SEEDS) -> Generator:
     seqs = load_seed_seqs(outfile=seedfile)
     ss = seqs[repeat]

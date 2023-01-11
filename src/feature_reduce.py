@@ -12,8 +12,6 @@ from time import time
 
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.ensemble import GradientBoostingClassifier as GBC
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from umap import UMAP
 from xgboost import XGBClassifier

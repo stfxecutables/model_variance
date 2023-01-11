@@ -9,13 +9,11 @@ sys.path.append(str(ROOT))  # isort: skip
 
 import sys
 from pathlib import Path
-from typing import Any, Mapping, Type
-
-from numpy import ndarray
+from typing import Any, Type
 
 from src.constants import LR_MAX_EPOCHS
 from src.dataset import Dataset
-from src.enumerables import ClassifierKind, DatasetName, RuntimeClass
+from src.enumerables import ClassifierKind, DatasetName
 from src.hparams.logistic import LRHparams
 from src.models.dl_model import DLModel
 from src.models.torch_base import LogisticRegression
