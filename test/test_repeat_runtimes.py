@@ -123,6 +123,8 @@ def get_times_sequential(
             pbar.set_description(fmt.format(targ.dsname.name))
             df = get_time(targ)
             dfs.append(df)
+            pbar.update()
+        pbar.close()
     return pd.concat(dfs, axis=0, ignore_index=True)
 
 
