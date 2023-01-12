@@ -409,18 +409,18 @@ class CategoricalHparam(Hparam):
     def __init__(
         self,
         name: str,
-        value: str | bool | None,
-        categories: Sequence[str | bool] | Collection[str | bool],
+        value: Any | None,
+        categories: Sequence[Any] | Collection[Any],
         default: str | bool | None = None,
     ) -> None:
         super().__init__(name=name, value=value, default=default)
         self.name: str = name
         self.kind: HparamKind = HparamKind.Categorical
-        self._value: str | bool | None = value if value is not None else None
-        self.categories: list[str | bool] = sorted(categories)
+        self._value: Any | None = value if value is not None else None
+        self.categories: list[Any] = sorted(categories)
         self.n_categories: int = len(self.categories)
 
-    def new(self, value: str) -> CategoricalHparam:
+    def new(self, value: Any) -> CategoricalHparam:
         cls: Type[CategoricalHparam] = self.__class__
         return cls(
             name=self.name,

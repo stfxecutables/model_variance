@@ -136,6 +136,7 @@ class RuntimeClass(Enum):
                 DatasetName.MfeatFactors,
                 DatasetName.Vehicle,
             ],
+            # two of the below are very slow even with linear SVC
             RuntimeClass.Mid: [  # 1-20 minutes on one core
                 DatasetName.JungleChess,  # <2min SVC
                 DatasetName.Adult,  # <2min SVC
@@ -238,6 +239,7 @@ class HparamPerturbation(Enum):
 
 class ClassifierKind(Enum):
     XGBoost = "xgb"
+    SGD_SVM = "svm-sgd"
     LinearSVM = "svm-linear"
     SVM = "svm"
     MLP = "mlp"
