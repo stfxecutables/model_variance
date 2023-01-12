@@ -9,13 +9,13 @@ sys.path.append(str(ROOT))  # isort: skip
 
 import sys
 from pathlib import Path
-from typing import Any, Type
+from typing import Any, Mapping, Type
 
 from numpy import ndarray
 from sklearn.svm import SVC
 
 from src.dataset import Dataset
-from src.enumerables import ClassifierKind, DatasetName
+from src.enumerables import ClassifierKind, DatasetName, RuntimeClass
 from src.hparams.svm import SVMHparams
 from src.models.model import ClassifierModel
 
@@ -30,3 +30,9 @@ class SVCModel(ClassifierModel):
 
     def predict(self, X: ndarray, y: ndarray) -> tuple[ndarray, ndarray]:
         return self.model.predict(X), y
+
+    def _get_model_args(self) -> Mapping:
+        args = super()._get_model_args()
+        if RuntimeClass.from_dataset(self.dataset.name) is not RuntimeClass.Fast:
+            args["cache_size"] = 512
+        return args
