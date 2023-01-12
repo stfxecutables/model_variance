@@ -137,12 +137,12 @@ class RuntimeClass(Enum):
                 DatasetName.Vehicle,
             ],
             RuntimeClass.Mid: [  # 1-20 minutes on one core
-                DatasetName.JungleChess,
-                DatasetName.Adult,
-                DatasetName.Fabert,
-                DatasetName.Dilbert,
-                DatasetName.Nomao,
-                DatasetName.BankMarketing,
+                DatasetName.JungleChess,  # <2min SVC
+                DatasetName.Adult,  # <2min SVC
+                DatasetName.Fabert,  # <2min SVC
+                DatasetName.Dilbert,  # <2min SVC
+                DatasetName.Nomao,  # 3-5min radial SVC
+                DatasetName.BankMarketing,  # <1min radial SVC
                 DatasetName.Dionis,
                 DatasetName.ClickPrediction,
                 DatasetName.CreditCardFraud,
@@ -238,6 +238,7 @@ class HparamPerturbation(Enum):
 
 class ClassifierKind(Enum):
     XGBoost = "xgb"
+    LinearSVM = "svm-linear"
     SVM = "svm"
     MLP = "mlp"
     LR = "lr"  # MLP with one linear layer, mathematically identical

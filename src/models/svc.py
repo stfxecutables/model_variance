@@ -12,11 +12,11 @@ from pathlib import Path
 from typing import Any, Mapping, Type
 
 from numpy import ndarray
-from sklearn.svm import SVC
+from sklearn.svm import SVC, LinearSVC
 
 from src.dataset import Dataset
-from src.enumerables import ClassifierKind, DatasetName, RuntimeClass
-from src.hparams.svm import SVMHparams
+from src.enumerables import ClassifierKind, RuntimeClass
+from src.hparams.svm import LinearSVMHparams, SVMHparams
 from src.models.model import ClassifierModel
 
 
@@ -34,5 +34,17 @@ class SVCModel(ClassifierModel):
     def _get_model_args(self) -> Mapping:
         args = super()._get_model_args()
         if RuntimeClass.from_dataset(self.dataset.name) is not RuntimeClass.Fast:
-            args["cache_size"] = 512
+            args["cache_size"] = 512  # type: ignore
         return args
+
+
+class LinearSVCModel(ClassifierModel):
+    def __init__(self, hparams: SVMHparams, dataset: Dataset, logdir: Path) -> None:
+        super().__init__(hparams=hparams, logdir=logdir, dataset=dataset)
+        self.kind: ClassifierKind = ClassifierKind.SVM
+        self.hparams: LinearSVMHparams
+        self.model_cls: Type[LinearSVC] = LinearSVC
+        self.model: LinearSVC
+
+    def predict(self, X: ndarray, y: ndarray) -> tuple[ndarray, ndarray]:
+        return self.model.predict(X), y

@@ -8,11 +8,17 @@ sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
 from pathlib import Path
-from typing import Any, Collection, Sequence
+from typing import Any, Collection, Literal, Sequence
 
 from src.constants import SVM_GAMMA as GAMMA
 from src.enumerables import DatasetName
-from src.hparams.hparams import ContinuousHparam, FixedHparam, Hparam, Hparams
+from src.hparams.hparams import (
+    CategoricalHparam,
+    ContinuousHparam,
+    FixedHparam,
+    Hparam,
+    Hparams,
+)
 
 TUNED: dict[DatasetName, dict[str, Any] | None] = {
     DatasetName.Arrhythmia: None,
@@ -58,8 +64,8 @@ TUNED: dict[DatasetName, dict[str, Any] | None] = {
 
 
 def svm_hparams(
-    C: float | None = None,
-    gamma: float | None = None,
+    C: float | None = 1.0,
+    gamma: float | None = GAMMA,
 ) -> list[Hparam]:
     # see https://jcheminf.biomedcentral.com/articles/10.1186/s13321-015-0088-0#Sec6
     # for a possible tuning range on C, gamma
@@ -72,6 +78,20 @@ def svm_hparams(
     ]
 
 
+def linear_svm_hparams(
+    C: float | None = 1.0,
+    penalty: Literal["l1", "l2"] = "l2",
+    dual: bool = True,
+) -> list[Hparam]:
+    # see https://jcheminf.biomedcentral.com/articles/10.1186/s13321-015-0088-0#Sec6
+    # for a possible tuning range on C, gamma
+    return [
+        ContinuousHparam("C", C, max=1e5, min=1e-2, log_scale=True, default=1.0),
+        CategoricalHparam("penalty", penalty, categories=["l1", "l2"], default="l1"),
+        CategoricalHparam("dual", dual, categories=[True, False], default=True),
+    ]
+
+
 class SVMHparams(Hparams):
     def __init__(
         self,
@@ -80,6 +100,23 @@ class SVMHparams(Hparams):
 
         if hparams is None:
             hparams = svm_hparams()
+        super().__init__(hparams)
+
+    def tuned_dict(self, dsname: DatasetName) -> dict[str, Any]:
+        hps = TUNED[dsname]
+        if hps is None:
+            return self.defaults().to_dict()
+        return hps
+
+
+class LinearSVMHparams(Hparams):
+    def __init__(
+        self,
+        hparams: Collection[Hparam] | Sequence[Hparam] | None = None,
+    ) -> None:
+
+        if hparams is None:
+            hparams = linear_svm_hparams()
         super().__init__(hparams)
 
     def tuned_dict(self, dsname: DatasetName) -> dict[str, Any]:

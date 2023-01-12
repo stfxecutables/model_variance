@@ -409,15 +409,15 @@ class CategoricalHparam(Hparam):
     def __init__(
         self,
         name: str,
-        value: str | None,
-        categories: Sequence[str] | Collection[str],
-        default: str | None = None,
+        value: str | bool | None,
+        categories: Sequence[str | bool] | Collection[str | bool],
+        default: str | bool | None = None,
     ) -> None:
         super().__init__(name=name, value=value, default=default)
         self.name: str = name
         self.kind: HparamKind = HparamKind.Categorical
-        self._value: str | None = str(value) if value is not None else None
-        self.categories: list[str] = sorted(categories)
+        self._value: str | bool | None = value if value is not None else None
+        self.categories: list[str | bool] = sorted(categories)
         self.n_categories: int = len(self.categories)
 
     def new(self, value: str) -> CategoricalHparam:
@@ -456,9 +456,9 @@ class CategoricalHparam(Hparam):
 
     def random(self, rng: Generator | None = None) -> CategoricalHparam:
         if rng is None:
-            value = str(np.random.choice(self.categories, size=1))
+            value = np.random.choice(self.categories, size=1).item()
         else:
-            value = str(rng.choice(self.categories, size=1, shuffle=False))
+            value = rng.choice(self.categories, size=1, shuffle=False).item()
         return self.new(value)
 
     def to_json(self, path: Path) -> None:
