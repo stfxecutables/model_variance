@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from random import choice
 from shutil import rmtree
 from time import time
+from typing import Any, Mapping
 
 import numpy as np
 import pandas as pd
@@ -105,7 +106,27 @@ def get_time(targs: TimingArgs) -> DataFrame:
     return duration
 
 
-def get_times(
+def get_times_sequential(
+    kind: ClassifierKind, runtime: RuntimeClass, repeats: int, _capsys: CaptureFixture
+) -> DataFrame:
+    print("")
+
+    dsnames = runtime.members()
+    targs: list[TimingArgs] = []
+    for _ in range(repeats):
+        targs.extend([TimingArgs(kind=kind, dsname=name) for name in dsnames])
+    dfs = []
+    with _capsys.disabled():
+        fmt = f"{kind.name} - {{}}"
+        pbar = tqdm(total=len(targs), desc=f"Fitting {runtime.value} runtime models")
+        for targ in targs:
+            pbar.set_description(fmt.format(targ.dsname.name))
+            df = get_time(targ)
+            dfs.append(df)
+    return pd.concat(dfs, axis=0, ignore_index=True)
+
+
+def get_times_parallel(
     kind: ClassifierKind, runtime: RuntimeClass, repeats: int, _capsys: CaptureFixture
 ) -> DataFrame:
     print("")
@@ -139,10 +160,20 @@ def to_readable(duration_s: float) -> str:
 
 
 def summarize_times(
-    kind: ClassifierKind, runtime: RuntimeClass, repeats: int, _capsys: CaptureFixture
+    kind: ClassifierKind,
+    runtime: RuntimeClass,
+    repeats: int,
+    parallel: bool,
+    _capsys: CaptureFixture,
 ) -> None:
     with _capsys.disabled():
-        df = get_times(kind=kind, runtime=runtime, repeats=repeats, _capsys=_capsys)
+        args: dict[str, Any] = dict(
+            kind=kind, runtime=runtime, repeats=repeats, _capsys=_capsys
+        )
+        if parallel:
+            df = get_times_parallel(**args)
+        else:
+            df = get_times_sequential(**args)
 
     outfile = {
         RuntimeClass.Fast: FAST_RUNTIMES,
@@ -168,49 +199,82 @@ def summarize_times(
 
 def test_svm_fast(capsys: CaptureFixture) -> None:
     summarize_times(
-        kind=ClassifierKind.SVM, runtime=RuntimeClass.Fast, repeats=5, _capsys=capsys
+        kind=ClassifierKind.SVM,
+        runtime=RuntimeClass.Fast,
+        repeats=5,
+        parallel=True,
+        _capsys=capsys,
     )
 
 
 def test_xgb_fast(capsys: CaptureFixture) -> None:
     summarize_times(
-        kind=ClassifierKind.XGBoost, runtime=RuntimeClass.Fast, repeats=5, _capsys=capsys
+        kind=ClassifierKind.XGBoost,
+        runtime=RuntimeClass.Fast,
+        repeats=5,
+        parallel=True,
+        _capsys=capsys,
     )
 
 
 def test_lr_fast(capsys: CaptureFixture) -> None:
     summarize_times(
-        kind=ClassifierKind.LR, runtime=RuntimeClass.Fast, repeats=5, _capsys=capsys
+        kind=ClassifierKind.LR,
+        runtime=RuntimeClass.Fast,
+        repeats=5,
+        parallel=False,
+        _capsys=capsys,
     )
 
 
 def test_mlp_fast(capsys: CaptureFixture) -> None:
     summarize_times(
-        kind=ClassifierKind.MLP, runtime=RuntimeClass.Fast, repeats=1, _capsys=capsys
+        kind=ClassifierKind.MLP,
+        runtime=RuntimeClass.Fast,
+        repeats=1,
+        parallel=False,
+        _capsys=capsys,
     )
 
 
 # mediums
 
+
 def test_svm_med(capsys: CaptureFixture) -> None:
     summarize_times(
-        kind=ClassifierKind.SVM, runtime=RuntimeClass.Mid, repeats=5, _capsys=capsys
+        kind=ClassifierKind.SVM,
+        runtime=RuntimeClass.Mid,
+        repeats=5,
+        parallel=False,
+        _capsys=capsys,
     )
 
 
 def test_xgb_med(capsys: CaptureFixture) -> None:
     summarize_times(
-        kind=ClassifierKind.XGBoost, runtime=RuntimeClass.Mid, repeats=5, _capsys=capsys
+        kind=ClassifierKind.XGBoost,
+        runtime=RuntimeClass.Mid,
+        repeats=5,
+        parallel=False,
+        _capsys=capsys,
     )
 
 
 def test_lr_med(capsys: CaptureFixture) -> None:
     summarize_times(
-        kind=ClassifierKind.LR, runtime=RuntimeClass.Mid, repeats=5, _capsys=capsys
+        kind=ClassifierKind.LR,
+        runtime=RuntimeClass.Mid,
+        repeats=5,
+        parallel=False,
+        _capsys=capsys,
     )
 
 
 def test_mlp_med(capsys: CaptureFixture) -> None:
     summarize_times(
-        kind=ClassifierKind.MLP, runtime=RuntimeClass.Mid, repeats=1, _capsys=capsys
+        kind=ClassifierKind.MLP,
+        runtime=RuntimeClass.Mid,
+        repeats=1,
+        parallel=False,
+        _capsys=capsys,
     )
