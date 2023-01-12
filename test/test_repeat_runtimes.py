@@ -114,7 +114,9 @@ def get_times(
     targs = []
     for _ in range(repeats):
         targs.extend([TimingArgs(kind=kind, dsname=name) for name in dsnames])
-    args = dict(max_workers=1) if kind is ClassifierKind.MLP else dict()
+    args = dict()
+    if (kind is ClassifierKind.MLP) or (runtime is not RuntimeClass.Fast):
+        args = dict(max_workers=1)
     with _capsys.disabled():
         times = process_map(
             get_time,

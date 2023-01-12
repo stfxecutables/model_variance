@@ -51,7 +51,7 @@ class ClassifierModel(ABC):
     def _get_model_args(self) -> Mapping:
         hps = self.hparams.to_dict()
         if self.kind is ClassifierKind.XGBoost:
-            n_jobs = -1 if self.runtime is RuntimeClass.Slow else 1
+            n_jobs = 1 if self.runtime is RuntimeClass.Fast else -1
             cargs: Mapping = dict(n_jobs=n_jobs)
             return {**cargs, **hps}
         else:
