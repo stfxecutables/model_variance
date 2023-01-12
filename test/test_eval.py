@@ -11,7 +11,7 @@ from src.evaluator import Evaluator
 from src.hparams.hparams import Hparams
 from src.hparams.logistic import LRHparams
 from src.hparams.mlp import MLPHparams
-from src.hparams.svm import SVMHparams
+from src.hparams.svm import LinearSVMHparams, SVMHparams
 from src.hparams.xgboost import XGBoostHparams
 
 FASTS = RuntimeClass.very_fasts()
@@ -21,6 +21,7 @@ def get_evaluator(kind: ClassifierKind, random: bool, i: int) -> Evaluator:
     hp: Hparams = {
         ClassifierKind.XGBoost: XGBoostHparams,
         ClassifierKind.SVM: SVMHparams,
+        ClassifierKind.LinearSVM: LinearSVMHparams,
         ClassifierKind.LR: LRHparams,
         ClassifierKind.MLP: MLPHparams,
     }[kind]()
@@ -82,6 +83,11 @@ def helper(
 @pytest.mark.medium
 def test_svm_random(capsys: CaptureFixture) -> list[DataFrame]:
     return helper(ClassifierKind.SVM, random=True, _capsys=capsys)
+
+
+@pytest.mark.medium
+def test_linear_svm_random(capsys: CaptureFixture) -> list[DataFrame]:
+    return helper(ClassifierKind.LinearSVM, random=True, _capsys=capsys)
 
 
 @pytest.mark.medium
