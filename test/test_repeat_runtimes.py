@@ -368,7 +368,7 @@ class TestSlow:
             kind=ClassifierKind.LR,
             runtime=RuntimeClass.Slow,
             repeats=5,
-            parallel=True,
+            parallel=False,
             _capsys=capsys,
         )
 
