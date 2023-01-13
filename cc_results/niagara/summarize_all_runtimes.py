@@ -47,6 +47,36 @@ def star_bool(value: bool | float) -> str:
         return "*"
     return ""
 
+def compare_similar_models(model: Literal["svm", "lr"]) -> None:
+    select = ["svm-linear", "svm-sgd"] if model == "svm" else ["lr", "lr-sgd"]
+    models = df_orig.loc[df_orig.classifier.isin(select)].drop(
+        columns="elapsed_s"
+    )
+    models = models.loc[models.cluster == "niagara"].drop(columns="cluster")
+    models = models.groupby(["dataset", "classifier"]).describe()
+    non_sgd_model = (
+        models.query(f"classifier == '{select[0]}'")
+        .reset_index()
+        .drop(columns="classifier", level=0)
+    )
+    non_sgd_model.index = non_sgd_model["dataset"]
+    non_sgd_model.drop(columns="dataset", inplace=True, level=0)
+
+    sgd_model = (
+        models.query(f"classifier == '{select[1]}'")
+        .reset_index()
+        .drop(columns="classifier", level=0)
+    )
+    sgd_model.index = sgd_model["dataset"]
+    sgd_model.drop(columns="dataset", inplace=True, level=0)
+
+    diff = sgd_model["acc"] - non_sgd_model["acc"]
+    diff["sgd_mean_better"] = (diff["mean"] > 0).apply(star_bool)
+    diff["sgd_max_better"] = (diff["max"] > 0).apply(star_bool)
+    diff["sgd_min_better"] = (diff["min"] > 0).apply(star_bool)
+    print(models.unstack().round(4))
+    print(f"{select[1]} - {select[0]} acc differences (positive = sgd is better):")
+    print(diff.round(5).dropna())
 
 
 if __name__ == "__main__":
@@ -86,31 +116,7 @@ if __name__ == "__main__":
     accs = accs.round(4)
     info = pd.concat([runtimes, accs], axis=1)
     print(info)
-    svm = df_orig.loc[df_orig.classifier.isin(["svm-linear", "svm-sgd"])].drop(
-        columns="elapsed_s"
-    )
-    svm = svm.loc[svm.cluster == "niagara"].drop(columns="cluster")
-    svm = svm.groupby(["dataset", "classifier"]).describe()
-    linear = (
-        svm.query("classifier == 'svm-linear'")
-        .reset_index()
-        .drop(columns="classifier", level=0)
-    )
-    linear.index = linear["dataset"]
-    linear.drop(columns="dataset", inplace=True, level=0)
-
-    sgd = (
-        svm.query("classifier == 'svm-sgd'")
-        .reset_index()
-        .drop(columns="classifier", level=0)
-    )
-    sgd.index = sgd["dataset"]
-    sgd.drop(columns="dataset", inplace=True, level=0)
-
-    diff = sgd["acc"] - linear["acc"]
-    diff["sgm_mean_better"] = (diff["mean"] > 0).apply(star_bool)
-    diff["sgm_max_better"] = (diff["max"] > 0).apply(star_bool)
-    diff["sgm_min_better"] = (diff["min"] > 0).apply(star_bool)
-    print(svm.unstack().round(4))
-    print("sgd-svm - linear-svm acc differences (positive = sgd is better):")
-    print(diff.round(5).dropna())
+    print("")
+    compare_similar_models(model="svm")
+    print("")
+    compare_similar_models(model="lr")
