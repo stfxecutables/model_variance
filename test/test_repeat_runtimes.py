@@ -178,7 +178,7 @@ def summarize_times(
     with _capsys.disabled():
         set_long_print()
         df_orig = df.copy()
-        df = df_orig.groupby("dataset").describe().sort_values(by=("elapsed_s", "max"))
+        df = df_orig.groupby("dataset").describe().sort_values(by=("elapsed_s", "max"), ascending=False)
         runtimes = (
             df["elapsed_s"]  # type:ignore
             .drop(columns="count")

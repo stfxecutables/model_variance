@@ -54,6 +54,25 @@ if __name__ == "__main__":
         dfs.append(df)
 
     df = pd.concat(dfs, axis=0, ignore_index=True)
+    runtimes = (
+        df["elapsed_s"]  # type:ignore
+        .drop(columns="count")
+        .loc[:, ["min", "mean", "50%", "max", "std"]]
+        .rename(columns={"50%": "med"})
+        .applymap(to_readable)
+    )
+    accs = (
+        df["acc"]  # type:ignore
+        .sort_values(by="max", ascending=False)
+        .drop(columns="count")
+        .loc[:, ["min", "mean", "50%", "max"]]
+        .rename(columns={"50%": "med"})
+        .rename(columns=lambda s: f"acc_{s}")
+    )
+    accs["acc_range"] = accs["acc_max"] - accs["acc_min"]
+    accs = accs.round(4)
+    info = pd.concat([runtimes, accs], axis=1)
+
     summaries = (
         df.groupby(["cluster", "classifier", "dataset"])
         .describe()["elapsed_s"]
