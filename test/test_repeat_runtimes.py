@@ -331,7 +331,7 @@ class TestSlow:
             kind=ClassifierKind.SGD_SVM,
             runtime=RuntimeClass.Slow,
             repeats=5,
-            parallel=False,
+            parallel=True,
             _capsys=capsys,
         )
 
