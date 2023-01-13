@@ -261,7 +261,7 @@ class TestFast:
             kind=ClassifierKind.SGD_LR,
             runtime=RuntimeClass.Fast,
             repeats=5,
-            parallel=False,
+            parallel=True,
             _capsys=capsys,
         )
 
@@ -321,7 +321,7 @@ class TestMed:
             kind=ClassifierKind.SGD_LR,
             runtime=RuntimeClass.Mid,
             repeats=5,
-            parallel=False,
+            parallel=True,
             _capsys=capsys,
         )
 
@@ -368,7 +368,7 @@ class TestSlow:
             kind=ClassifierKind.LR,
             runtime=RuntimeClass.Slow,
             repeats=5,
-            parallel=False,
+            parallel=True,
             _capsys=capsys,
         )
 
