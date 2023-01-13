@@ -144,7 +144,6 @@ class RuntimeClass(Enum):
                 DatasetName.Dilbert,  # <2min SVC
                 DatasetName.Nomao,  # 3-5min radial SVC
                 DatasetName.BankMarketing,  # <1min radial SVC
-                DatasetName.Dionis,
                 DatasetName.ClickPrediction,
                 DatasetName.CreditCardFraud,
                 DatasetName.SkinSegmentation,
@@ -157,6 +156,7 @@ class RuntimeClass(Enum):
             ],
             RuntimeClass.Slow: [  # 40-600+ minutes on one core
                 # DatasetName.DevnagariScript,  # <1 min with 80 Niagara cores
+                DatasetName.Dionis, # PROBABLY THE PROBLEM
                 DatasetName.Jannis,
                 # DatasetName.FashionMnist,
                 DatasetName.Connect4,  # ~3 minutes with 80 Niagara cores
