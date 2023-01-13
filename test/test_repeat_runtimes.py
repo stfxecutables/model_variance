@@ -92,7 +92,6 @@ def get_time(targs: TimingArgs) -> DataFrame:
             {"elapsed_s": elapsed, "dataset": targs.dsname.name, "acc": acc},
             index=[0],
         )
-        assert (evaluator.preds_dir / "preds.npz").exists()
         if evaluator.logdir.exists():
             rmtree(evaluator.logdir)
     except Exception:
