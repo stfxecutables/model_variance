@@ -29,12 +29,18 @@ MLP_MAX_EPOCHS = 20
 BATCH_SIZE = 64
 
 # hparam defaults
-MLP_LR_INIT_DEFAULT = 3e-4
 LR_LR_INIT_DEFAULT = 1e-2
-MLP_WD_DEFAULT = 1e-4
 LR_WD_DEFAULT = 0
+
+MLP_LR_INIT_DEFAULT = 3e-4
+MLP_WD_DEFAULT = 1e-4
 DROPOUT_DEFAULT = 0.1
 MLP_WIDTH_DEFAULT = 512
+
+SVM_LR_MIN = 1e-6
+SVM_LR_MAX = 1.0
+SVM_LR_DEFAULT = 1e-3
+
 """
 Default in sklearn is 'scale' = 1 / (n_feat * X.var()). Since we standardize,
 X.var() == 1.0. n_feat ranges from 4 to 2000, so 2.5e-1 to 5e-4, but most are

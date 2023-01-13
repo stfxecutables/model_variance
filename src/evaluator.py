@@ -34,7 +34,7 @@ from src.hparams.hparams import Hparams
 from src.models.logistic import LRModel
 from src.models.mlp import MLPModel
 from src.models.model import ClassifierModel
-from src.models.svc import LinearSVCModel, SVCModel
+from src.models.svc import LinearSVCModel, SGDLinearSVCModel, SVCModel
 from src.models.xgb import XGBoostModel
 from src.serialize import DirJSONable
 from src.utils import missing_keys
@@ -138,6 +138,8 @@ class Evaluator(DirJSONable):
             self._model = SVCModel(**args)
         elif kind is ClassifierKind.LinearSVM:
             self._model = LinearSVCModel(**args)
+        elif kind is ClassifierKind.SGD_SVM:
+            self._model = SGDLinearSVCModel(**args)
         elif kind is ClassifierKind.XGBoost:
             self._model = XGBoostModel(**args)
         elif kind is ClassifierKind.MLP:

@@ -19,7 +19,7 @@ from src.evaluator import Evaluator
 from src.hparams.hparams import Hparams
 from src.hparams.logistic import LRHparams
 from src.hparams.mlp import MLPHparams
-from src.hparams.svm import LinearSVMHparams, SVMHparams
+from src.hparams.svm import LinearSVMHparams, SGDLinearSVMHparams, SVMHparams
 from src.hparams.xgboost import XGBoostHparams
 
 # rename prevents recursive pytest discovery
@@ -60,6 +60,7 @@ def get_evaluator(targs: TimingArgs) -> Evaluator:
 
     hp: Hparams = {
         ClassifierKind.XGBoost: XGBoostHparams,
+        ClassifierKind.SGD_SVM: SGDLinearSVMHparams,
         ClassifierKind.LinearSVM: LinearSVMHparams,
         ClassifierKind.SVM: SVMHparams,
         ClassifierKind.LR: LRHparams,
@@ -285,5 +286,16 @@ def test_linear_svm_med(capsys: CaptureFixture) -> None:
         runtime=RuntimeClass.Mid,
         repeats=5,
         parallel=True,
+        _capsys=capsys,
+    )
+
+
+def test_sgd_svm_med(capsys: CaptureFixture) -> None:
+    summarize_times(
+        kind=ClassifierKind.SGD_SVM,
+        runtime=RuntimeClass.Mid,
+        repeats=5,
+        # parallel=True,
+        parallel=False,
         _capsys=capsys,
     )
