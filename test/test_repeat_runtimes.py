@@ -296,6 +296,6 @@ def test_sgd_svm_med(capsys: CaptureFixture) -> None:
         runtime=RuntimeClass.Mid,
         repeats=5,
         # parallel=True,
-        parallel=False,
+        parallel=True,
         _capsys=capsys,
     )
