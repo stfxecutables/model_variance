@@ -132,7 +132,7 @@ def get_times_parallel(
     dsnames = runtime.members()
     targs = []
     for _ in range(repeats):
-        targs.extend([TimingArgs(kind=kind, dsname=name) for name in dsnames[:3]])  # TODO
+        targs.extend([TimingArgs(kind=kind, dsname=name) for name in dsnames])
     with _capsys.disabled():
         times = process_map(
             get_time,
