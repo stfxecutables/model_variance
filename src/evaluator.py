@@ -289,7 +289,9 @@ class Evaluator(DirJSONable):
             self.model.fit(X=X_train, y=y_train)
             if return_test_acc:
                 preds, targs = self.model.predict(X=X_train, y=y_train)
-                return float(np.mean(np.ravel(preds) == np.ravel(targs)))
+                if preds.ndim == 2:
+                    return float(np.mean(np.argmax(preds, axis=1) == targs))
+                return float(np.mean(preds == targs))
             if not no_pred:
                 preds, targs = self.model.predict(X=X_test, y=y_test)
                 self.save_preds(preds)
