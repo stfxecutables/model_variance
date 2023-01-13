@@ -178,7 +178,11 @@ def summarize_times(
     with _capsys.disabled():
         set_long_print()
         df_orig = df.copy()
-        df = df_orig.groupby("dataset").describe().sort_values(by=("elapsed_s", "max"), ascending=False)
+        df = (
+            df_orig.groupby("dataset")
+            .describe()
+            .sort_values(by=("elapsed_s", "max"), ascending=False)
+        )
         runtimes = (
             df["elapsed_s"]  # type:ignore
             .drop(columns="count")
@@ -219,7 +223,7 @@ class TestFast:
         summarize_times(
             kind=ClassifierKind.SGD_SVM,
             runtime=RuntimeClass.Fast,
-            repeats=2,
+            repeats=5,
             parallel=True,
             _capsys=capsys,
         )

@@ -53,7 +53,9 @@ if __name__ == "__main__":
         df["cluster"] = js.parent.parent.parent.parent.name
         dfs.append(df)
 
-    df = pd.concat(dfs, axis=0, ignore_index=True)
+    df_orig = pd.concat(dfs, axis=0, ignore_index=True)
+    df = df_orig.groupby(["cluster", "classifier", "dataset"]).describe()
+
     runtimes = (
         df["elapsed_s"]  # type:ignore
         .drop(columns="count")
@@ -71,12 +73,32 @@ if __name__ == "__main__":
     )
     accs["acc_range"] = accs["acc_max"] - accs["acc_min"]
     accs = accs.round(4)
-    info = pd.concat([runtimes, accs], axis=1)
-
-    summaries = (
-        df.groupby(["cluster", "classifier", "dataset"])
-        .describe()["elapsed_s"]
-        .drop(columns="count")
-        .sort_values(by=["cluster", "classifier", "max"], ascending=False)  # type: ignore
+    info = pd.concat([runtimes, accs], axis=1).sort_values(
+        by=["cluster", "classifier", "max"]
     )
-    print(summaries.applymap(to_readable))
+    print(info)
+    svm = df_orig.loc[df_orig.classifier.isin(["svm-linear", "svm-sgd"])].drop(
+        columns="elapsed_s"
+    )
+    svm = svm.loc[svm.cluster == "niagara"].drop(columns="cluster")
+    svm = svm.groupby(["dataset", "classifier"]).describe()
+    linear = (
+        svm.query("classifier == 'svm-linear'")
+        .reset_index()
+        .drop(columns="classifier", level=0)
+    )
+    linear.index = linear["dataset"]
+    linear.drop(columns="dataset", inplace=True, level=0)
+
+    sgd = (
+        svm.query("classifier == 'svm-sgd'")
+        .reset_index()
+        .drop(columns="classifier", level=0)
+    )
+    sgd.index = sgd["dataset"]
+    sgd.drop(columns="dataset", inplace=True, level=0)
+
+    diff = linear - sgd
+    print(svm.unstack().round(4))
+    print("linear-svm - sgd-svm acc differences:")
+    print(diff.round(5))
