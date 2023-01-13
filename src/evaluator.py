@@ -16,7 +16,7 @@ from base64 import urlsafe_b64encode
 from enum import Enum, EnumMeta
 from shutil import rmtree
 from time import strftime
-from typing import Any, Literal, Type, TypeVar
+from typing import Any, Literal, Type, TypeVar, overload
 from uuid import uuid4
 
 import numpy as np
@@ -252,7 +252,21 @@ class Evaluator(DirJSONable):
         new.logdir = root
         return new
 
-    def evaluate(self, no_pred: bool = False) -> None:
+    @overload
+    def evaluate(
+        self, no_pred: bool = False, return_test_acc: Literal[True] = True
+    ) -> float:
+        ...
+
+    @overload
+    def evaluate(
+        self, no_pred: bool = False, return_test_acc: Literal[False] = False
+    ) -> None:
+        ...
+
+    def evaluate(
+        self, no_pred: bool = False, return_test_acc: bool = False
+    ) -> float | None:
         if self.preds_dir.exists():
             with os.scandir(self.preds_dir) as files:
                 if next(files, None) is not None:
@@ -273,10 +287,12 @@ class Evaluator(DirJSONable):
                 run=self.run,
             )
             self.model.fit(X=X_train, y=y_train)
-            if no_pred:
-                return
-            preds, targs = self.model.predict(X=X_test, y=y_test)
-            self.save_preds(preds)
+            if return_test_acc:
+                preds, targs = self.model.predict(X=X_train, y=y_train)
+                return float(np.mean(np.ravel(preds) == np.ravel(targs)))
+            if not no_pred:
+                preds, targs = self.model.predict(X=X_test, y=y_test)
+                self.save_preds(preds)
 
         except Exception as e:
             info = traceback.format_exc()

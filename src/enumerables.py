@@ -155,7 +155,7 @@ class RuntimeClass(Enum):
             ],
             RuntimeClass.Slow: [  # 40-600+ minutes on one core
                 # DatasetName.DevnagariScript,  # <1 min with 80 Niagara cores
-                DatasetName.Dionis, # PROBABLY THE PROBLEM
+                DatasetName.Dionis,  # PROBABLY THE PROBLEM
                 DatasetName.Aloi,
                 DatasetName.Jannis,
                 # DatasetName.FashionMnist,

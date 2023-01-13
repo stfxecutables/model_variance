@@ -1,10 +1,9 @@
 import traceback
-from argparse import Namespace
 from dataclasses import dataclass
 from random import choice
 from shutil import rmtree
 from time import time
-from typing import Any, Mapping
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -23,10 +22,6 @@ from src.hparams.svm import LinearSVMHparams, SGDLinearSVMHparams, SVMHparams
 from src.hparams.xgboost import XGBoostHparams
 
 # rename prevents recursive pytest discovery
-from test.test_eval import test_lr_random as lr_random
-from test.test_eval import test_mlp_random as mlp_random
-from test.test_eval import test_svm_random as svm_random
-from test.test_eval import test_xgb_random as xgb_random
 
 RUNTIMES = ensure_dir(RESULTS / "runtimes")
 FAST_RUNTIMES = ensure_dir(RUNTIMES / "fast")
@@ -84,17 +79,17 @@ def get_evaluator(targs: TimingArgs) -> Evaluator:
 
 def get_time(targs: TimingArgs) -> DataFrame:
     duration = DataFrame(
-        {"elapsed_s": float("nan"), "dataset": targs.dsname.name},
+        {"elapsed_s": float("nan"), "dataset": targs.dsname.name, "acc": -1.0},
         index=[0],
     )
     try:
         start = time()
         evaluator = get_evaluator(targs)
 
-        evaluator.evaluate(no_pred=False)
+        acc = evaluator.evaluate(return_test_acc=True)
         elapsed = time() - start
         duration = DataFrame(
-            {"elapsed_s": elapsed, "dataset": targs.dsname.name},
+            {"elapsed_s": elapsed, "dataset": targs.dsname.name, "acc": acc},
             index=[0],
         )
         assert (evaluator.preds_dir / "preds.npz").exists()
@@ -197,9 +192,19 @@ def summarize_times(
         print(f"Saved {runtime.value} runtime summaries to {summary_out}")
 
 
-def test_svm_fast(capsys: CaptureFixture) -> None:
+# def test_svm_fast(capsys: CaptureFixture) -> None:
+#     summarize_times(
+#         kind=ClassifierKind.SVM,
+#         runtime=RuntimeClass.Fast,
+#         repeats=5,
+#         parallel=True,
+#         _capsys=capsys,
+#     )
+
+
+def test_sgd_svm_fast(capsys: CaptureFixture) -> None:
     summarize_times(
-        kind=ClassifierKind.SVM,
+        kind=ClassifierKind.SGD_SVM,
         runtime=RuntimeClass.Fast,
         repeats=5,
         parallel=True,
@@ -240,9 +245,19 @@ def test_mlp_fast(capsys: CaptureFixture) -> None:
 # mediums
 
 
-def test_svm_med(capsys: CaptureFixture) -> None:
+# def test_svm_med(capsys: CaptureFixture) -> None:
+#     summarize_times(
+#         kind=ClassifierKind.SVM,
+#         runtime=RuntimeClass.Mid,
+#         repeats=5,
+#         parallel=False,
+#         _capsys=capsys,
+#     )
+
+
+def test_sgd_svm_med(capsys: CaptureFixture) -> None:
     summarize_times(
-        kind=ClassifierKind.SVM,
+        kind=ClassifierKind.SGD_SVM,
         runtime=RuntimeClass.Mid,
         repeats=5,
         parallel=False,
@@ -290,12 +305,42 @@ def test_linear_svm_med(capsys: CaptureFixture) -> None:
     )
 
 
-def test_sgd_svm_med(capsys: CaptureFixture) -> None:
+# slow
+def test_sgd_svm_slow(capsys: CaptureFixture) -> None:
     summarize_times(
         kind=ClassifierKind.SGD_SVM,
-        runtime=RuntimeClass.Mid,
+        runtime=RuntimeClass.Slow,
         repeats=5,
-        # parallel=True,
-        parallel=True,
+        parallel=False,
+        _capsys=capsys,
+    )
+
+
+def test_xgb_slow(capsys: CaptureFixture) -> None:
+    summarize_times(
+        kind=ClassifierKind.XGBoost,
+        runtime=RuntimeClass.Slow,
+        repeats=5,
+        parallel=False,
+        _capsys=capsys,
+    )
+
+
+def test_lr_slow(capsys: CaptureFixture) -> None:
+    summarize_times(
+        kind=ClassifierKind.LR,
+        runtime=RuntimeClass.Slow,
+        repeats=5,
+        parallel=False,
+        _capsys=capsys,
+    )
+
+
+def test_mlp_slow(capsys: CaptureFixture) -> None:
+    summarize_times(
+        kind=ClassifierKind.MLP,
+        runtime=RuntimeClass.Slow,
+        repeats=1,
+        parallel=False,
         _capsys=capsys,
     )

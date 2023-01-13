@@ -48,7 +48,7 @@ class ClassifierModel(ABC):
     def predict(self, X: ndarray, y: ndarray) -> tuple[ndarray, ndarray]:
         ...
 
-    def _get_model_args(self) -> Mapping:
+    def _get_model_args(self) -> dict[str, Any]:
         hps = self.hparams.to_dict()
         if self.kind is ClassifierKind.XGBoost:
             n_jobs = 1 if self.runtime is RuntimeClass.Fast else -1

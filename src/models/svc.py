@@ -32,7 +32,7 @@ class SVCModel(ClassifierModel):
     def predict(self, X: ndarray, y: ndarray) -> tuple[ndarray, ndarray]:
         return self.model.predict(X), y
 
-    def _get_model_args(self) -> Mapping:
+    def _get_model_args(self) -> dict[str, Any]:
         args = super()._get_model_args()
         if RuntimeClass.from_dataset(self.dataset.name) is not RuntimeClass.Fast:
             args["cache_size"] = 512  # type: ignore
@@ -61,3 +61,11 @@ class SGDLinearSVCModel(ClassifierModel):
 
     def predict(self, X: ndarray, y: ndarray) -> tuple[ndarray, ndarray]:
         return self.model.predict(X), y
+
+    def _get_model_args(self) -> Mapping:
+        args: dict[str, Any] = super()._get_model_args()
+        args["n_jobs"] = 1
+        return args
+        # if RuntimeClass.from_dataset(self.dataset.name) is not RuntimeClass.Fast:
+        #     args["n_jobs"] = -1  # type: ignore
+        # return args
