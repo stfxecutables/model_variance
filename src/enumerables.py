@@ -150,13 +150,13 @@ class RuntimeClass(Enum):
                 DatasetName.Ldpa,
                 DatasetName.WalkingActivity,
                 DatasetName.Miniboone,
-                DatasetName.Aloi,
                 DatasetName.Higgs,
                 DatasetName.Numerai28_6,
             ],
             RuntimeClass.Slow: [  # 40-600+ minutes on one core
                 # DatasetName.DevnagariScript,  # <1 min with 80 Niagara cores
                 DatasetName.Dionis, # PROBABLY THE PROBLEM
+                DatasetName.Aloi,
                 DatasetName.Jannis,
                 # DatasetName.FashionMnist,
                 DatasetName.Connect4,  # ~3 minutes with 80 Niagara cores
