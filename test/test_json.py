@@ -24,9 +24,9 @@ from src.enumerables import (
 )
 from src.evaluator import Evaluator
 from src.hparams.hparams import CategoricalHparam, ContinuousHparam, OrdinalHparam
-from src.hparams.logistic import LRHparams
+from src.hparams.logistic import LRHparams, SGDLRHparams
 from src.hparams.mlp import MLPHparams
-from src.hparams.svm import SVMHparams
+from src.hparams.svm import LinearSVMHparams, SGDLinearSVMHparams, SVMHparams
 from src.hparams.xgboost import XGBoostHparams
 from src.utils import missing_keys
 from test.helpers import random_categorical, random_continuous, random_ordinal
@@ -122,12 +122,25 @@ def test_hparams_svm() -> None:
 
 def test_evaluator() -> None:
     for _ in range(100):
-        hp_cls = choice([SVMHparams, XGBoostHparams, LRHparams, MLPHparams])
+        hp_cls = choice(
+            [
+                SVMHparams,
+                SGDLinearSVMHparams,
+                LinearSVMHparams,
+                XGBoostHparams,
+                LRHparams,
+                SGDLRHparams,
+                MLPHparams,
+            ]
+        )
         ds = choice([*DatasetName])
         classifier_kind = {
             XGBoostHparams: ClassifierKind.XGBoost,
             SVMHparams: ClassifierKind.SVM,
+            SGDLinearSVMHparams: ClassifierKind.SGD_SVM,
+            LinearSVMHparams: ClassifierKind.LinearSVM,
             LRHparams: ClassifierKind.LR,
+            SGDLRHparams: ClassifierKind.SGD_LR,
             MLPHparams: ClassifierKind.MLP,
         }[hp_cls]
         hps = hp_cls().random()

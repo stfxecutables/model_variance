@@ -219,7 +219,7 @@ def summarize_times(
 
 
 class TestFast:
-    def test_sgd_svm_fast(self, capsys: CaptureFixture) -> None:
+    def test_sgd_svm(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.SGD_SVM,
             runtime=RuntimeClass.Fast,
@@ -228,7 +228,7 @@ class TestFast:
             _capsys=capsys,
         )
 
-    def test_linear_svm_fast(self, capsys: CaptureFixture) -> None:
+    def test_linear_svm(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.LinearSVM,
             runtime=RuntimeClass.Fast,
@@ -237,7 +237,7 @@ class TestFast:
             _capsys=capsys,
         )
 
-    def test_xgb_fast(self, capsys: CaptureFixture) -> None:
+    def test_xgb(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.XGBoost,
             runtime=RuntimeClass.Fast,
@@ -246,7 +246,7 @@ class TestFast:
             _capsys=capsys,
         )
 
-    def test_lr_fast(self, capsys: CaptureFixture) -> None:
+    def test_lr(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.LR,
             runtime=RuntimeClass.Fast,
@@ -255,7 +255,16 @@ class TestFast:
             _capsys=capsys,
         )
 
-    def test_mlp_fast(self, capsys: CaptureFixture) -> None:
+    def test_sgd_lr(self, capsys: CaptureFixture) -> None:
+        summarize_times(
+            kind=ClassifierKind.SGD_LR,
+            runtime=RuntimeClass.Fast,
+            repeats=5,
+            parallel=False,
+            _capsys=capsys,
+        )
+
+    def test_mlp(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.MLP,
             runtime=RuntimeClass.Fast,
@@ -279,7 +288,7 @@ class TestFast:
 
 
 class TestMed:
-    def test_sgd_svm_med(self, capsys: CaptureFixture) -> None:
+    def test_sgd_svm(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.SGD_SVM,
             runtime=RuntimeClass.Mid,
@@ -288,7 +297,7 @@ class TestMed:
             _capsys=capsys,
         )
 
-    def test_xgb_med(self, capsys: CaptureFixture) -> None:
+    def test_xgb(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.XGBoost,
             runtime=RuntimeClass.Mid,
@@ -297,7 +306,7 @@ class TestMed:
             _capsys=capsys,
         )
 
-    def test_lr_med(self, capsys: CaptureFixture) -> None:
+    def test_lr(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.LR,
             runtime=RuntimeClass.Mid,
@@ -306,7 +315,16 @@ class TestMed:
             _capsys=capsys,
         )
 
-    def test_mlp_med(self, capsys: CaptureFixture) -> None:
+    def test_sgd_lr(self, capsys: CaptureFixture) -> None:
+        summarize_times(
+            kind=ClassifierKind.SGD_LR,
+            runtime=RuntimeClass.Mid,
+            repeats=5,
+            parallel=False,
+            _capsys=capsys,
+        )
+
+    def test_mlp(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.MLP,
             runtime=RuntimeClass.Mid,
@@ -315,7 +333,7 @@ class TestMed:
             _capsys=capsys,
         )
 
-    # def test_linear_svm_med(self, capsys: CaptureFixture) -> None:
+    # def test_linear_svm(self, capsys: CaptureFixture) -> None:
     #     summarize_times(
     #         kind=ClassifierKind.LinearSVM,
     #         runtime=RuntimeClass.Mid,
@@ -326,7 +344,7 @@ class TestMed:
 
 
 class TestSlow:
-    def test_sgd_svm_slow(self, capsys: CaptureFixture) -> None:
+    def test_sgd_svm(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.SGD_SVM,
             runtime=RuntimeClass.Slow,
@@ -335,7 +353,7 @@ class TestSlow:
             _capsys=capsys,
         )
 
-    def test_xgb_slow(self, capsys: CaptureFixture) -> None:
+    def test_xgb(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.XGBoost,
             runtime=RuntimeClass.Slow,
@@ -344,7 +362,7 @@ class TestSlow:
             _capsys=capsys,
         )
 
-    def test_lr_slow(self, capsys: CaptureFixture) -> None:
+    def test_lr(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.LR,
             runtime=RuntimeClass.Slow,
@@ -353,7 +371,16 @@ class TestSlow:
             _capsys=capsys,
         )
 
-    def test_mlp_slow(self, capsys: CaptureFixture) -> None:
+    def test_sgd_lr(self, capsys: CaptureFixture) -> None:
+        summarize_times(
+            kind=ClassifierKind.SGD_LR,
+            runtime=RuntimeClass.Slow,
+            repeats=5,
+            parallel=False,
+            _capsys=capsys,
+        )
+
+    def test_mlp(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.MLP,
             runtime=RuntimeClass.Slow,

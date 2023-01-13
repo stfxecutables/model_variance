@@ -243,6 +243,7 @@ class ClassifierKind(Enum):
     LinearSVM = "svm-linear"
     SVM = "svm"
     MLP = "mlp"
+    SGD_LR = "lr-sgd"
     LR = "lr"  # MLP with one linear layer, mathematically identical
 
     # def model(self) -> ClassifierModel:

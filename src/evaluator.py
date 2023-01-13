@@ -31,7 +31,7 @@ from src.enumerables import (
     HparamPerturbation,
 )
 from src.hparams.hparams import Hparams
-from src.models.logistic import LRModel
+from src.models.logistic import LRModel, SGDLRModel
 from src.models.mlp import MLPModel
 from src.models.model import ClassifierModel
 from src.models.svc import LinearSVCModel, SGDLinearSVCModel, SVCModel
@@ -124,7 +124,15 @@ class Evaluator(DirJSONable):
         kind = self.classifer_kind
         logdir = (
             self.logdir
-            if kind in [ClassifierKind.LR, ClassifierKind.SVM]
+            if kind
+            in [
+                ClassifierKind.LR,
+                ClassifierKind.SGD_LR,
+                ClassifierKind.SVM,
+                ClassifierKind.SGD_SVM,
+                ClassifierKind.LinearSVM,
+                ClassifierKind.XGBoost,
+            ]
             else self.dl_dir
         )
         args: dict[str, Any] = dict(
@@ -134,6 +142,8 @@ class Evaluator(DirJSONable):
         )
         if kind is ClassifierKind.LR:
             self._model = LRModel(**args)
+        elif kind is ClassifierKind.SGD_LR:
+            self._model = SGDLRModel(**args)
         elif kind is ClassifierKind.SVM:
             self._model = SVCModel(**args)
         elif kind is ClassifierKind.LinearSVM:

@@ -40,6 +40,14 @@ def to_readable(duration_s: float) -> str:
     hrs = mins / 60
     return f"{np.round(hrs, 2):03.2f} hrs"
 
+def star_bool(value: bool | float) -> str:
+    if str(value) == "NaN":
+        return "NaN"
+    if bool(value) is True:
+        return "*"
+    return ""
+
+
 
 if __name__ == "__main__":
     set_long_print()
@@ -54,7 +62,10 @@ if __name__ == "__main__":
         dfs.append(df)
 
     df_orig = pd.concat(dfs, axis=0, ignore_index=True)
-    df = df_orig.groupby(["cluster", "classifier", "dataset"]).describe()
+    df = df_orig.groupby(["cluster", "classifier", "dataset"]).describe().sort_values(
+        by=["cluster", "classifier", ("elapsed_s", "max")], ascending=False
+    )
+
 
     runtimes = (
         df["elapsed_s"]  # type:ignore
@@ -73,9 +84,7 @@ if __name__ == "__main__":
     )
     accs["acc_range"] = accs["acc_max"] - accs["acc_min"]
     accs = accs.round(4)
-    info = pd.concat([runtimes, accs], axis=1).sort_values(
-        by=["cluster", "classifier", "max"]
-    )
+    info = pd.concat([runtimes, accs], axis=1)
     print(info)
     svm = df_orig.loc[df_orig.classifier.isin(["svm-linear", "svm-sgd"])].drop(
         columns="elapsed_s"
@@ -98,7 +107,10 @@ if __name__ == "__main__":
     sgd.index = sgd["dataset"]
     sgd.drop(columns="dataset", inplace=True, level=0)
 
-    diff = linear - sgd
+    diff = sgd["acc"] - linear["acc"]
+    diff["sgm_mean_better"] = (diff["mean"] > 0).apply(star_bool)
+    diff["sgm_max_better"] = (diff["max"] > 0).apply(star_bool)
+    diff["sgm_min_better"] = (diff["min"] > 0).apply(star_bool)
     print(svm.unstack().round(4))
-    print("linear-svm - sgd-svm acc differences:")
-    print(diff.round(5))
+    print("sgd-svm - linear-svm acc differences (positive = sgd is better):")
+    print(diff.round(5).dropna())

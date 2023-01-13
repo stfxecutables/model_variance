@@ -13,10 +13,10 @@ from typing import Any, Collection, Literal, Sequence
 
 from numpy.random import Generator
 
+from src.constants import SKLEARN_SGD_LR_DEFAULT as LR_DEFAULT
+from src.constants import SKLEARN_SGD_LR_MAX as LR_MAX
+from src.constants import SKLEARN_SGD_LR_MIN as LR_MIN
 from src.constants import SVM_GAMMA as GAMMA
-from src.constants import SVM_LR_DEFAULT as LR_DEFAULT
-from src.constants import SVM_LR_MAX as LR_MAX
-from src.constants import SVM_LR_MIN as LR_MIN
 from src.enumerables import DatasetName
 from src.hparams.hparams import (
     CategoricalHparam,

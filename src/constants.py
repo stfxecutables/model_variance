@@ -37,9 +37,9 @@ MLP_WD_DEFAULT = 1e-4
 DROPOUT_DEFAULT = 0.1
 MLP_WIDTH_DEFAULT = 512
 
-SVM_LR_MIN = 1e-6
-SVM_LR_MAX = 1.0
-SVM_LR_DEFAULT = 1e-3
+SKLEARN_SGD_LR_MIN = 1e-6
+SKLEARN_SGD_LR_MAX = 1.0
+SKLEARN_SGD_LR_DEFAULT = 1e-3
 
 """
 Default in sklearn is 'scale' = 1 / (n_feat * X.var()). Since we standardize,

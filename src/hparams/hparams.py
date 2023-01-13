@@ -644,9 +644,8 @@ class Hparams(DirJSONable):
         defaulteds = [hp.default() for hp in self.hparams.values()]
         return cls(defaulteds)
 
-    @abstractmethod
     def tuned_dict(self, dsname: DatasetName) -> Hparams:
-        ...
+        raise ValueError("Cannot get tuned hparams for abstract base class.")
 
     def perturbed(
         self,
