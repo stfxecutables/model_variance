@@ -16,7 +16,7 @@ from src.constants import RESULTS, ensure_dir
 from src.enumerables import ClassifierKind, DatasetName, RuntimeClass
 from src.evaluator import Evaluator
 from src.hparams.hparams import Hparams
-from src.hparams.logistic import LRHparams
+from src.hparams.logistic import LRHparams, SGDLRHparams
 from src.hparams.mlp import MLPHparams
 from src.hparams.svm import LinearSVMHparams, SGDLinearSVMHparams, SVMHparams
 from src.hparams.xgboost import XGBoostHparams
@@ -59,6 +59,7 @@ def get_evaluator(targs: TimingArgs) -> Evaluator:
         ClassifierKind.LinearSVM: LinearSVMHparams,
         ClassifierKind.SVM: SVMHparams,
         ClassifierKind.LR: LRHparams,
+        ClassifierKind.SGD_LR: SGDLRHparams,
         ClassifierKind.MLP: MLPHparams,
     }[kind]()
     hps = hp.random()
