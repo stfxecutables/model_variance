@@ -269,7 +269,7 @@ class TestFast:
         summarize_times(
             kind=ClassifierKind.MLP,
             runtime=RuntimeClass.Fast,
-            repeats=1,
+            repeats=5,
             parallel=False,
             _capsys=capsys,
         )
@@ -329,7 +329,7 @@ class TestMed:
         summarize_times(
             kind=ClassifierKind.MLP,
             runtime=RuntimeClass.Mid,
-            repeats=1,
+            repeats=3,
             parallel=False,
             _capsys=capsys,
         )

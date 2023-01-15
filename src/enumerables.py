@@ -246,6 +246,15 @@ class ClassifierKind(Enum):
     SGD_LR = "lr-sgd"
     LR = "lr"  # MLP with one linear layer, mathematically identical
 
+    @staticmethod
+    def final_kinds() -> list[ClassifierKind]:
+        return [
+            ClassifierKind.SGD_LR,
+            ClassifierKind.SGD_SVM,
+            ClassifierKind.MLP,
+            ClassifierKind.XGBoost,
+        ]
+
     # def model(self) -> ClassifierModel:
     #     """Should return something that implements `.fit()` and `.predict()` methods"""
     #     models: dict[ClassifierKind, ClassifierModel] = {
