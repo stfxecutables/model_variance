@@ -72,10 +72,19 @@ class DLModel(ClassifierModel):
         self.fitted: bool = False
 
     def fit(self, X: ndarray, y: ndarray) -> None:
-        train_loader = loader(X, y, shuffle=True)
-        accel = "gpu" if torch.cuda.is_available() else "cpu"
         is_fast = self.dataset.name in RuntimeClass.Fast.members()
         is_mid = self.dataset.name in RuntimeClass.Mid.members()
+        is_slow = self.dataset.name in RuntimeClass.Slow.members()
+        batch_size = BATCH_SIZE
+        if is_slow:
+            batch_size = 2048
+        elif is_mid:
+            batch_size = 1024
+        elif is_fast:
+            batch_size = 32
+
+        train_loader = loader(X, y, batch_size=batch_size, shuffle=True)
+        accel = "gpu" if torch.cuda.is_available() else "cpu"
         if accel == "gpu":
             devices = 1
         else:  # shouldn't be running in this case...

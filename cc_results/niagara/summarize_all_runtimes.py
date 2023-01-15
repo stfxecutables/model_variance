@@ -115,6 +115,13 @@ if __name__ == "__main__":
         .describe()
         .sort_values(by=["cluster", "classifier", ("elapsed_s", "max")], ascending=False)
     )
+    max_times = df["elapsed_s"]["max"].reset_index()
+    max_times = max_times.loc[
+        max_times.classifier.isin(["xgb", "lr-sgd", "svm-sgd", "mlp"])
+    ]
+    max_times = max_times.loc[
+        ~((max_times.classifier == "mlp") & (max_times.cluster == "niagara"))
+    ]
 
     runtimes = (
         df["elapsed_s"]  # type:ignore
