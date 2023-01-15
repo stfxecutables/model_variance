@@ -9,7 +9,7 @@ from tqdm import tqdm
 from src.enumerables import ClassifierKind, DatasetName, RuntimeClass
 from src.evaluator import Evaluator
 from src.hparams.hparams import Hparams
-from src.hparams.logistic import LRHparams
+from src.hparams.logistic import LRHparams, SGDLRHparams
 from src.hparams.mlp import MLPHparams
 from src.hparams.svm import LinearSVMHparams, SVMHparams
 from src.hparams.xgboost import XGBoostHparams
@@ -23,6 +23,7 @@ def get_evaluator(kind: ClassifierKind, random: bool, i: int) -> Evaluator:
         ClassifierKind.SVM: SVMHparams,
         ClassifierKind.LinearSVM: LinearSVMHparams,
         ClassifierKind.LR: LRHparams,
+        ClassifierKind.SGD_LR: SGDLRHparams,
         ClassifierKind.MLP: MLPHparams,
     }[kind]()
     if random:

@@ -14,6 +14,7 @@ from typing import Any, List, Optional, Sequence, Tuple, Union, cast, no_type_ch
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sbn
 from numpy import ndarray
 from pandas import DataFrame, Series
 from typing_extensions import Literal
@@ -40,6 +41,7 @@ def to_readable(duration_s: float) -> str:
     hrs = mins / 60
     return f"{np.round(hrs, 2):03.2f} hrs"
 
+
 def star_bool(value: bool | float) -> str:
     if str(value) == "NaN":
         return "NaN"
@@ -47,12 +49,28 @@ def star_bool(value: bool | float) -> str:
         return "*"
     return ""
 
+
 def compare_similar_models(model: Literal["svm", "lr"]) -> None:
-    select = ["svm-linear", "svm-sgd"] if model == "svm" else ["lr", "lr-sgd"]
-    models = df_orig.loc[df_orig.classifier.isin(select)].drop(
-        columns="elapsed_s"
-    )
-    models = models.loc[models.cluster == "niagara"].drop(columns="cluster")
+    if model == "svm":
+        select = ["svm-linear", "svm-sgd"]
+        models = df_orig.loc[df_orig.classifier.isin(select)].drop(columns="elapsed_s")
+        models = models.loc[models.cluster == "niagara"].drop(columns="cluster")
+    else:
+        select = ["lr", "lr-sgd"]
+        models = df_orig.loc[df_orig.classifier.isin(select)].drop(columns="elapsed_s")
+        sbn.catplot(
+            models[models.classifier.apply(lambda s: "lr" in s)],
+            y="acc",
+            x="classifier",
+            col="cluster",
+            kind="box",
+        )
+        plt.show()
+        models = models.loc[
+            ((models.cluster == "niagara") & (models.classifier == "lr-sgd"))
+            | ((models.cluster == "cedar") & (models.classifier == "lr"))
+        ].drop(columns="cluster")
+
     models = models.groupby(["dataset", "classifier"]).describe()
     non_sgd_model = (
         models.query(f"classifier == '{select[0]}'")
@@ -92,10 +110,11 @@ if __name__ == "__main__":
         dfs.append(df)
 
     df_orig = pd.concat(dfs, axis=0, ignore_index=True)
-    df = df_orig.groupby(["cluster", "classifier", "dataset"]).describe().sort_values(
-        by=["cluster", "classifier", ("elapsed_s", "max")], ascending=False
+    df = (
+        df_orig.groupby(["cluster", "classifier", "dataset"])
+        .describe()
+        .sort_values(by=["cluster", "classifier", ("elapsed_s", "max")], ascending=False)
     )
-
 
     runtimes = (
         df["elapsed_s"]  # type:ignore

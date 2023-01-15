@@ -36,7 +36,7 @@ class LRModel(DLModel):
 class SGDLRModel(ClassifierModel):
     def __init__(self, hparams: LRHparams, dataset: Dataset, logdir: Path) -> None:
         super().__init__(hparams=hparams, dataset=dataset, logdir=logdir)
-        self.kind: ClassifierKind = ClassifierKind.LR
+        self.kind: ClassifierKind = ClassifierKind.SGD_LR
         self.hparams: SGDLRHparams
         self.model_cls: Type[SGDClassifier] = SGDClassifier
         self.model: SGDClassifier
