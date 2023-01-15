@@ -63,7 +63,7 @@ def compare_similar_models(model: Literal["svm", "lr"]) -> None:
             y="acc",
             x="classifier",
             col="cluster",
-            kind="box",
+            kind="violin",
         )
         plt.show()
         models = models.loc[

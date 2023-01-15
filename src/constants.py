@@ -26,7 +26,7 @@ TEST_SIZE = 0.25
 LR_MAX_EPOCHS = 10
 MLP_MAX_EPOCHS = 20
 """Tests show this is quite good for the Runtime.Fast datasets"""
-BATCH_SIZE = 512
+BATCH_SIZE = 1024
 
 # hparam defaults
 LR_LR_INIT_DEFAULT = 1e-2
