@@ -81,7 +81,7 @@ class DLModel(ClassifierModel):
         elif is_mid:
             batch_size = 1024
         elif is_fast:
-            batch_size = 32
+            batch_size = 64
 
         train_loader = loader(X, y, batch_size=batch_size, shuffle=True)
         accel = "gpu" if torch.cuda.is_available() else "cpu"
