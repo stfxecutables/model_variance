@@ -115,6 +115,7 @@ class RuntimeClass(Enum):
     Fast = "fast"
     Mid = "medium"
     Slow = "slow"
+    VerySlow = "very-slow"
 
     def members(self) -> list[DatasetName]:
         runtimes = {
@@ -155,8 +156,6 @@ class RuntimeClass(Enum):
             ],
             RuntimeClass.Slow: [  # 40-600+ minutes on one core
                 # DatasetName.DevnagariScript,  # <1 min with 80 Niagara cores
-                DatasetName.Dionis,  # PROBABLY THE PROBLEM
-                DatasetName.Aloi,
                 DatasetName.Jannis,
                 # DatasetName.FashionMnist,
                 DatasetName.Connect4,  # ~3 minutes with 80 Niagara cores
@@ -164,6 +163,10 @@ class RuntimeClass(Enum):
                 DatasetName.Volkert,
                 DatasetName.Shuttle,  # ~8 min with 80 Niagara cores
             ],
+            RuntimeClass.VerySlow: [
+                DatasetName.Dionis,  # PROBABLY THE PROBLEM
+                DatasetName.Aloi,
+            ]
         }
         return runtimes[self]
 

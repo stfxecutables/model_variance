@@ -3,7 +3,7 @@ from __future__ import annotations
 # fmt: off
 import sys  # isort:skip
 from pathlib import Path  # isort: skip
-ROOT = Path(__file__).resolve().parent.parent.parent  # isort: skip
+ROOT = Path(__file__).resolve().parent.parent  # isort: skip
 sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
@@ -20,6 +20,7 @@ from pandas import DataFrame, Series
 from typing_extensions import Literal
 
 from src.constants import CC_RESULTS
+from src.enumerables import DatasetName, RuntimeClass
 
 
 def set_long_print() -> None:
@@ -48,6 +49,13 @@ def star_bool(value: bool | float) -> str:
     if bool(value) is True:
         return "*"
     return ""
+
+
+def to_runtime_class(dsname_str: str) -> str:
+    for dsname in DatasetName:
+        if dsname_str == dsname.name:
+            return RuntimeClass.from_dataset(dsname).name
+    raise ValueError("Dataset not found")
 
 
 def compare_similar_models(model: Literal["svm", "lr"]) -> None:
@@ -110,18 +118,47 @@ if __name__ == "__main__":
         dfs.append(df)
 
     df_orig = pd.concat(dfs, axis=0, ignore_index=True)
+    df_orig["runtime"] = df_orig.dataset.apply(to_runtime_class)
     df = (
-        df_orig.groupby(["cluster", "classifier", "dataset"])
+        df_orig.groupby(["cluster", "classifier", "dataset", "runtime"])
         .describe()
-        .sort_values(by=["cluster", "classifier", ("elapsed_s", "max")], ascending=False)
+        .sort_values(
+            by=["cluster", "classifier", "runtime", ("elapsed_s", "max")],
+            ascending=(False, False, False, True),
+        )
     )
     max_times = df["elapsed_s"]["max"].reset_index()
     max_times = max_times.loc[
         max_times.classifier.isin(["xgb", "lr-sgd", "svm-sgd", "mlp"])
     ]
     max_times = max_times.loc[
-        ~((max_times.classifier == "mlp") & (max_times.cluster == "niagara"))
+        ~(
+            (max_times.classifier == "mlp")
+            & (max_times.cluster.isin(["niagara", "cedar"]))
+        )
     ]
+    max_times_no_aloi_dionis = max_times.loc[
+        ~((max_times.dataset == "Aloi") | (max_times.dataset == "Dionis"))
+    ]
+    print("All max runtime distributions")
+    print(
+        max_times.groupby(["classifier", "runtime"])
+        .describe(percentiles=[0.05, 0.25, 0.50, 0.75, 0.95, 0.975, 0.99])
+        .applymap(to_readable)["max"]
+        .drop(columns="count")
+    )
+    print("Dropping Aloi and Dionis:")
+    print(
+        max_times_no_aloi_dionis.groupby("classifier")
+        .describe(percentiles=[0.05, 0.25, 0.50, 0.75, 0.95, 0.975, 0.99])
+        .applymap(to_readable)["max"]
+        .drop(columns="count")
+        .to_markdown()
+    )
+    max_times["max"] = max_times["max"].apply(to_readable)
+    print("Max times:")
+    print(max_times)
+    sys.exit()
 
     runtimes = (
         df["elapsed_s"]  # type:ignore

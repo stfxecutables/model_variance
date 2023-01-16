@@ -669,9 +669,9 @@ runs in each repeat $i$.
 
 In addition, we would like to ultimately have a table of something like:
 
-| run | repeat | train_size | samp_perturb | hp_perturb | reduction | acc | preds |
-|-----|--------|------------|--------------|------------|-----------|-----|-------|
-| ... |  ...   |     ...    |    ...       |    ...     |    ...    | ... |[path] |
+| run | repeat | train_size | samp_perturb | hp_perturb | reduction | acc | preds  |
+|-----|--------|------------|--------------|------------|-----------|-----|--------|
+| ... | ...    | ...        | ...          | ...        | ...       | ... | [path] |
 
 
 But where there are no "hidden" factors or confounds that vary with some column
@@ -760,7 +760,7 @@ It is probably not comparing tuning performance of other dumb models (SVC, LR)
 ## Binned N Combinations
 
 
-1. data downsampling
+1. data dimension reduction
    - [0.25, 0.50, 0.75, None] (4)
 1. training sample perturbation
    - Continuous perturbation (4-6)
@@ -781,9 +781,10 @@ It is probably not comparing tuning performance of other dumb models (SVC, LR)
 - repeats  (N)
 - metrics  (FREE)
 
+```
 Total =
          40 datasets ×
-         5 downsamples ×
+         5 dimension reductions ×
          4-6 continuous perturbs ×
          3-5 categorical perturbs ×
          4 hparam perturbs ×
@@ -791,6 +792,73 @@ Total =
          N runs ×
          r repeats
       = (38400 - 96000) Nr
+```
+
+Dividing out datasets for a moment, since there are in fact 37 datasets, we get
+(960 - 2400) * Nr,which for minimal value of N=5, r=5, is (24 000, 60 000).
+Runtimes are roughly:
+
+| classifier | fastest | slowest |
+|:----------:|:-------:|:-------:|
+|    xgb     |  2.0s   |  7min   |
+|  svm-sgd   |  1.5s   |  35min  |
+|   lr-sgd   |  1.5s   |  35min  |
+|    mlp     |  9.0s   |  5min   |
+
+Across datasets, median runtime is 5s, except for MLP, which is more like 45s.
+95th percentile of max times is about 2min to 10minutes. Only lr-sgd and svm-sgd
+get up to 30-60minutes for the Aloi and Dionis datasets. E.g. dropping Aloi and
+Dionis, we get:
+
+| classifier | 50%    | 75%    | 95%    | 97.5%  | 99%    | max    |
+|:-----------|:-------|:-------|:-------|:-------|:-------|:-------|
+| lr-sgd     | 4.6 s  | 10.0 s | 42.3 s | 61.3 s | 2.0 m  | 2.7 m  |
+| mlp        | 38.0 s | 62.8 s | 3.6 m  | 4.0 m  | 4.4 m  | 4.8 m  |
+| svm-sgd    | 2.8 s  | 7.6 s  | 25.1 s | 45.7 s | 53.8 s | 59.3 s |
+| xgb        | 4.9 s  | 6.0 s  | 59.3 s | 78.8 s | 83.9 s | 87.2 s |
+
+I.e. all worst-case runtimes are about 1-5 minutes.
+
+```
+All max runtime distributions
+                          50%        75%       95%     97.5%       99%       max
+classifier runtime
+
+lr-sgd     Fast       2.7 sec    2.9 sec   9.6 sec  14.7 sec  17.7 sec  19.8 sec
+           Mid        6.0 sec   22.9 sec  34.9 sec  39.4 sec  42.0 sec  43.8 sec
+           Slow      10.9 sec   41.7 sec   2.3 min   2.5 min   2.6 min   2.7 min
+           VerySlow  45.2 min   51.3 min  56.2 min  56.8 min  57.1 min  57.4 min
+
+mlp        Fast      20.3 sec   31.0 sec  46.1 sec  49.8 sec  52.0 sec  53.4 sec
+           Mid       66.5 sec  100.9 sec   4.2 min   4.5 min   4.6 min   4.8 min
+           Slow      54.8 sec   59.1 sec  66.7 sec  67.6 sec  68.2 sec  68.6 sec
+           VerySlow   3.0 min    3.9 min   4.6 min   4.7 min   4.8 min   4.8 min
+
+svm-sgd    Fast       2.5 sec    2.6 sec  11.7 sec  13.8 sec  15.0 sec  15.9 sec
+           Mid        3.5 sec    7.9 sec  30.3 sec  44.8 sec  53.5 sec  59.3 sec
+           Slow       7.8 sec   17.2 sec  38.1 sec  40.7 sec  42.2 sec  43.3 sec
+           VerySlow  32.0 min   32.9 min  33.6 min  33.7 min  33.7 min  33.7 min
+
+xgb        Fast       4.8 sec    5.6 sec  17.6 sec  34.6 sec  44.8 sec  51.6 sec
+           Mid        5.0 sec    5.7 sec  37.1 sec  62.2 sec  77.2 sec  87.2 sec
+           Slow      20.4 sec   21.2 sec  66.1 sec  71.7 sec  75.0 sec  77.3 sec
+           VerySlow   5.2 min    5.8 min   6.3 min   6.4 min   6.4 min   6.5 min
+```
+
+Assuming we remove dimension reduction, then for each dataset, we get:
+
+```
+4-6 continuous perturbs  ×
+3-5 categorical perturbs ×
+4 hparam perturbs        ×
+4 train downsamples      ×
+5-10 runs                ×
+5-10 repeats
+--------------------------
+= 4800 - 48 000 runs per ds
+
+= 16.7 - 167 1-CORE compute days (assuming 5-minute fit times)
+```
 
 But then times runs / repeats is  (2 to 8) × rN × 10^4, smallest r is like 5-10, smallest N is like 10-20,
 so 2 × 5 × 10 e4 = 1e6  to  8 × 10 × 20 e4 =  1.6e7, 16 million. So **between 1 to 16 million 'validations'
