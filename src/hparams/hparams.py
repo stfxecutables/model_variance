@@ -18,6 +18,7 @@ from typing import Any, Collection, Generic, Sequence, Type, TypeVar
 import numpy as np
 from numpy.random import Generator
 from scipy.stats import loguniform
+from scipy.stats.qmc import Sobol
 
 from src.enumerables import DatasetName, HparamPerturbation
 from src.perturb import sig_perturb_plus
@@ -604,19 +605,19 @@ class Hparams(DirJSONable):
             self.hparams[hp.name] = hp
 
         self.n_hparams = self.N = len(self.hparams)
-        self.continuous: dict[str, Hparam] = {}
-        self.ordinals: dict[str, Hparam] = {}
-        self.categoricals: dict[str, Hparam] = {}
-        self.fixeds: dict[str, Hparam] = {}
+        self.continuous: dict[str, ContinuousHparam] = {}
+        self.ordinals: dict[str, OrdinalHparam] = {}
+        self.categoricals: dict[str, CategoricalHparam] = {}
+        self.fixeds: dict[str, FixedHparam] = {}
         for name, hp in self.hparams.items():
             if hp.kind is HparamKind.Continuous:
-                self.continuous[name] = hp
+                self.continuous[name] = hp  # type: ignore
             elif hp.kind is HparamKind.Ordinal:
-                self.ordinals[name] = hp
+                self.ordinals[name] = hp  # type: ignore
             elif hp.kind is HparamKind.Categorical:
-                self.categoricals[name] = hp
+                self.categoricals[name] = hp  # type: ignore
             elif hp.kind is HparamKind.Fixed:
-                self.fixeds[name] = hp
+                self.fixeds[name] = hp  # type: ignore
             else:
                 raise ValueError("Invalid Hparam kind!")
         self.n_continuous = len(self.continuous)
@@ -661,6 +662,53 @@ class Hparams(DirJSONable):
         hps = []
         for name, hp in self.hparams.items():
             hps.append(hp.random(rng))
+        return cls(hparams=hps)
+
+    def quasirandom(
+        self, iteration: int | None = None, rng: Generator | None = None
+    ) -> Hparams:
+        cls = self.__class__
+        # not sure we can do this with one generator unfortunately
+        sobol_cnt = Sobol(d=self.n_continuous, seed=rng)
+        sobol_ord = Sobol(d=self.n_ordinal + self.n_categorical, seed=rng)
+        if (iteration is not None) and (iteration > 0):
+            sobol_cnt.fast_forward(iteration)
+            sobol_ord.fast_forward(iteration)
+
+        hps: list[Hparam] = []
+        conts = sobol_cnt.random()
+        hpc: ContinuousHparam
+        for i, (name, hpc) in enumerate(self.continuous.items()):
+            cont = conts[0][i]
+            hmin, hmax = hpc.min, hpc.max
+            if hpc.log_scale:
+                hmin, hmax = np.log10(hmin), np.log10(hmax)
+            hval = hmin + (hmax - hmin) * cont
+            if hpc.log_scale:
+                hval = 10 ** hval
+            hps.append(hpc.new(hval))
+
+        if sobol_ord.d > 0:
+            hpo: OrdinalHparam
+            hpt: CategoricalHparam
+            l_bounds = [hpo.min for hpo in self.ordinals.values()] + [
+                0 for hpt in self.categoricals.values()
+            ]
+            u_bounds = [hpo.max for hpo in self.ordinals.values()] + [
+                hpt.n_categories for hpt in self.categoricals.values()
+            ]
+            ords_cats = sobol_ord.integers(l_bounds=l_bounds, u_bounds=u_bounds, n=1)
+
+            for i, (name, hpo) in enumerate(self.ordinals.items()):
+                hval = ords_cats[0][i]
+                hps.append(hpo.new(hval))
+
+            for i, (name, hpt) in enumerate(self.categoricals.items(), self.n_ordinal):
+                h_idx = ords_cats[0][i]
+                hval = hpt.categories[h_idx]
+                hps.append(hpt.new(hval))
+
+        hps.extend([hpf.clone() for hpf in self.fixeds.values()])
         return cls(hparams=hps)
 
     def to_json(self, root: Path) -> None:
