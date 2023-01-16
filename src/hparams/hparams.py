@@ -18,7 +18,9 @@ from typing import Any, Collection, Generic, Sequence, Type, TypeVar
 import numpy as np
 from numpy.random import Generator
 from scipy.stats import loguniform
-from scipy.stats.qmc import Sobol
+
+# from scipy.stats.qmc import Sobol
+from scipy.stats.qmc import LatinHypercube as Sobol
 
 from src.enumerables import DatasetName, HparamPerturbation
 from src.perturb import sig_perturb_plus
@@ -694,8 +696,8 @@ class Hparams(DirJSONable):
             l_bounds = [hpo.min for hpo in self.ordinals.values()] + [
                 0 for hpt in self.categoricals.values()
             ]
-            u_bounds = [hpo.max for hpo in self.ordinals.values()] + [
-                hpt.n_categories for hpt in self.categoricals.values()
+            u_bounds = [hpo.max + 1 for hpo in self.ordinals.values()] + [
+                hpt.n_categories + 1 for hpt in self.categoricals.values()
             ]
             ords_cats = sobol_ord.integers(l_bounds=l_bounds, u_bounds=u_bounds, n=1)
 
