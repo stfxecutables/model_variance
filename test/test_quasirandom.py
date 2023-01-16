@@ -45,34 +45,39 @@ def test_discrepancies() -> None:
     o1 = OrdinalHparam("o1", value=None, max=10, min=0)
     o2 = OrdinalHparam("o2", value=None, max=10, min=0)
     hps = Hparams([c1, c2, o1, o2])
-    c1r, c2r, o1r, o2r = [], [], [], []
-    c1q, c2q, o1q, o2q = [], [], [], []
-    for N in [50, 100, 500, 1000, 2000]:
-        rng = np.random.default_rng()
-        for i in range(N):
-            hpr = hps.random(rng)
-            c1r.append(hpr.hparams["c1"].value)
-            c2r.append(hpr.hparams["c2"].value)
-            o1r.append(hpr.hparams["o1"].value + np.random.uniform(0, 0.5))
-            o2r.append(hpr.hparams["o2"].value + np.random.uniform(0, 0.5))
+    for N in [50, 100, 200]:
+        for _ in range(3):
+            c1r, c2r, o1r, o2r = [], [], [], []
+            c1q, c2q, o1q, o2q = [], [], [], []
+            seed = np.random.randint(0, int(1e7))
+            rng = np.random.default_rng(seed)
+            rng2 = np.random.default_rng(seed)
+            for i in range(N):
+                hpr = hps.random(rng)
+                c1r.append(hpr.hparams["c1"].value)
+                c2r.append(hpr.hparams["c2"].value)
+                o1r.append(hpr.hparams["o1"].value + np.random.uniform(0, 0.5))
+                o2r.append(hpr.hparams["o2"].value + np.random.uniform(0, 0.5))
 
-            hpq = hps.quasirandom(iteration=i, rng=rng)
-            c1q.append(hpq.hparams["c1"].value)
-            c2q.append(hpq.hparams["c2"].value)
-            o1q.append(hpq.hparams["o1"].value + np.random.uniform(0, 0.5))
-            o2q.append(hpq.hparams["o2"].value + np.random.uniform(0, 0.5))
+            for i in range(N):
+                hpq = hps.quasirandom(iteration=i, rng=rng2)
+                c1q.append(hpq.hparams["c1"].value)
+                c2q.append(hpq.hparams["c2"].value)
+                o1q.append(hpq.hparams["o1"].value + np.random.uniform(0, 0.5))
+                o2q.append(hpq.hparams["o2"].value + np.random.uniform(0, 0.5))
 
-        fig, axes = plt.subplots(nrows=2, ncols=2, sharex=True, sharey=True)
-        axes[0][0].scatter(c1r, c2r, color="black", s=0.5)
-        axes[0][0].set_title("Continous Random")
+            fig, axes = plt.subplots(nrows=2, ncols=2, sharex=True, sharey=True)
+            axes[0][0].scatter(c1r, c2r, color="black", s=0.5)
+            axes[0][0].set_title("Continous Random")
 
-        axes[1][0].scatter(c1q, c2q, color="black", s=0.5)
-        axes[1][0].set_title("Continous QuasiRandom")
+            axes[1][0].scatter(c1q, c2q, color="black", s=0.5)
+            axes[1][0].set_title("Continous QuasiRandom")
 
-        axes[0][1].scatter(o1r, o2r, color="black", s=0.5)
-        axes[0][1].set_title("Ordinal Random")
+            axes[0][1].scatter(o1r, o2r, color="black", s=0.5)
+            axes[0][1].set_title("Ordinal Random")
 
-        axes[1][1].scatter(o1q, o2q, color="black", s=0.5)
-        axes[1][1].set_title("Ordinal QuasiRandom")
-        fig.suptitle(f"{N} samples")
-        plt.show()
+            axes[1][1].scatter(o1q, o2q, color="black", s=0.5)
+            axes[1][1].set_title("Ordinal QuasiRandom")
+            fig.suptitle(f"{N} samples")
+            fig.set_size_inches(10, 10)
+            plt.show()

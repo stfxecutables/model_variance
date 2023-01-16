@@ -18,9 +18,7 @@ from typing import Any, Collection, Generic, Sequence, Type, TypeVar
 import numpy as np
 from numpy.random import Generator
 from scipy.stats import loguniform
-
-# from scipy.stats.qmc import Sobol
-from scipy.stats.qmc import LatinHypercube as Sobol
+from scipy.stats.qmc import Halton
 
 from src.enumerables import DatasetName, HparamPerturbation
 from src.perturb import sig_perturb_plus
@@ -671,14 +669,14 @@ class Hparams(DirJSONable):
     ) -> Hparams:
         cls = self.__class__
         # not sure we can do this with one generator unfortunately
-        sobol_cnt = Sobol(d=self.n_continuous, seed=rng)
-        sobol_ord = Sobol(d=self.n_ordinal + self.n_categorical, seed=rng)
+        Halton_cnt = Halton(d=self.n_continuous, seed=rng)
+        Halton_ord = Halton(d=self.n_ordinal + self.n_categorical, seed=rng)
         if (iteration is not None) and (iteration > 0):
-            sobol_cnt.fast_forward(iteration)
-            sobol_ord.fast_forward(iteration)
+            Halton_cnt.fast_forward(iteration)
+            Halton_ord.fast_forward(iteration)
 
         hps: list[Hparam] = []
-        conts = sobol_cnt.random()
+        conts = Halton_cnt.random()
         hpc: ContinuousHparam
         for i, (name, hpc) in enumerate(self.continuous.items()):
             cont = conts[0][i]
@@ -690,7 +688,7 @@ class Hparams(DirJSONable):
                 hval = 10 ** hval
             hps.append(hpc.new(hval))
 
-        if sobol_ord.d > 0:
+        if Halton_ord.d > 0:
             hpo: OrdinalHparam
             hpt: CategoricalHparam
             l_bounds = [hpo.min for hpo in self.ordinals.values()] + [
@@ -699,7 +697,7 @@ class Hparams(DirJSONable):
             u_bounds = [hpo.max + 1 for hpo in self.ordinals.values()] + [
                 hpt.n_categories + 1 for hpt in self.categoricals.values()
             ]
-            ords_cats = sobol_ord.integers(l_bounds=l_bounds, u_bounds=u_bounds, n=1)
+            ords_cats = Halton_ord.integers(l_bounds=l_bounds, u_bounds=u_bounds, n=1)
 
             for i, (name, hpo) in enumerate(self.ordinals.items()):
                 hval = ords_cats[0][i]
