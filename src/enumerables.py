@@ -142,7 +142,6 @@ class RuntimeClass(Enum):
                 DatasetName.JungleChess,  # <2min SVC
                 DatasetName.Adult,  # <2min SVC
                 DatasetName.Fabert,  # <2min SVC
-                DatasetName.Dilbert,  # <2min SVC
                 DatasetName.Nomao,  # 3-5min radial SVC
                 DatasetName.BankMarketing,  # <1min radial SVC
                 DatasetName.ClickPrediction,
@@ -155,6 +154,7 @@ class RuntimeClass(Enum):
                 DatasetName.Numerai28_6,
             ],
             RuntimeClass.Slow: [  # 40-600+ minutes on one core
+                DatasetName.Dilbert,  # <2min SVC
                 # DatasetName.DevnagariScript,  # <1 min with 80 Niagara cores
                 DatasetName.Jannis,
                 # DatasetName.FashionMnist,
@@ -166,7 +166,7 @@ class RuntimeClass(Enum):
             RuntimeClass.VerySlow: [
                 DatasetName.Dionis,  # PROBABLY THE PROBLEM
                 DatasetName.Aloi,
-            ]
+            ],
         }
         return runtimes[self]
 
@@ -198,6 +198,34 @@ class RuntimeClass(Enum):
             if dsname in cls.members():
                 return cls
         raise RuntimeError(f"Impossible! Invalid DatasetName: {dsname}")
+
+    def max_minutes(self, classifier: ClassifierKind) -> int:
+        return {
+            ClassifierKind.SGD_LR: {
+                RuntimeClass.Fast: 1,
+                RuntimeClass.Mid: 1,
+                RuntimeClass.Slow: 3,
+                RuntimeClass.VerySlow: 60,
+            },
+            ClassifierKind.MLP: {
+                RuntimeClass.Fast: 1,
+                RuntimeClass.Mid: 5,
+                RuntimeClass.Slow: 2,
+                RuntimeClass.VerySlow: 5,
+            },
+            ClassifierKind.SGD_SVM: {
+                RuntimeClass.Fast: 1,
+                RuntimeClass.Mid: 1,
+                RuntimeClass.Slow: 1,
+                RuntimeClass.VerySlow: 35,
+            },
+            ClassifierKind.XGBoost: {
+                RuntimeClass.Fast: 1,
+                RuntimeClass.Mid: 1,
+                RuntimeClass.Slow: 2,
+                RuntimeClass.VerySlow: 7,
+            },
+        }[classifier][self]
 
 
 # class HparamPerturbation(Enum):

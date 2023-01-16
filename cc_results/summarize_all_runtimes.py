@@ -34,11 +34,12 @@ def set_long_print() -> None:
 
 
 def to_readable(duration_s: float) -> str:
-    if duration_s <= 120:
-        return f"{np.round(duration_s, 1):03.1f} sec"
+    if duration_s <= 60:
+        return f"<1.0 m"
     mins = duration_s / 60
     if mins <= 120:
-        return f"{np.round(mins, 1):03.1f} min"
+        return f"{np.round(mins, 1):03.1f} m"
+    return f"{np.round(mins, 1):03.1f} m"
     hrs = mins / 60
     return f"{np.round(hrs, 2):03.2f} hrs"
 
@@ -158,7 +159,7 @@ if __name__ == "__main__":
     max_times["max"] = max_times["max"].apply(to_readable)
     print("Max times:")
     print(max_times)
-    sys.exit()
+    # sys.exit()
 
     runtimes = (
         df["elapsed_s"]  # type:ignore
