@@ -821,28 +821,27 @@ I.e. all worst-case runtimes are about 1-5 minutes.
 
 ```
 All max runtime distributions
-                          50%        75%       95%     97.5%       99%       max
+                       mean     50%     75%     95%   97.5%     99%     max
 classifier runtime
+lr-sgd     Fast      <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m
+           Mid       <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m
+           Slow      <1.0 m  <1.0 m  <1.0 m   2.2 m   2.4 m   2.6 m   2.7 m
+           VerySlow  45.2 m  45.2 m  51.3 m  56.2 m  56.8 m  57.1 m  57.4 m
 
-lr-sgd     Fast       2.7 sec    2.9 sec   9.6 sec  14.7 sec  17.7 sec  19.8 sec
-           Mid        6.0 sec   22.9 sec  34.9 sec  39.4 sec  42.0 sec  43.8 sec
-           Slow      10.9 sec   41.7 sec   2.3 min   2.5 min   2.6 min   2.7 min
-           VerySlow  45.2 min   51.3 min  56.2 min  56.8 min  57.1 min  57.4 min
+mlp        Fast      <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m
+           Mid        1.7 m   1.1 m   1.7 m   4.2 m   4.5 m   4.6 m   4.8 m
+           Slow      <1.0 m  <1.0 m  <1.0 m   1.1 m   1.1 m   1.1 m   1.1 m
+           VerySlow   3.0 m   3.0 m   3.9 m   4.6 m   4.7 m   4.8 m   4.8 m
 
-mlp        Fast      20.3 sec   31.0 sec  46.1 sec  49.8 sec  52.0 sec  53.4 sec
-           Mid       66.5 sec  100.9 sec   4.2 min   4.5 min   4.6 min   4.8 min
-           Slow      54.8 sec   59.1 sec  66.7 sec  67.6 sec  68.2 sec  68.6 sec
-           VerySlow   3.0 min    3.9 min   4.6 min   4.7 min   4.8 min   4.8 min
+svm-sgd    Fast      <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m
+           Mid       <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m
+           Slow      <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m
+           VerySlow  32.0 m  32.0 m  32.9 m  33.6 m  33.7 m  33.7 m  33.7 m
 
-svm-sgd    Fast       2.5 sec    2.6 sec  11.7 sec  13.8 sec  15.0 sec  15.9 sec
-           Mid        3.5 sec    7.9 sec  30.3 sec  44.8 sec  53.5 sec  59.3 sec
-           Slow       7.8 sec   17.2 sec  38.1 sec  40.7 sec  42.2 sec  43.3 sec
-           VerySlow  32.0 min   32.9 min  33.6 min  33.7 min  33.7 min  33.7 min
-
-xgb        Fast       4.8 sec    5.6 sec  17.6 sec  34.6 sec  44.8 sec  51.6 sec
-           Mid        5.0 sec    5.7 sec  37.1 sec  62.2 sec  77.2 sec  87.2 sec
-           Slow      20.4 sec   21.2 sec  66.1 sec  71.7 sec  75.0 sec  77.3 sec
-           VerySlow   5.2 min    5.8 min   6.3 min   6.4 min   6.4 min   6.5 min
+xgb        Fast      <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m
+           Mid       <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m
+           Slow      <1.0 m  <1.0 m   1.1 m   1.4 m   1.4 m   1.4 m   1.5 m
+           VerySlow   5.2 m   5.2 m   5.8 m   6.3 m   6.4 m   6.4 m   6.5 m
 ```
 
 Assuming we remove dimension reduction, then for each dataset, we get:

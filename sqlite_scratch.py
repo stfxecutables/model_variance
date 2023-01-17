@@ -1,30 +1,23 @@
 import os
 import sqlite3
-import sys
-import traceback
 from enum import Enum
 from pathlib import Path
 from sqlite3 import OperationalError
 from time import sleep
-from typing import Any, List, Optional, Sequence, Tuple, Union, cast, no_type_check
 
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-from numpy import ndarray
-from pandas import DataFrame, Series
 from tqdm.contrib.concurrent import process_map
-from typing_extensions import Literal
 
 
 class Isolation(Enum):
     Exclusive = "EXCLUSIVE"
     Deferred = "DEFERRED"
 
+DB = Path(__file__).resolve().parent / "test_db.db"
 
 def insert_i(i: int) -> int:
     with sqlite3.connect(
-        "test_db.db", timeout=5, isolation_level=Isolation.Exclusive.value
+        str(DB), timeout=5, isolation_level=Isolation.Exclusive.value
     ) as connection:
         # see https://www.sqlite.org/wal.html, won't work on cluster :(
         # connection.execute("pragma journal_mode=wal")
@@ -42,12 +35,12 @@ def insert_i(i: int) -> int:
 def insert_junk(i: int) -> None:
     try:
         insert_i(i)
-    except OperationalError as e:
+    except OperationalError:
         attempts = 0
         while attempts < 2:
             try:
 
-                sleep(int(np.random.randint(attempts, 10)) )  #
+                sleep(int(np.random.randint(attempts, 10)))  #
                 insert_i(9)
                 return
             except OperationalError:
@@ -56,7 +49,7 @@ def insert_junk(i: int) -> None:
 
 
 if __name__ == "__main__":
-    connection = sqlite3.connect("test_db.db")
+    connection = sqlite3.connect(str(DB))
     cursor = connection.cursor()
     cursor.execute("DROP TABLE IF EXISTS fits")
     cursor.execute(
