@@ -183,23 +183,28 @@ class Evaluator(DirJSONable):
 
     @property
     def res_dir(self) -> Path:
-        """This a property to ensure it matches `self.logdir` on deserialization"""
+        """This a dynamic property to ensure it matches `self.logdir` on deserialization"""
         return ensure_dir(self.logdir / "results")
 
     @property
     def preds_dir(self) -> Path:
-        """This a property to ensure it matches `self.logdir` on deserialization"""
         return ensure_dir(self.logdir / "preds")
 
     @property
     def metrics_dir(self) -> Path:
-        """This a property to ensure it matches `self.logdir` on deserialization"""
         return ensure_dir(self.logdir / "metrics")
 
     @property
     def dl_dir(self) -> Path:
-        """This a property to ensure it matches `self.logdir` on deserialization"""
         return ensure_dir(self.logdir / "dl_logs")
+
+    @property
+    def ckpt_file(self) -> Path:
+        """This should be a unique"""
+        run = self.logdir.parent
+        fname = self.logdir.name
+        # do NOT ensure it exists: we create it after saving preds
+        return run / f"{fname}.ckpt"
 
     @property
     def dataset(self) -> Dataset:
@@ -281,8 +286,18 @@ class Evaluator(DirJSONable):
             with os.scandir(self.preds_dir) as files:
                 if next(files, None) is not None:
                     raise FileExistsError(
-                        f"Prediction data already present in {self.res_dir}."
+                        "Impossible! Prediction data with same JOBID or hash "
+                        f"already present in {self.res_dir}."
                     )
+        ckpt_dir = self.ckpt_file.parent
+        if ckpt_dir.exists():
+            ckpts = sorted(ckpt_dir.glob("*.ckpt"))
+            if len(ckpts) > 0:
+                raise FileExistsError(
+                    f"Checkpoint file {self.ckpt_file} exists, and suggests pred "
+                    f"data for this evaluation repeat and run:\n{self}\n"
+                    f"is already present in {self.logdir}."
+                )
         try:
             ds = self.dataset
             # if self.classifer_kind in [ClassifierKind.MLP, ClassifierKind.LR]:
@@ -316,6 +331,7 @@ class Evaluator(DirJSONable):
     def save_preds(self, preds: ndarray) -> None:
         outfile = self.preds_dir / "preds.npz"
         np.savez_compressed(outfile, preds=preds)
+        self.ckpt_file.touch(exist_ok=False)
 
     def load_preds(self) -> ndarray:
         outfile = self.preds_dir / "preds.npz"
@@ -337,6 +353,176 @@ class Evaluator(DirJSONable):
 
     def __str__(self) -> str:
         fmt = ["Evaluator("]
+        for key, val in self.__dict__.items():
+            fmt.append(f"{key}={val}")
+        fmt.append(")")
+        return "\n".join(fmt)
+
+    __repr__ = __str__
+
+
+class Tuner(Evaluator):
+    def __init__(
+        self,
+        dataset_name: DatasetName,
+        classifier_kind: ClassifierKind,
+        repeat: int,
+        run: int,
+        hparams: Hparams,
+        dimension_reduction: Percentage | None,
+        continuous_perturb: DataPerturbation | None,
+        categorical_perturb: float | None,
+        hparam_perturb: HparamPerturbation | None,
+        train_downsample: Percentage | None,
+        categorical_perturb_level: Literal["sample", "label"] = "label",
+        debug: bool = False,
+        _suppress_json: bool = False,
+    ) -> None:
+        super().__init__(
+            dataset_name,
+            classifier_kind,
+            repeat,
+            run,
+            hparams,
+            dimension_reduction,
+            continuous_perturb,
+            categorical_perturb,
+            hparam_perturb,
+            train_downsample,
+            categorical_perturb_level,
+            debug,
+            _suppress_json,
+        )
+
+        self.logdir = self.get_logdir()
+
+    def tune(self, no_pred: bool = False, return_test_acc: bool = False) -> float | None:
+        if self.preds_dir.exists():
+            with os.scandir(self.preds_dir) as files:
+                if next(files, None) is not None:
+                    raise FileExistsError(
+                        "Impossible! Prediction data with same JOBID or hash "
+                        f"already present in {self.res_dir}."
+                    )
+        ckpt_dir = self.ckpt_file.parent
+        if ckpt_dir.exists():
+            ckpts = sorted(ckpt_dir.glob("*.ckpt"))
+            if len(ckpts) > 0:
+                raise FileExistsError(
+                    f"Checkpoint file {self.ckpt_file} exists, and suggests pred "
+                    f"data for this evaluation repeat and run:\n{self}\n"
+                    f"is already present in {self.logdir}."
+                )
+        try:
+            ds = self.dataset
+            # if self.classifer_kind in [ClassifierKind.MLP, ClassifierKind.LR]:
+            #     raise NotImplementedError()
+            X_train, y_train, X_test, y_test = ds.get_monte_carlo_splits(
+                train_downsample=self.train_downsample,
+                cont_perturb=self.continuous_perturb,
+                cat_perturb_prob=self.categorical_perturb,
+                cat_perturb_level=self.categorical_perturb_level,
+                reduction=self.dimension_reduction,
+                repeat=self.repeat,
+                run=self.run,
+            )
+            self.model.fit(X=X_train, y=y_train)
+            if return_test_acc:
+                preds, targs = self.model.predict(X=X_test, y=y_test)
+                if preds.ndim == 2:
+                    return float(np.mean(np.argmax(preds, axis=1) == targs))
+                return float(np.mean(preds == targs))
+            if not no_pred:
+                preds, targs = self.model.predict(X=X_test, y=y_test)
+                self.save_preds(preds)
+
+        except Exception as e:
+            info = traceback.format_exc()
+            print(f"Cleaning up {self.logdir} due to evaluation failure...")
+            rmtree(self.logdir)
+            print(f"Removed {self.logdir}")
+            raise RuntimeError(f"Could not fit model:\n{info}") from e
+
+    def get_logdir(self) -> Path:
+        c = self.classifer_kind.value
+        d = self.dataset_name.value
+        dim = self.dimension_reduction
+        red = "full" if dim is None else f"reduce={dim}"
+
+        rep = f"rep={self.repeat:03d}"
+        run = f"run={self.run:03d}"
+        jid = os.environ.get("SLURM_JOB_ID")
+        aid = os.environ.get("SLURM_ARRAY_TASK_ID")
+        if jid is None:
+            slurm_id = None
+        elif aid is not None:
+            slurm_id = f"{jid}_{aid}"
+        else:
+            slurm_id = jid
+
+        ts = strftime("%b-%d--%H-%M-%S")
+        hsh = urlsafe_b64encode(uuid4().bytes).decode()
+        uid = f"{ts}__{hsh}" if slurm_id is None else f"{slurm_id}__{ts}__{hsh}"
+        root = DEBUG_LOGS if self.debug else LOGS
+        return ensure_dir(root / f"tuning/{c}/{d}/{red}/{rep}/{run}/{uid}")
+
+    def to_json(self, root: Path) -> None:
+        root.mkdir(exist_ok=True, parents=True)
+        hps = root / "hparams"
+        out = root / "tuner.json"
+
+        self.hparams.to_json(hps)
+        with open(out, "w") as fp:
+            json.dump(
+                {
+                    "dataset_name": self.dataset_name.value,
+                    "classifier_kind": self.classifer_kind.value,
+                    "dimension_reduction": self.dimension_reduction,
+                    "continuous_perturb": value_or_none(self.continuous_perturb),
+                    "categorical_perturb": self.categorical_perturb,
+                    "hparam_perturb": value_or_none(self.hparam_perturb),
+                    "train_downsample": self.train_downsample,
+                    "categorical_perturb_level": self.categorical_perturb_level,
+                    "repeat": self.repeat,
+                    "run": self.run,
+                    "debug": self.debug,
+                },
+                fp,
+                indent=2,
+            )
+
+    @classmethod
+    def from_json(cls: Type[Tuner], root: Path) -> Evaluator:
+        root.mkdir(exist_ok=True, parents=True)
+        hps = root / "hparams"
+        out = root / "tuner.json"
+        hparams = Hparams.from_json(hps)
+        with open(out, "r") as fp:
+            d = Namespace(**json.load(fp))
+
+        c_perturb = to_enum_or_none(DataPerturbation, d.continuous_perturb)
+        h_perturb = to_enum_or_none(HparamPerturbation, d.hparam_perturb)
+
+        new = cls(
+            dataset_name=DatasetName(d.dataset_name),
+            classifier_kind=ClassifierKind(d.classifier_kind),
+            hparams=hparams,
+            dimension_reduction=d.dimension_reduction,
+            continuous_perturb=c_perturb,
+            categorical_perturb=d.categorical_perturb,
+            hparam_perturb=h_perturb,
+            train_downsample=d.train_downsample,
+            categorical_perturb_level=d.categorical_perturb_level,
+            repeat=d.repeat,
+            run=d.run,
+            debug=d.debug,
+            _suppress_json=True,
+        )
+        new.logdir = root
+        return new
+
+    def __str__(self) -> str:
+        fmt = ["Tuner("]
         for key, val in self.__dict__.items():
             fmt.append(f"{key}={val}")
         fmt.append(")")
