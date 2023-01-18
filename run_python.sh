@@ -6,4 +6,4 @@ APPTAINER="$PROJECT/apptainer/model_variance.sif"
 cd "$PROJECT" || exit 1
 module load apptainer/1.0
 echo "Running $1 with container $APPTAINER:"
-apptainer run --bind "$(readlink -f "$PROJECT")" --app python "$APPTAINER" "$1"
+apptainer run --nv --bind "$(readlink -f "$PROJECT")" --app python "$APPTAINER" "$(readlink -f "$1")"
