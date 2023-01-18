@@ -1,4 +1,7 @@
+from pathlib import Path
 from shutil import rmtree
+from tarfile import TarFile
+from tarfile import open as tar_open
 from time import time
 from typing import Any, Callable
 
@@ -188,6 +191,44 @@ def test_ckpts() -> None:
         finally:
             ev.cleanup()
             ev2.cleanup()
+
+
+def test_archival() -> None:
+    hps = SGDLinearSVMHparams().defaults()
+    for i in range(3):
+        ds = FASTS[i]
+        ev_args: dict[str, Any] = dict(
+            dataset_name=ds,
+            classifier_kind=ClassifierKind.SGD_SVM,
+            repeat=0,
+            run=0,
+            dimension_reduction=None,
+            continuous_perturb=None,
+            categorical_perturb=None,
+            hparam_perturb=None,
+            train_downsample=None,
+            hparams=hps,
+            debug=True,
+        )
+        ev = Evaluator(**ev_args)
+        tf = ev.logdir.parent / f"{ev.logdir.name}.tar.gz"
+        try:
+            ev.evaluate(skip_done=False)
+            assert tf.exists()
+            tar: TarFile
+            with tar_open(tf, "r:gz") as tar:
+                names = [Path(name).name for name in tar.getnames()]
+                assert "preds.npz" in names
+                assert "targs.npz" in names
+                assert "evaluator.json" in names
+                assert "hparams" in names
+
+        except Exception as e:
+            raise e
+        finally:
+            ev.cleanup()
+            if tf.exists():
+                tf.unlink()
 
 
 @pytest.mark.medium

@@ -14,7 +14,7 @@ import traceback
 from argparse import Namespace
 from base64 import urlsafe_b64encode
 from enum import Enum, EnumMeta
-from shutil import rmtree
+from shutil import make_archive, rmtree
 from time import strftime
 from typing import Any, Literal, Type, TypeVar, overload
 from uuid import uuid4
@@ -71,7 +71,7 @@ def ckpt_file(
     categorical_perturb: float | None,
     hparam_perturb: HparamPerturbation | None,
     train_downsample: Percentage | None,
-    categorical_perturb_level: CatPerturbLevel = CatPerturbLevel.Label,
+    categorical_perturb_level: CatPerturbLevel,
     mode: str = "debug",
     **kwargs: Any,  # to ignore
 ) -> Path:
@@ -396,7 +396,10 @@ class Evaluator(DirJSONable):
             preds, targs = self.model.predict(X=X_test, y=y_test)
             self.save_preds(preds)
             self.save_targs(targs)
-            self.ckpt_file.touch(exist_ok=False)
+            self.archive()
+            with open(self.ckpt_file, "w") as fp:
+                fp.write(str(self.logdir))
+            self.cleanup(silent=True)
 
             if return_test_acc:
                 if preds.ndim == 2:
@@ -409,12 +412,16 @@ class Evaluator(DirJSONable):
             self.cleanup()
             raise RuntimeError(f"Could not fit model:\n{info}") from e
 
+    def archive(self) -> None:
+        root = self.logdir
+        make_archive(str(root), format="gztar", root_dir=root, base_dir=root)
+
     def save_preds(self, preds: ndarray) -> None:
         outfile = self.preds_dir / "preds.npz"
         np.savez_compressed(outfile, preds=preds)
 
     def save_targs(self, targs: ndarray) -> None:
-        outfile = self.preds_dir / "preds.npz"
+        outfile = self.preds_dir / "targs.npz"
         np.savez_compressed(outfile, targets=targs)
 
     def load_preds(self) -> ndarray:

@@ -89,7 +89,10 @@ def create_grid() -> list[dict[str, Any]]:
 
 def evaluate(args: dict[str, Any]) -> None:
     try:
-        ckpt = ckpt_file(**args)
+        ckpt_args = {**args}
+        ckpt_args.pop("debug")
+        ckpt_args["mode"] = "debug"
+        ckpt = ckpt_file(**ckpt_args)
         if ckpt.exists():
             return
         kind: ClassifierKind = args["classifier_kind"]
