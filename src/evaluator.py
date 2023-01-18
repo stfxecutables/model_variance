@@ -269,21 +269,22 @@ class Evaluator(DirJSONable):
 
     @overload
     def evaluate(
-        self, no_pred: bool = False, return_test_acc: Literal[True] = True
+        self, no_pred: bool = False, return_test_acc: Literal[True] = True, checkpoint: bool = False
     ) -> float:
         ...
 
     @overload
     def evaluate(
-        self, no_pred: bool = False, return_test_acc: Literal[False] = False
+        self, no_pred: bool = False, return_test_acc: Literal[False] = False, checkpoint: bool = False
     ) -> None:
         ...
 
     def evaluate(
-        self, no_pred: bool = False, return_test_acc: bool = False
+        self, no_pred: bool = False, return_test_acc: bool = False, checkpoint: bool = False,
     ) -> float | None:
         try:
-            self._ensure_no_checkpoint()
+            if checkpoint:
+                self._ensure_no_checkpoint()
             ds = self.dataset
             # if self.classifer_kind in [ClassifierKind.MLP, ClassifierKind.LR]:
             #     raise NotImplementedError()
