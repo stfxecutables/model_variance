@@ -65,7 +65,8 @@ def create_grid() -> list[dict[str, Any]]:
                 continuous_perturb=data_perturbs,
                 categorical_perurb=[None, 0.1],
                 hparam_perturb=hp_perturbs,
-                train_downsample=[None, 25, 50, 75],
+                # train_downsample=[None, 25, 50, 75],
+                train_downsample=[None, 50, 75],
                 categorical_perturb_level=["label", "sample"],
                 debug=[True],
             )
@@ -103,4 +104,4 @@ def evaluate(args: dict[str, Any]) -> None:
 
 if __name__ == "__main__":
     grid = create_grid()
-    process_map(evaluate, grid, total=len(grid), desc="Evaluating")
+    # process_map(evaluate, grid, total=len(grid), desc="Evaluating")
