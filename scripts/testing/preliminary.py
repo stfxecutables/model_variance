@@ -31,7 +31,7 @@ from src.enumerables import (
     HparamPerturbation,
     RuntimeClass,
 )
-from src.evaluator import Evaluator
+from src.evaluator import Evaluator, ckpt_file
 from src.hparams.hparams import Hparams
 from src.hparams.logistic import SGDLRHparams
 from src.hparams.mlp import MLPHparams
@@ -89,6 +89,9 @@ def create_grid() -> list[dict[str, Any]]:
 
 def evaluate(args: dict[str, Any]) -> None:
     try:
+        ckpt = ckpt_file(**args)
+        if ckpt.exists():
+            return
         kind: ClassifierKind = args["classifier_kind"]
         hps: Hparams = {
             ClassifierKind.SGD_SVM: SGDLinearSVMHparams().defaults(),

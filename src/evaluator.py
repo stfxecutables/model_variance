@@ -61,6 +61,39 @@ def to_enum_or_none(enum_type: Type[E] | None, value: str | None) -> E | None:
     return enum_type(value)
 
 
+def ckpt_file(
+    dataset_name: DatasetName,
+    classifier_kind: ClassifierKind,
+    repeat: int,
+    run: int,
+    dimension_reduction: Percentage | None,
+    continuous_perturb: DataPerturbation | None,
+    categorical_perturb: float | None,
+    hparam_perturb: HparamPerturbation | None,
+    train_downsample: Percentage | None,
+    categorical_perturb_level: CatPerturbLevel = CatPerturbLevel.Label,
+    mode: str = "debug",
+    **kwargs: Any,  # to ignore
+) -> Path:
+    cid = "_".join(
+        [
+            f"{get_index(dataset_name)}",
+            f"{get_index(classifier_kind)}",
+            f"{get_index(repeat)}",
+            f"{get_index(run)}",
+            f"{get_index(dimension_reduction)}",
+            f"{get_index(continuous_perturb)}",
+            f"{categorical_perturb}".replace("None", "0.0").replace(".", "-"),
+            f"{get_index(hparam_perturb)}",
+            f"{get_index(train_downsample)}",
+            f"{get_index(categorical_perturb_level)}",
+        ]
+    )
+    outdir = CKPTS / mode
+    ensure_dir(outdir)
+    return outdir / f"{cid}.ckpt"
+
+
 class Evaluator(DirJSONable):
     """For performing one repeat (i.e. `r` validation runs) with the sources
     of variance given in the constructor
@@ -99,7 +132,7 @@ class Evaluator(DirJSONable):
     ) -> None:
         self.dataset_name: DatasetName = dataset_name
         self.dataset_: Dataset | None = None
-        self.classifer_kind: ClassifierKind = classifier_kind
+        self.classifier_kind: ClassifierKind = classifier_kind
         self.repeat: int = repeat
         self.run: int = run
         self.hparams: Hparams = hparams
@@ -121,7 +154,7 @@ class Evaluator(DirJSONable):
     def model(self) -> ClassifierModel:
         if self._model is not None:
             return self._model
-        kind = self.classifer_kind
+        kind = self.classifier_kind
         logdir = (
             self.logdir
             if kind
@@ -155,27 +188,15 @@ class Evaluator(DirJSONable):
         elif kind is ClassifierKind.MLP:
             self._model = MLPModel(**args)
         else:
-            raise ValueError(f"Unknown model kind: {self.classifer_kind}")
+            raise ValueError(f"Unknown model kind: {self.classifier_kind}")
         return self._model
 
     def get_id(self) -> str:
-        return "_".join(
-            [
-                f"{get_index(self.dataset_name)}",
-                f"{get_index(self.classifer_kind)}",
-                f"{get_index(self.repeat)}",
-                f"{get_index(self.run)}",
-                f"{get_index(self.dimension_reduction)}",
-                f"{get_index(self.continuous_perturb)}",
-                f"{self.categorical_perturb}".replace("None", "0.0").replace(".", "-"),
-                f"{get_index(self.hparam_perturb)}",
-                f"{get_index(self.train_downsample)}",
-                f"{get_index(self.categorical_perturb_level)}",
-            ]
-        )
+        ckpt = self.ckpt_file
+        return ckpt.stem.replace(".ckpt", "")
 
     def setup_logdir(self) -> Path:
-        c = self.classifer_kind.value
+        c = self.classifier_kind.value
         d = self.dataset_name.value
         dim = self.dimension_reduction
         red = "full" if dim is None else f"reduce={dim}"
@@ -225,11 +246,19 @@ class Evaluator(DirJSONable):
     @property
     def ckpt_file(self) -> Path:
         """This should be a unique"""
-        outdir = CKPTS / "debug" if self.debug else CKPTS / "eval"
-        ensure_dir(outdir)
-        cid = self.get_id()
-        # do NOT ensure it exists: we create it after saving preds
-        return outdir / f"{cid}.ckpt"
+        return ckpt_file(
+            dataset_name=self.dataset_name,
+            classifier_kind=self.classifier_kind,
+            repeat=self.repeat,
+            run=self.run,
+            dimension_reduction=self.dimension_reduction,
+            continuous_perturb=self.continuous_perturb,
+            categorical_perturb=self.categorical_perturb,
+            hparam_perturb=self.hparam_perturb,
+            train_downsample=self.train_downsample,
+            categorical_perturb_level=self.categorical_perturb_level,
+            mode="debug" if self.debug else "eval",
+        )
 
     @property
     def dataset(self) -> Dataset:
@@ -247,7 +276,7 @@ class Evaluator(DirJSONable):
             json.dump(
                 {
                     "dataset_name": self.dataset_name.value,
-                    "classifier_kind": self.classifer_kind.value,
+                    "classifier_kind": self.classifier_kind.value,
                     "dimension_reduction": self.dimension_reduction,
                     "continuous_perturb": value_or_none(self.continuous_perturb),
                     "categorical_perturb": self.categorical_perturb,
@@ -506,7 +535,7 @@ class Tuner(Evaluator):
             raise RuntimeError(f"Could not fit model:\n{info}") from e
 
     def setup_logdir(self) -> Path:
-        c = self.classifer_kind.value
+        c = self.classifier_kind.value
         d = self.dataset_name.value
         dim = self.dimension_reduction
         red = "full" if dim is None else f"reduce={dim}"
@@ -547,7 +576,7 @@ class Tuner(Evaluator):
             json.dump(
                 {
                     "dataset_name": self.dataset_name.value,
-                    "classifier_kind": self.classifer_kind.value,
+                    "classifier_kind": self.classifier_kind.value,
                     "dimension_reduction": self.dimension_reduction,
                     "continuous_perturb": value_or_none(self.continuous_perturb),
                     "categorical_perturb": self.categorical_perturb,
