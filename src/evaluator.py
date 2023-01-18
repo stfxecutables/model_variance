@@ -397,7 +397,7 @@ class Evaluator(DirJSONable):
             self.save_preds(preds)
             self.save_targs(targs)
             self.archive()
-            with open(self.ckpt_file, "w") as fp:
+            with open(self.ckpt_file, "w+") as fp:
                 fp.write(str(self.logdir))
             self.cleanup(silent=True)
 
