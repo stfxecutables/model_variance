@@ -24,6 +24,7 @@ from tqdm.contrib.concurrent import process_map
 from typing_extensions import Literal
 
 from src.enumerables import (
+    CatPerturbLevel,
     ClassifierKind,
     DataPerturbation,
     DatasetName,
@@ -67,7 +68,7 @@ def create_grid() -> list[dict[str, Any]]:
                 hparam_perturb=hp_perturbs,
                 # train_downsample=[None, 25, 50, 75],
                 train_downsample=[None, 50, 75],
-                categorical_perturb_level=["label", "sample"],
+                categorical_perturb_level=[*CatPerturbLevel],
                 debug=[True],
             )
         )
