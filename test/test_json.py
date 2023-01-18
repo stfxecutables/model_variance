@@ -17,6 +17,7 @@ from typing import Literal
 import numpy as np
 
 from src.enumerables import (
+    CatPerturbLevel,
     ClassifierKind,
     DataPerturbation,
     DatasetName,
@@ -149,7 +150,7 @@ def test_evaluator() -> None:
         cat_perturb = choice([None, 0.1, 0.2])
         h_perturb: HparamPerturbation = choice([*HparamPerturbation])
         train_downsample: Percentage = choice([25, 50, 75, None])
-        cat_perturb_level: Literal["sample", "label"] = choice(["sample", "label"])
+        cat_perturb_level: CatPerturbLevel = choice([*CatPerturbLevel])
         ev = Evaluator(
             dataset_name=ds,
             classifier_kind=classifier_kind,
@@ -210,7 +211,7 @@ def test_tuner() -> None:
         cat_perturb = choice([None, 0.1, 0.2])
         h_perturb: HparamPerturbation = choice([*HparamPerturbation])
         train_downsample: Percentage = choice([25, 50, 75, None])
-        cat_perturb_level: Literal["sample", "label"] = choice(["sample", "label"])
+        cat_perturb_level: CatPerturbLevel = choice([*CatPerturbLevel])
         ev = Tuner(
             dataset_name=ds,
             classifier_kind=classifier_kind,

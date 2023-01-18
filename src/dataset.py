@@ -29,7 +29,7 @@ from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from tqdm.contrib.concurrent import process_map
 
 from src.constants import CAT_REDUCED, CONT_REDUCED, DISTANCES
-from src.enumerables import DataPerturbation, DatasetName
+from src.enumerables import CatPerturbLevel, DataPerturbation, DatasetName
 from src.perturb import neighbour_perturb, sig_perturb_plus
 from src.seeding import load_repeat_rng, load_run_rng
 
@@ -259,7 +259,7 @@ class Dataset:
     def get_X_categorical(
         self,
         perturbation_prob: float | None = 0,
-        perturb_level: Literal["sample", "label"] = "label",
+        perturb_level: CatPerturbLevel = CatPerturbLevel.Label,
         reduction: int | None = None,
         rng: Generator | None = None,
     ) -> ndarray | None:
@@ -318,7 +318,7 @@ class Dataset:
                 )
             if perturbation_prob > 0:
                 rng = np.random.default_rng() if rng is None else rng
-                if perturb_level == "sample":
+                if perturb_level is CatPerturbLevel.Sample:
                     N = len(df)
                     ix = rng.permutation(N)[: ceil(perturbation_prob * N)]
                     ix_bool = np.zeros([len(cats)], dtype=np.bool_)
@@ -336,7 +336,7 @@ class Dataset:
                     idx = rng.uniform(0, 1, size=cats.shape) < p
                     ix_final = ix_bool[:, None] & idx
                     cats.loc[ix_final] = rands[ix_final]
-                else:
+                elif perturb_level is CatPerturbLevel.Label:
                     rands = cats.copy()
                     for column in cats.columns:
                         c: Series = cats[column]
@@ -346,6 +346,8 @@ class Dataset:
                         rands[column] = new
                     idx = rng.uniform(0, 1, size=rands.shape) < perturbation_prob
                     cats.loc[idx] = rands.loc[idx]
+                else:
+                    raise ValueError(f"Unrecognized CatPerturbLevel: {perturb_level}")
             return pd.get_dummies(cats).astype(np.float64).to_numpy()  # type: ignore
 
         X = reduce_categoricals(self)
@@ -359,7 +361,7 @@ class Dataset:
         self,
         cont_perturb: DataPerturbation | None = None,
         cat_perturb_prob: float = 0,
-        cat_perturb_level: Literal["sample", "label"] = "label",
+        cat_perturb_level: CatPerturbLevel = CatPerturbLevel.Label,
         reduction: int | None = None,
         rng: Generator | None = None,
     ) -> tuple[ndarray, ndarray]:
@@ -569,7 +571,7 @@ class Dataset:
         train_downsample: Percentage | None,
         cont_perturb: DataPerturbation | None = None,
         cat_perturb_prob: float | None = None,
-        cat_perturb_level: Literal["sample", "label"] = "label",
+        cat_perturb_level: CatPerturbLevel = CatPerturbLevel.Label,
         reduction: int | None = None,
         repeat: int = 0,
         run: int = 0,

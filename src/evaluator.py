@@ -25,10 +25,12 @@ from numpy import ndarray
 from src.constants import DEBUG_LOGS, LOGS, ensure_dir
 from src.dataset import Dataset
 from src.enumerables import (
+    CatPerturbLevel,
     ClassifierKind,
     DataPerturbation,
     DatasetName,
     HparamPerturbation,
+    get_index,
 )
 from src.hparams.hparams import Hparams
 from src.models.logistic import LRModel, SGDLRModel
@@ -91,7 +93,7 @@ class Evaluator(DirJSONable):
         categorical_perturb: float | None,
         hparam_perturb: HparamPerturbation | None,
         train_downsample: Percentage | None,
-        categorical_perturb_level: Literal["sample", "label"] = "label",
+        categorical_perturb_level: CatPerturbLevel = CatPerturbLevel.Label,
         debug: bool = False,
         _suppress_json: bool = False,
     ) -> None:
@@ -107,9 +109,7 @@ class Evaluator(DirJSONable):
         self.hparam_perturb: HparamPerturbation | None = hparam_perturb
         self.train_downsample: Percentage | None = train_downsample
         self._model: ClassifierModel | None = None
-        self.categorical_perturb_level: Literal[
-            "sample", "label"
-        ] = categorical_perturb_level
+        self.categorical_perturb_level: CatPerturbLevel = categorical_perturb_level
         self.debug = debug
         self.logdir = self.get_logdir()
         if not _suppress_json:
@@ -157,6 +157,22 @@ class Evaluator(DirJSONable):
         else:
             raise ValueError(f"Unknown model kind: {self.classifer_kind}")
         return self._model
+
+    def get_id(self) -> str:
+        return "_".join(
+            [
+                f"{get_index(self.dataset_name)}"
+                f"{get_index(self.classifer_kind)}"
+                f"{get_index(self.repeat)}"
+                f"{get_index(self.run)}"
+                f"{get_index(self.dimension_reduction)}"
+                f"{get_index(self.continuous_perturb)}"
+                f"{self.categorical_perturb}"
+                f"{get_index(self.hparam_perturb)}"
+                f"{get_index(self.train_downsample)}"
+                f"{get_index(self.categorical_perturb_level)}"
+            ]
+        )
 
     def get_logdir(self) -> Path:
         c = self.classifer_kind.value
@@ -212,8 +228,6 @@ class Evaluator(DirJSONable):
             self.dataset_ = Dataset(self.dataset_name)
         return self.dataset_
 
-    def
-
     def to_json(self, root: Path) -> None:
         root.mkdir(exist_ok=True, parents=True)
         hps = root / "hparams"
@@ -230,7 +244,7 @@ class Evaluator(DirJSONable):
                     "categorical_perturb": self.categorical_perturb,
                     "hparam_perturb": value_or_none(self.hparam_perturb),
                     "train_downsample": self.train_downsample,
-                    "categorical_perturb_level": self.categorical_perturb_level,
+                    "categorical_perturb_level": self.categorical_perturb_level.value,
                     "repeat": self.repeat,
                     "run": self.run,
                     "debug": self.debug,
@@ -250,6 +264,7 @@ class Evaluator(DirJSONable):
 
         c_perturb = to_enum_or_none(DataPerturbation, d.continuous_perturb)
         h_perturb = to_enum_or_none(HparamPerturbation, d.hparam_perturb)
+        cat_perturb = CatPerturbLevel(d.categorical_perturb_level)
 
         new = cls(
             dataset_name=DatasetName(d.dataset_name),
@@ -260,7 +275,7 @@ class Evaluator(DirJSONable):
             categorical_perturb=d.categorical_perturb,
             hparam_perturb=h_perturb,
             train_downsample=d.train_downsample,
-            categorical_perturb_level=d.categorical_perturb_level,
+            categorical_perturb_level=cat_perturb,
             repeat=d.repeat,
             run=d.run,
             debug=d.debug,
@@ -271,18 +286,27 @@ class Evaluator(DirJSONable):
 
     @overload
     def evaluate(
-        self, no_pred: bool = False, return_test_acc: Literal[True] = True, checkpoint: bool = False
+        self,
+        no_pred: bool = False,
+        return_test_acc: Literal[True] = True,
+        checkpoint: bool = False,
     ) -> float:
         ...
 
     @overload
     def evaluate(
-        self, no_pred: bool = False, return_test_acc: Literal[False] = False, checkpoint: bool = False
+        self,
+        no_pred: bool = False,
+        return_test_acc: Literal[False] = False,
+        checkpoint: bool = False,
     ) -> None:
         ...
 
     def evaluate(
-        self, no_pred: bool = False, return_test_acc: bool = False, checkpoint: bool = False,
+        self,
+        no_pred: bool = False,
+        return_test_acc: bool = False,
+        checkpoint: bool = False,
     ) -> float | None:
         try:
             if checkpoint:
@@ -385,7 +409,7 @@ class Tuner(Evaluator):
         categorical_perturb: float | None,
         hparam_perturb: HparamPerturbation | None,
         train_downsample: Percentage | None,
-        categorical_perturb_level: Literal["sample", "label"] = "label",
+        categorical_perturb_level: CatPerturbLevel = CatPerturbLevel.Label,
         debug: bool = False,
         _suppress_json: bool = False,
     ) -> None:
@@ -477,7 +501,7 @@ class Tuner(Evaluator):
                     "categorical_perturb": self.categorical_perturb,
                     "hparam_perturb": value_or_none(self.hparam_perturb),
                     "train_downsample": self.train_downsample,
-                    "categorical_perturb_level": self.categorical_perturb_level,
+                    "categorical_perturb_level": self.categorical_perturb_level.value,
                     "repeat": self.repeat,
                     "run": self.run,
                     "debug": self.debug,
@@ -497,6 +521,7 @@ class Tuner(Evaluator):
 
         c_perturb = to_enum_or_none(DataPerturbation, d.continuous_perturb)
         h_perturb = to_enum_or_none(HparamPerturbation, d.hparam_perturb)
+        cat_perturb = CatPerturbLevel(d.categorical_perturb_level)
 
         new = cls(
             dataset_name=DatasetName(d.dataset_name),
@@ -507,7 +532,7 @@ class Tuner(Evaluator):
             categorical_perturb=d.categorical_perturb,
             hparam_perturb=h_perturb,
             train_downsample=d.train_downsample,
-            categorical_perturb_level=d.categorical_perturb_level,
+            categorical_perturb_level=cat_perturb,
             repeat=d.repeat,
             run=d.run,
             debug=d.debug,

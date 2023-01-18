@@ -7,7 +7,7 @@ from sklearn.model_selection import ParameterGrid
 from tqdm import tqdm
 
 from src.dataset import Dataset
-from src.enumerables import DataPerturbation, RuntimeClass
+from src.enumerables import CatPerturbLevel, DataPerturbation, RuntimeClass
 
 
 @pytest.mark.slow
@@ -77,7 +77,7 @@ class TestPerturbRepro:
             run=list(range(2)),
             cont=[cont],
             cat=[0, 0.1],
-            level=["sample", "label"],
+            level=[*CatPerturbLevel],
         )
 
         args = [Namespace(**d) for d in list(ParameterGrid(grid))]

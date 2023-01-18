@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parent.parent  # isort: skip
 sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
+from abc import abstractmethod
 from enum import Enum
 from pathlib import Path
 
@@ -20,7 +21,22 @@ PQS = ROOT / "data/parquet"
 ThridPartyClassifierModel = SVC | XGBClassifier
 
 
-class DatasetName(Enum):
+class Indexable(Enum):
+    @abstractmethod
+    def index(self) -> int:
+        return [*self.__class__].index(self) + 1
+
+
+def get_index(indexable: Indexable | None | int) -> int:
+    if indexable is None:
+        return 0
+    if isinstance(indexable, Indexable):
+        return indexable.index()
+    if isinstance(indexable, int):
+        return int(indexable)
+
+
+class DatasetName(Indexable):
     """Remove DevnagariScript and FashionMnist, which are not tabular data"""
 
     Arrhythmia = "arrhythmia"
@@ -114,7 +130,7 @@ class DatasetName(Enum):
         return [*DatasetName].index(self)
 
 
-class RuntimeClass(Enum):
+class RuntimeClass(Indexable):
     Fast = "fast"
     Mid = "medium"
     Slow = "slow"
@@ -244,7 +260,8 @@ class RuntimeClass(Enum):
 #     RelPercent = "rel-percent"
 #     AbsPercent = "abs-percent"
 
-class Percentage(Enum):
+
+class Percentage(Indexable):
     P25 = 25
     P50 = 50
     P75 = 75
@@ -252,7 +269,8 @@ class Percentage(Enum):
     def index(self) -> int:
         return [*Percentage].index(self) + 1
 
-class DataPerturbation(Enum):
+
+class DataPerturbation(Indexable):
     HalfNeighbor = "half-neighbour"  # Yes
     QuarterNeighbor = "quarter-neighbour"
     SigDigZero = "sig0"  # Yes
@@ -266,8 +284,15 @@ class DataPerturbation(Enum):
         # +1 for None Case
         return [*DataPerturbation].index(self) + 1
 
+class CatPerturbLevel(Indexable):
+    Sample = "sample"
+    Label = "label"
 
-class HparamPerturbation(Enum):
+    def index(self) -> int:
+        # +1 for None Case
+        return [*CatPerturbLevel].index(self) + 1
+
+class HparamPerturbation(Indexable):
     SigZero = "sig-zero"  # Yes
     SigOne = "sig-one"
     Percentile10 = "percentile-10"
@@ -297,7 +322,7 @@ class MetaPerturbation(Enum):
     SigDigOne = "sig1"
 
 
-class ClassifierKind(Enum):
+class ClassifierKind(Indexable):
     XGBoost = "xgb"
     SGD_SVM = "svm-sgd"
     LinearSVM = "svm-linear"
