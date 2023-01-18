@@ -293,16 +293,18 @@ class Evaluator(DirJSONable):
         new.logdir = root
         return new
 
-    def cleanup(self) -> None:
+    def cleanup(self, silent: bool = True) -> None:
         try:
             needs_cleanup = self.logdir.exists() or self.ckpt_file.exists()
             if self.logdir.exists():
-                print(f"Cleaning up {self.logdir}...")
+                if not silent:
+                    print(f"Cleaning up {self.logdir}...")
                 rmtree(self.logdir)
             if self.ckpt_file.exists():
                 self.ckpt_file.unlink(missing_ok=True)
             if needs_cleanup:
-                print(f"Removed {self.logdir} and checkpoint file {self.ckpt_file}")
+                if not silent:
+                    print(f"Removed {self.logdir} and checkpoint file {self.ckpt_file}")
         except Exception as e:
             traceback.print_exc()
             raise RuntimeError(
@@ -343,7 +345,7 @@ class Evaluator(DirJSONable):
         if not skip_done:
             self.ckpt_file.unlink(missing_ok=True)
         if skip_done and self.ckpt_file.exists():
-            self.cleanup()
+            self.cleanup(silent=True)
             return None
         try:
             ds = self.dataset
