@@ -110,12 +110,18 @@ class DatasetName(Enum):
         }
         return paths[self]
 
+    def index(self) -> int:
+        return [*DatasetName].index(self)
+
 
 class RuntimeClass(Enum):
     Fast = "fast"
     Mid = "medium"
     Slow = "slow"
     VerySlow = "very-slow"
+
+    def index(self) -> int:
+        return [*RuntimeClass].index(self)
 
     def members(self) -> list[DatasetName]:
         runtimes = {
@@ -238,6 +244,13 @@ class RuntimeClass(Enum):
 #     RelPercent = "rel-percent"
 #     AbsPercent = "abs-percent"
 
+class Percentage(Enum):
+    P25 = 25
+    P50 = 50
+    P75 = 75
+
+    def index(self) -> int:
+        return [*Percentage].index(self) + 1
 
 class DataPerturbation(Enum):
     HalfNeighbor = "half-neighbour"  # Yes
@@ -249,6 +262,10 @@ class DataPerturbation(Enum):
     Percentile10 = "percentile-10"
     Percentile05 = "percentile-05"
 
+    def index(self) -> int:
+        # +1 for None Case
+        return [*DataPerturbation].index(self) + 1
+
 
 class HparamPerturbation(Enum):
     SigZero = "sig-zero"  # Yes
@@ -259,6 +276,9 @@ class HparamPerturbation(Enum):
     RelPercent05 = "rel-percent-05"
     AbsPercent10 = "abs-percent-10"
     AbsPercent05 = "abs-percent-05"
+
+    def index(self) -> int:
+        return [*HparamPerturbation].index(self) + 1
 
     def magnitude(self) -> int | float:
         return {
@@ -285,6 +305,9 @@ class ClassifierKind(Enum):
     MLP = "mlp"
     SGD_LR = "lr-sgd"
     LR = "lr"  # MLP with one linear layer, mathematically identical
+
+    def index(self) -> int:
+        return [*ClassifierKind].index(self) + 1
 
     @staticmethod
     def final_kinds() -> list[ClassifierKind]:

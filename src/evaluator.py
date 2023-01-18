@@ -212,6 +212,8 @@ class Evaluator(DirJSONable):
             self.dataset_ = Dataset(self.dataset_name)
         return self.dataset_
 
+    def
+
     def to_json(self, root: Path) -> None:
         root.mkdir(exist_ok=True, parents=True)
         hps = root / "hparams"
