@@ -8,6 +8,8 @@ apptainer/build_files/*.whl
 apptainer/model_variance
 apptainer/model_variance.sif
 
+ckpts
+
 data/json
 data/parquet/*.parquet
 data/parquet/continuous_reductions/DevnagariScript_50percent.npy
