@@ -305,6 +305,7 @@ class Evaluator(DirJSONable):
             if not no_pred:
                 preds, targs = self.model.predict(X=X_test, y=y_test)
                 self.save_preds(preds)
+                self.save_targs(targs)
 
         except Exception as e:
             info = traceback.format_exc()
@@ -317,6 +318,10 @@ class Evaluator(DirJSONable):
         outfile = self.preds_dir / "preds.npz"
         np.savez_compressed(outfile, preds=preds)
         self.ckpt_file.touch(exist_ok=False)
+
+    def save_targs(self, targs: ndarray) -> None:
+        outfile = self.preds_dir / "preds.npz"
+        np.savez_compressed(outfile, targets=targs)
 
     def load_preds(self) -> ndarray:
         outfile = self.preds_dir / "preds.npz"
