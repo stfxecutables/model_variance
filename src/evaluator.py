@@ -322,14 +322,16 @@ class Evaluator(DirJSONable):
         new.logdir = root
         return new
 
-    def cleanup(self, silent: bool = True) -> None:
+    def cleanup(self, remove_ckpt: bool = True, silent: bool = True) -> None:
         try:
-            needs_cleanup = self.logdir.exists() or self.ckpt_file.exists()
+            needs_cleanup = self.logdir.exists() or (
+                self.ckpt_file.exists() and remove_ckpt
+            )
             if self.logdir.exists():
                 if not silent:
                     print(f"Cleaning up {self.logdir}...")
                 rmtree(self.logdir)
-            if self.ckpt_file.exists():
+            if self.ckpt_file.exists() and remove_ckpt:
                 self.ckpt_file.unlink(missing_ok=True)
             if needs_cleanup:
                 if not silent:
@@ -374,7 +376,7 @@ class Evaluator(DirJSONable):
         if not skip_done:
             self.ckpt_file.unlink(missing_ok=True)
         if skip_done and self.ckpt_file.exists():
-            self.cleanup(silent=True)
+            self.cleanup(remove_ckpt=False, silent=True)
             return None
         try:
             ds = self.dataset
@@ -398,8 +400,8 @@ class Evaluator(DirJSONable):
             self.save_targs(targs)
             self.archive()
             with open(self.ckpt_file, "w+") as fp:
-                fp.write(str(self.logdir))
-            self.cleanup(silent=True)
+                fp.write(f"{self.logdir}\n")
+            self.cleanup(remove_ckpt=False, silent=True)
 
             if return_test_acc:
                 if preds.ndim == 2:
@@ -409,7 +411,7 @@ class Evaluator(DirJSONable):
         except Exception as e:
             info = traceback.format_exc()
             print(f"Cleaning up {self.logdir} due to evaluation failure...")
-            self.cleanup()
+            self.cleanup(remove_ckpt=True)
             raise RuntimeError(f"Could not fit model:\n{info}") from e
 
     def archive(self) -> None:
