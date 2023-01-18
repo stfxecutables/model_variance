@@ -22,7 +22,7 @@ from uuid import uuid4
 import numpy as np
 from numpy import ndarray
 
-from src.constants import DEBUG_LOGS, LOGS, ensure_dir
+from src.constants import CKPTS, DEBUG_LOGS, LOGS, ensure_dir
 from src.dataset import Dataset
 from src.enumerables import (
     CatPerturbLevel,
@@ -111,7 +111,7 @@ class Evaluator(DirJSONable):
         self._model: ClassifierModel | None = None
         self.categorical_perturb_level: CatPerturbLevel = categorical_perturb_level
         self.debug = debug
-        self.logdir = self.get_logdir()
+        self.logdir = self.setup_logdir()
         if not _suppress_json:
             self.to_json(self.logdir)
         if not debug:
@@ -161,20 +161,20 @@ class Evaluator(DirJSONable):
     def get_id(self) -> str:
         return "_".join(
             [
-                f"{get_index(self.dataset_name)}"
-                f"{get_index(self.classifer_kind)}"
-                f"{get_index(self.repeat)}"
-                f"{get_index(self.run)}"
-                f"{get_index(self.dimension_reduction)}"
-                f"{get_index(self.continuous_perturb)}"
-                f"{self.categorical_perturb}"
-                f"{get_index(self.hparam_perturb)}"
-                f"{get_index(self.train_downsample)}"
-                f"{get_index(self.categorical_perturb_level)}"
+                f"{get_index(self.dataset_name)}",
+                f"{get_index(self.classifer_kind)}",
+                f"{get_index(self.repeat)}",
+                f"{get_index(self.run)}",
+                f"{get_index(self.dimension_reduction)}",
+                f"{get_index(self.continuous_perturb)}",
+                f"{self.categorical_perturb}".replace("None", "0.0").replace(".", "-"),
+                f"{get_index(self.hparam_perturb)}",
+                f"{get_index(self.train_downsample)}",
+                f"{get_index(self.categorical_perturb_level)}",
             ]
         )
 
-    def get_logdir(self) -> Path:
+    def setup_logdir(self) -> Path:
         c = self.classifer_kind.value
         d = self.dataset_name.value
         dim = self.dimension_reduction
@@ -182,6 +182,7 @@ class Evaluator(DirJSONable):
 
         rep = f"rep={self.repeat:03d}"
         run = f"run={self.run:03d}"
+
         jid = os.environ.get("SLURM_JOB_ID")
         aid = os.environ.get("SLURM_ARRAY_TASK_ID")
         if jid is None:
@@ -195,7 +196,14 @@ class Evaluator(DirJSONable):
         hsh = urlsafe_b64encode(uuid4().bytes).decode()
         uid = f"{ts}__{hsh}" if slurm_id is None else f"{slurm_id}__{ts}__{hsh}"
         root = DEBUG_LOGS if self.debug else LOGS
-        return ensure_dir(root / f"{c}/{d}/{red}/{rep}/{run}/{uid}")
+        logdir = ensure_dir(root / f"{c}/{d}/{red}/{rep}/{run}/{uid}")
+        # create these for easy deletion in case of failed jobs
+        if jid is not None:
+            (logdir / f"{jid}.jobid").touch(exist_ok=True)
+        if aid is not None:
+            (logdir / f"{aid}.arrayid").touch(exist_ok=True)
+
+        return logdir
 
     @property
     def res_dir(self) -> Path:
@@ -217,10 +225,11 @@ class Evaluator(DirJSONable):
     @property
     def ckpt_file(self) -> Path:
         """This should be a unique"""
-        run = self.logdir.parent
-        fname = self.logdir.name
+        outdir = CKPTS / "debug" if self.debug else CKPTS / "eval"
+        ensure_dir(outdir)
+        cid = self.get_id()
         # do NOT ensure it exists: we create it after saving preds
-        return run / f"{fname}.ckpt"
+        return outdir / f"{cid}.ckpt"
 
     @property
     def dataset(self) -> Dataset:
@@ -284,13 +293,39 @@ class Evaluator(DirJSONable):
         new.logdir = root
         return new
 
+    def cleanup(self) -> None:
+        try:
+            needs_cleanup = self.logdir.exists() or self.ckpt_file.exists()
+            if self.logdir.exists():
+                print(f"Cleaning up {self.logdir}...")
+                rmtree(self.logdir)
+            if self.ckpt_file.exists():
+                self.ckpt_file.unlink(missing_ok=True)
+            if needs_cleanup:
+                print(f"Removed {self.logdir} and checkpoint file {self.ckpt_file}")
+        except Exception as e:
+            traceback.print_exc()
+            raise RuntimeError(
+                f"Failed to cleanup run data. Data may remain at either "
+                f"{self.logdir} or {self.ckpt_file}. "
+            ) from e
+
     @overload
     def evaluate(
         self,
         no_pred: bool = False,
         return_test_acc: Literal[True] = True,
-        checkpoint: bool = False,
+        skip_done: bool = False,
     ) -> float:
+        ...
+
+    @overload
+    def evaluate(
+        self,
+        no_pred: Literal[True] = True,
+        return_test_acc: bool = True,
+        skip_done: bool = False,
+    ) -> None:
         ...
 
     @overload
@@ -298,19 +333,19 @@ class Evaluator(DirJSONable):
         self,
         no_pred: bool = False,
         return_test_acc: Literal[False] = False,
-        checkpoint: bool = False,
+        skip_done: bool = False,
     ) -> None:
         ...
 
     def evaluate(
-        self,
-        no_pred: bool = False,
-        return_test_acc: bool = False,
-        checkpoint: bool = False,
+        self, no_pred: bool = False, return_test_acc: bool = False, skip_done: bool = True
     ) -> float | None:
+        if not skip_done:
+            self.ckpt_file.unlink(missing_ok=True)
+        if skip_done and self.ckpt_file.exists():
+            self.cleanup()
+            return None
         try:
-            if checkpoint:
-                self._ensure_no_checkpoint()
             ds = self.dataset
             # if self.classifer_kind in [ClassifierKind.MLP, ClassifierKind.LR]:
             #     raise NotImplementedError()
@@ -324,27 +359,28 @@ class Evaluator(DirJSONable):
                 run=self.run,
             )
             self.model.fit(X=X_train, y=y_train)
+            if no_pred:
+                return None
+
+            preds, targs = self.model.predict(X=X_test, y=y_test)
+            self.save_preds(preds)
+            self.save_targs(targs)
+            self.ckpt_file.touch(exist_ok=False)
+
             if return_test_acc:
-                preds, targs = self.model.predict(X=X_test, y=y_test)
                 if preds.ndim == 2:
                     return float(np.mean(np.argmax(preds, axis=1) == targs))
                 return float(np.mean(preds == targs))
-            if not no_pred:
-                preds, targs = self.model.predict(X=X_test, y=y_test)
-                self.save_preds(preds)
-                self.save_targs(targs)
 
         except Exception as e:
             info = traceback.format_exc()
             print(f"Cleaning up {self.logdir} due to evaluation failure...")
-            rmtree(self.logdir)
-            print(f"Removed {self.logdir}")
+            self.cleanup()
             raise RuntimeError(f"Could not fit model:\n{info}") from e
 
     def save_preds(self, preds: ndarray) -> None:
         outfile = self.preds_dir / "preds.npz"
         np.savez_compressed(outfile, preds=preds)
-        self.ckpt_file.touch(exist_ok=False)
 
     def save_targs(self, targs: ndarray) -> None:
         outfile = self.preds_dir / "preds.npz"
@@ -379,8 +415,10 @@ class Evaluator(DirJSONable):
             return False
         d1 = {**self.__dict__}
         d2 = {**other.__dict__}
-        d1.pop("hparams")
-        d2.pop("hparams")
+        ignored = ["logdir"]
+        for ignore in ignored:
+            d1.pop(ignore)
+            d2.pop(ignore)
         try:
             return d1 == d2
         except Exception as e:
@@ -428,13 +466,16 @@ class Tuner(Evaluator):
             debug,
             _suppress_json=True,
         )
-        self.logdir = self.get_logdir()
+        self.logdir = self.setup_logdir()
         if not _suppress_json:
             self.to_json(self.logdir)
 
-    def tune(self, no_pred: bool = False, return_test_acc: bool = False) -> float | None:
+    def tune(
+        self, no_pred: bool = False, return_test_acc: bool = False, skip_done: bool = True
+    ) -> float | None:
         try:
-            self._ensure_no_checkpoint()
+            if self.ckpt_file.exists() and skip_done:
+                return None
             ds = self.dataset
             X_train, y_train, X_test, y_test = ds.get_monte_carlo_splits(
                 train_downsample=self.train_downsample,
@@ -462,7 +503,7 @@ class Tuner(Evaluator):
             print(f"Removed {self.logdir}")
             raise RuntimeError(f"Could not fit model:\n{info}") from e
 
-    def get_logdir(self) -> Path:
+    def setup_logdir(self) -> Path:
         c = self.classifer_kind.value
         d = self.dataset_name.value
         dim = self.dimension_reduction
@@ -484,6 +525,15 @@ class Tuner(Evaluator):
         uid = f"{ts}__{hsh}" if slurm_id is None else f"{slurm_id}__{ts}__{hsh}"
         root = DEBUG_LOGS if self.debug else LOGS
         return ensure_dir(root / f"tuning/{c}/{d}/{red}/{rep}/{run}/{uid}")
+
+    @property
+    def ckpt_file(self) -> Path:
+        """This should be a unique"""
+        outdir = CKPTS / "debug" if self.debug else CKPTS / "tune"
+        ensure_dir(outdir)
+        cid = self.get_id()
+        # do NOT ensure it exists: we create it after saving preds
+        return outdir / f"{cid}.ckpt"
 
     def to_json(self, root: Path) -> None:
         root.mkdir(exist_ok=True, parents=True)

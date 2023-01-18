@@ -61,8 +61,9 @@ def get_evaluator(kind: ClassifierKind, random: bool, i: int) -> Evaluator:
     )
 
 
-def random_evaluator(_seed: int | None = None) -> Evaluator:
-    rng = np.random.default_rng(seed=_seed)
+def random_evaluator(rng: np.random.Generator | None = None) -> Evaluator:
+    if rng is None:
+        rng = np.random.default_rng()
 
     def choice(x: list[Any]) -> Any:
         val = rng.choice(x)
@@ -79,7 +80,7 @@ def random_evaluator(_seed: int | None = None) -> Evaluator:
         ClassifierKind.SGD_LR: SGDLRHparams,
         ClassifierKind.MLP: MLPHparams,
     }[kind]()
-    hps = hp.random()
+    hps = hp.random(rng)
     return Evaluator(
         dataset_name=choice([*DatasetName]),
         classifier_kind=kind,
@@ -132,12 +133,27 @@ def helper(
 
 
 def test_ids() -> None:
-    for seed in np.random.default_rng().integers(0, int(1e9), 50):
-        ev1 = random_evaluator(seed)
-        ev2 = random_evaluator(seed)
-        ev3 = random_evaluator(seed + 1)
-        assert ev1.get_id() == ev2.get_id()
-        assert ev1.get_id() != ev3.get_id()
+    # extremely unlikely to get replicates, but technically can fail randomly
+    seqs = np.random.SeedSequence().spawn(51)
+    for i in range(50):
+        rng1 = np.random.default_rng(seqs[i])
+        rng2 = np.random.default_rng(seqs[i])
+        rng3 = np.random.default_rng(seqs[i + 1])
+        ev1 = random_evaluator(rng1)
+        ev2 = random_evaluator(rng2)
+        ev3 = random_evaluator(rng3)
+        try:
+            assert ev1.get_id() == ev2.get_id()
+            assert ev1 == ev2
+
+            assert ev1.get_id() != ev3.get_id()
+            assert ev1 != ev3
+        except AssertionError as e:
+            raise e
+        finally:
+            ev1.cleanup()
+            ev2.cleanup()
+            ev3.cleanup()
 
 
 def test_ckpts() -> None:
@@ -158,16 +174,20 @@ def test_ckpts() -> None:
             debug=True,
         )
         ev = Evaluator(**ev_args)
-        ckpt_dir = ev.ckpt_file.parent
-        ckpts = sorted(ckpt_dir.glob("*.ckpt"))
-        if len(ckpts) > 0:
-            for ckpt in ckpts:
-                ckpt.unlink(missing_ok=True)
-
-        ev.evaluate()
         ev2 = Evaluator(**ev_args)
-        with raises(FileExistsError):
-            ev2.evaluate()
+        try:
+            assert not ev.ckpt_file.exists()
+            ev.evaluate(skip_done=False)
+            assert ev.ckpt_file.exists()
+
+            assert ev2.model.fitted is False
+            ev2.evaluate(skip_done=True)
+            assert ev2.model.fitted is False
+        except Exception as e:
+            raise e
+        finally:
+            ev.cleanup()
+            ev2.cleanup()
 
 
 @pytest.mark.medium

@@ -55,7 +55,7 @@ def test_save_dirs() -> None:
     ]:
         try:
             tuner = get_tuner(kind, random=False, i=0)
-            assert "tuning" in str(tuner.get_logdir())
+            assert "tuning" in str(tuner.setup_logdir())
             assert "tuning" in str(tuner.logdir)
             assert "tuning" in str(tuner.ckpt_file)
             assert "tuning" in str(tuner.res_dir)
@@ -63,7 +63,7 @@ def test_save_dirs() -> None:
             raise e
         finally:
             tuner = get_tuner(kind, random=False, i=0)
-            logdir = tuner.get_logdir()
+            logdir = tuner.setup_logdir()
             if logdir.exists():
                 rmtree(logdir)
 
