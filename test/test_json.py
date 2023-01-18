@@ -22,7 +22,7 @@ from src.enumerables import (
     DatasetName,
     HparamPerturbation,
 )
-from src.evaluator import Evaluator
+from src.evaluator import Evaluator, Tuner
 from src.hparams.hparams import CategoricalHparam, ContinuousHparam, OrdinalHparam
 from src.hparams.logistic import LRHparams, SGDLRHparams
 from src.hparams.mlp import MLPHparams
@@ -166,6 +166,68 @@ def test_evaluator() -> None:
         )
         try:
             ev2 = Evaluator.from_json(ev.logdir)
+            rmtree(ev.logdir)
+            if ev == ev2:
+                continue
+
+            info = missing_keys(ev, ev2)
+            if info is not None:
+                raise ValueError(
+                    f"Objects differ:\n {info}\n" f"left: {ev}\n" f"right: {ev2}\n"
+                )
+        except Exception as e:
+            if ev.logdir.exists():
+                rmtree(ev.logdir)
+            raise e
+
+
+def test_tuner() -> None:
+    for _ in range(100):
+        hp_cls = choice(
+            [
+                SVMHparams,
+                SGDLinearSVMHparams,
+                LinearSVMHparams,
+                XGBoostHparams,
+                LRHparams,
+                SGDLRHparams,
+                MLPHparams,
+            ]
+        )
+        ds = choice([*DatasetName])
+        classifier_kind = {
+            XGBoostHparams: ClassifierKind.XGBoost,
+            SVMHparams: ClassifierKind.SVM,
+            SGDLinearSVMHparams: ClassifierKind.SGD_SVM,
+            LinearSVMHparams: ClassifierKind.LinearSVM,
+            LRHparams: ClassifierKind.LR,
+            SGDLRHparams: ClassifierKind.SGD_LR,
+            MLPHparams: ClassifierKind.MLP,
+        }[hp_cls]
+        hps = hp_cls().random()
+        dim_reduce: Percentage | None = choice([25, 50, 75, None])
+        cont_perturb = choice([*DataPerturbation, None])
+        cat_perturb = choice([None, 0.1, 0.2])
+        h_perturb: HparamPerturbation = choice([*HparamPerturbation])
+        train_downsample: Percentage = choice([25, 50, 75, None])
+        cat_perturb_level: Literal["sample", "label"] = choice(["sample", "label"])
+        ev = Tuner(
+            dataset_name=ds,
+            classifier_kind=classifier_kind,
+            hparams=hps,
+            dimension_reduction=dim_reduce,
+            continuous_perturb=cont_perturb,
+            categorical_perturb=cat_perturb,
+            hparam_perturb=h_perturb,
+            train_downsample=train_downsample,
+            categorical_perturb_level=cat_perturb_level,
+            repeat=int(np.random.randint(0, 50)),
+            run=int(np.random.randint(0, 50)),
+            debug=True,
+            _suppress_json=False,
+        )
+        try:
+            ev2 = Tuner.from_json(ev.logdir)
             rmtree(ev.logdir)
             if ev == ev2:
                 continue

@@ -847,6 +847,7 @@ xgb        Fast      <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m
 Assuming we remove dimension reduction, then for each dataset, we get:
 
 ```
+4 classifiers            ×
 4-6 continuous perturbs  ×
 3-5 categorical perturbs ×
 4 hparam perturbs        ×
@@ -854,10 +855,24 @@ Assuming we remove dimension reduction, then for each dataset, we get:
 5-10 runs                ×
 5-10 repeats
 --------------------------
-= 4800 - 48 000 runs per ds
+= 4 classifiers          ×
+   4 800 -  48 000 runs per ds per classifier
+--------------------------
+= 19 200 - 192 000 runs per ds
 
-= 16.7 - 167 1-CORE compute days (assuming 5-minute fit times)
+= 13.3 - 133  1-CORE compute days (assuming 1-minute fit times)
+= 66.7 - 667  1-CORE compute days (assuming 5-minute fit times)
+
 ```
+
+### Can we run 1 classifier × 1 dataset in one 24-hour job with a bunch of cores?
+
+Assume 1min fit + pred. 4800 reps = 4800 min = 80h / core. With 10 cores, 8h, no prob.
+Assume 5min fit + pred. 4800 reps = 5 *4800 min = 400h / core. With >18 cores, <24h, no prob.
+
+But if we can reduce perturb combinations is much easier, trivial
+
+
 
 But then times runs / repeats is  (2 to 8) × rN × 10^4, smallest r is like 5-10, smallest N is like 10-20,
 so 2 × 5 × 10 e4 = 1e6  to  8 × 10 × 20 e4 =  1.6e7, 16 million. So **between 1 to 16 million 'validations'

@@ -23,8 +23,8 @@ CATS = [chr(i) for i in (list(range(97, 123)) + list(range(65, 91)))]
 def random_continuous(rng: Generator | None = None) -> ContinuousHparam:
     if rng is None:
         rng = np.random.default_rng()
-    log_scale = rng.choice([True, False])
-    value = rng.uniform(0, 1)
+    log_scale = bool(rng.choice([True, False]))
+    value = float(rng.uniform(0, 1))
     hsh = rng.bytes(8).hex()
     mn = 1e-15 if log_scale else 0.0
     return ContinuousHparam(

@@ -67,14 +67,14 @@ def compare_similar_models(model: Literal["svm", "lr"]) -> None:
     else:
         select = ["lr", "lr-sgd"]
         models = df_orig.loc[df_orig.classifier.isin(select)].drop(columns="elapsed_s")
-        sbn.catplot(
-            models[models.classifier.apply(lambda s: "lr" in s)],
-            y="acc",
-            x="classifier",
-            col="cluster",
-            kind="violin",
-        )
-        plt.show()
+        # sbn.catplot(
+        #     models[models.classifier.apply(lambda s: "lr" in s)],
+        #     y="acc",
+        #     x="classifier",
+        #     col="cluster",
+        #     kind="violin",
+        # )
+        # plt.show()
         models = models.loc[
             ((models.cluster == "niagara") & (models.classifier == "lr-sgd"))
             | ((models.cluster == "cedar") & (models.classifier == "lr"))
@@ -156,10 +156,23 @@ if __name__ == "__main__":
         .drop(columns="count")
         .to_markdown()
     )
-    max_times["max"] = max_times["max"].apply(to_readable)
+    max_times["max"] = max_times["max"]  # .apply(to_readable)
     print("Max times:")
     print(max_times)
-    # sys.exit()
+    print("Max times less than 15 seconds:")
+    print(max_times[max_times["max"] < 15].sort_values(by=["dataset", "max"]))
+    # Overall fastest are Vehicle and Anneal
+    print("Max times with all datasets:")
+    print(
+        max_times[max_times["max"] < 15]
+        .sort_values(by="max")
+        .groupby("dataset")
+        .describe()["max"]
+        .reset_index()
+        .sort_values(by=["count", "max"], ascending=[False, True])
+    )
+
+    sys.exit()
 
     runtimes = (
         df["elapsed_s"]  # type:ignore

@@ -192,6 +192,11 @@ class RuntimeClass(Enum):
         ]
 
     @staticmethod
+    def most_fastest() -> list[DatasetName]:
+        # Runtime is <10 seconds, <5 seconds if not MLP
+        return [DatasetName.Anneal, DatasetName.Vehicle]
+
+    @staticmethod
     def from_dataset(dsname: DatasetName) -> RuntimeClass:
         cls: RuntimeClass
         for cls in RuntimeClass:
@@ -235,18 +240,18 @@ class RuntimeClass(Enum):
 
 
 class DataPerturbation(Enum):
-    HalfNeighbor = "half-neighbour"
+    HalfNeighbor = "half-neighbour"  # Yes
     QuarterNeighbor = "quarter-neighbour"
-    SigDigZero = "sig0"
+    SigDigZero = "sig0"  # Yes
     SigDigOne = "sig1"
-    RelPercent10 = "rel-10"
+    RelPercent10 = "rel-10"  # Yes
     RelPercent05 = "rel-05"
     Percentile10 = "percentile-10"
     Percentile05 = "percentile-05"
 
 
 class HparamPerturbation(Enum):
-    SigZero = "sig-zero"
+    SigZero = "sig-zero"  # Yes
     SigOne = "sig-one"
     Percentile10 = "percentile-10"
     Percentile05 = "percentile-05"
@@ -266,6 +271,10 @@ class HparamPerturbation(Enum):
             HparamPerturbation.AbsPercent05: 0.05,
             HparamPerturbation.AbsPercent10: 0.10,
         }[self]
+
+
+class MetaPerturbation(Enum):
+    SigDigOne = "sig1"
 
 
 class ClassifierKind(Enum):

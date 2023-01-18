@@ -282,23 +282,8 @@ class Evaluator(DirJSONable):
     def evaluate(
         self, no_pred: bool = False, return_test_acc: bool = False
     ) -> float | None:
-        if self.preds_dir.exists():
-            with os.scandir(self.preds_dir) as files:
-                if next(files, None) is not None:
-                    raise FileExistsError(
-                        "Impossible! Prediction data with same JOBID or hash "
-                        f"already present in {self.res_dir}."
-                    )
-        ckpt_dir = self.ckpt_file.parent
-        if ckpt_dir.exists():
-            ckpts = sorted(ckpt_dir.glob("*.ckpt"))
-            if len(ckpts) > 0:
-                raise FileExistsError(
-                    f"Checkpoint file {self.ckpt_file} exists, and suggests pred "
-                    f"data for this evaluation repeat and run:\n{self}\n"
-                    f"is already present in {self.logdir}."
-                )
         try:
+            self._ensure_no_checkpoint()
             ds = self.dataset
             # if self.classifer_kind in [ClassifierKind.MLP, ClassifierKind.LR]:
             #     raise NotImplementedError()
@@ -336,6 +321,24 @@ class Evaluator(DirJSONable):
     def load_preds(self) -> ndarray:
         outfile = self.preds_dir / "preds.npz"
         return np.load(outfile)["preds"]
+
+    def _ensure_no_checkpoint(self) -> None:
+        if self.preds_dir.exists():
+            with os.scandir(self.preds_dir) as files:
+                if next(files, None) is not None:
+                    raise FileExistsError(
+                        "Impossible! Prediction data with same JOBID or hash "
+                        f"already present in {self.res_dir}."
+                    )
+        ckpt_dir = self.ckpt_file.parent
+        if ckpt_dir.exists():
+            ckpts = sorted(ckpt_dir.glob("*.ckpt"))
+            if len(ckpts) > 0:
+                raise FileExistsError(
+                    f"Checkpoint file {self.ckpt_file} exists, and suggests pred "
+                    f"data for this evaluation repeat and run:\n{self}\n"
+                    f"is already present in {self.logdir}."
+                )
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Evaluator):
@@ -391,32 +394,16 @@ class Tuner(Evaluator):
             train_downsample,
             categorical_perturb_level,
             debug,
-            _suppress_json,
+            _suppress_json=True,
         )
-
         self.logdir = self.get_logdir()
+        if not _suppress_json:
+            self.to_json(self.logdir)
 
     def tune(self, no_pred: bool = False, return_test_acc: bool = False) -> float | None:
-        if self.preds_dir.exists():
-            with os.scandir(self.preds_dir) as files:
-                if next(files, None) is not None:
-                    raise FileExistsError(
-                        "Impossible! Prediction data with same JOBID or hash "
-                        f"already present in {self.res_dir}."
-                    )
-        ckpt_dir = self.ckpt_file.parent
-        if ckpt_dir.exists():
-            ckpts = sorted(ckpt_dir.glob("*.ckpt"))
-            if len(ckpts) > 0:
-                raise FileExistsError(
-                    f"Checkpoint file {self.ckpt_file} exists, and suggests pred "
-                    f"data for this evaluation repeat and run:\n{self}\n"
-                    f"is already present in {self.logdir}."
-                )
         try:
+            self._ensure_no_checkpoint()
             ds = self.dataset
-            # if self.classifer_kind in [ClassifierKind.MLP, ClassifierKind.LR]:
-            #     raise NotImplementedError()
             X_train, y_train, X_test, y_test = ds.get_monte_carlo_splits(
                 train_downsample=self.train_downsample,
                 cont_perturb=self.continuous_perturb,

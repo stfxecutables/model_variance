@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Mapping, Type
 
 from numpy import ndarray
+from numpy.random import Generator
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
 
@@ -43,6 +44,9 @@ class ClassifierModel(ABC):
         self.model = self.model_cls(**args)
         self.model.fit(*fargs)
         self.fitted = True
+
+    def tune(self, X: ndarray, y: ndarray, rng: Generator | None, iteration: int) -> None:
+        ...
 
     @abstractmethod
     def predict(self, X: ndarray, y: ndarray) -> tuple[ndarray, ndarray]:
