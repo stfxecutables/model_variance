@@ -31,7 +31,7 @@ def is_bad_tar(tarpath: Path) -> Union[Path, None]:
 
 def find_bad_tars(root: Path) -> List[Path]:
     tars = sorted(root.rglob("*.tar.gz"))
-    paths = process_map(tars, is_bad_tar, desc="Checking archives", chunksize=10)
+    paths = process_map(is_bad_tar, tars, desc="Checking archives", chunksize=10)
     paths = [p for p in paths if p is not None]
     if len(paths) > 0:
         print("Got bad archives:")
