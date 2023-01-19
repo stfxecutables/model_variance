@@ -30,13 +30,13 @@ def set_long_print() -> None:
 
 def to_readable(duration_s: float) -> str:
     if duration_s <= 60:
-        return f"<1.0 m"
+        return "<1.0 m"
     mins = duration_s / 60
     if mins <= 120:
         return f"{np.round(mins, 1):03.1f} m"
+    # hrs = mins / 60
+    # return f"{np.round(hrs, 2):03.2f} hrs"
     return f"{np.round(mins, 1):03.1f} m"
-    hrs = mins / 60
-    return f"{np.round(hrs, 2):03.2f} hrs"
 
 
 def star_bool(value: bool | float) -> str:
@@ -81,7 +81,7 @@ def compare_similar_models(model: Literal["svm", "lr"]) -> None:
         .reset_index()
         .drop(columns="classifier", level=0)
     )
-    non_sgd_model.index = non_sgd_model["dataset"]
+    non_sgd_model.index = non_sgd_model["dataset"]  # type: ignore
     non_sgd_model.drop(columns="dataset", inplace=True, level=0)
 
     sgd_model = (
@@ -89,7 +89,7 @@ def compare_similar_models(model: Literal["svm", "lr"]) -> None:
         .reset_index()
         .drop(columns="classifier", level=0)
     )
-    sgd_model.index = sgd_model["dataset"]
+    sgd_model.index = sgd_model["dataset"]  # type: ignore
     sgd_model.drop(columns="dataset", inplace=True, level=0)
 
     diff = sgd_model["acc"] - non_sgd_model["acc"]
@@ -119,7 +119,7 @@ if __name__ == "__main__":
         df_orig.groupby(["cluster", "classifier", "dataset", "runtime"])
         .describe()
         .sort_values(
-            by=["cluster", "classifier", "runtime", ("elapsed_s", "max")],
+            by=["cluster", "classifier", "runtime", ("elapsed_s", "max")],  # type: ignore
             ascending=(False, False, False, True),
         )
     )

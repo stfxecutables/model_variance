@@ -267,9 +267,13 @@ class LinearSVMHparams(Hparams):
 
         We get undocumented errors below:
 
-        The combination of penalty='l1' and loss='squared_hinge' are not supported when dual=True
-        The combination of penalty='l2' and loss='hinge' are not supported when dual=False
-        The combination of penalty='l1' and loss='hinge' is not supported
+            The combination of penalty='l1' and loss='squared_hinge' are not
+            supported when dual=True
+
+            The combination of penalty='l2' and loss='hinge' are not supported
+            when dual=False
+
+            The combination of penalty='l1' and loss='hinge' is not supported
 
         and so reject such random hparams.
         """
@@ -299,7 +303,7 @@ class SGDLinearSVMHparams(Hparams):
             return self.defaults().to_dict()
         return hps
 
-    def random(self, rng: Generator | None = None) -> LinearSVMHparams:
+    def random(self, rng: Generator | None = None) -> SGDLinearSVMHparams:
         hps = super().random(rng)
         assert isinstance(hps, SGDLinearSVMHparams)
         if hps.is_valid():
@@ -313,9 +317,13 @@ class SGDLinearSVMHparams(Hparams):
 
         We get undocumented errors below:
 
-        The combination of penalty='l1' and loss='squared_hinge' are not supported when dual=True
-        The combination of penalty='l2' and loss='hinge' are not supported when dual=False
-        The combination of penalty='l1' and loss='hinge' is not supported
+            The combination of penalty='l1' and loss='squared_hinge' are not
+            supported when dual=True
+
+            The combination of penalty='l2' and loss='hinge' are not supported
+            when dual=False
+
+            The combination of penalty='l1' and loss='hinge' is not supported
 
         and so reject such random hparams.
         """

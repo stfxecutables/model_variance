@@ -42,15 +42,15 @@ def test_discrepancies() -> None:
                 hpr = hps.random(rng)
                 c1r.append(hpr.hparams["c1"].value)
                 c2r.append(hpr.hparams["c2"].value)
-                o1r.append(hpr.hparams["o1"].value + np.random.uniform(0, 0.5))
-                o2r.append(hpr.hparams["o2"].value + np.random.uniform(0, 0.5))
+                o1r.append(hpr.hparams["o1"].value + np.random.uniform(0, 0.5))  # type: ignore # noqa
+                o2r.append(hpr.hparams["o2"].value + np.random.uniform(0, 0.5))  # type: ignore # noqa
 
             for i in range(N):
                 hpq = hps.quasirandom(iteration=i, rng=rng2)
                 c1q.append(hpq.hparams["c1"].value)
                 c2q.append(hpq.hparams["c2"].value)
-                o1q.append(hpq.hparams["o1"].value + np.random.uniform(0, 0.5))
-                o2q.append(hpq.hparams["o2"].value + np.random.uniform(0, 0.5))
+                o1q.append(hpq.hparams["o1"].value + np.random.uniform(0, 0.5))  # type: ignore # noqa
+                o2q.append(hpq.hparams["o2"].value + np.random.uniform(0, 0.5))  # type: ignore # noqa
 
             fig, axes = plt.subplots(nrows=2, ncols=2, sharex=True, sharey=True)
             axes[0][0].scatter(c1r, c2r, color="black", s=0.5)

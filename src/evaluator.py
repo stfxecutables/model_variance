@@ -219,7 +219,7 @@ class Evaluator(DirJSONable):
 
     @property
     def res_dir(self) -> Path:
-        """This a dynamic property to ensure it matches `self.logdir` on deserialization"""
+        """This a dynamic property so it matches `self.logdir` on deserialization"""
         return ensure_dir(self.logdir / "results")
 
     @property

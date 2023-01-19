@@ -182,7 +182,7 @@ class ContinuousHparam(Hparam):
             if vmin > vmax:
                 vmin, vmax = vmax, vmin
             raw = rng.uniform(vmin, vmax)
-            value = 10 ** raw if self.log_scale else raw
+            value = 10**raw if self.log_scale else raw
         elif method is HparamPerturbation.AbsPercent10:
             value = self.val_perturb_10(rng)
         else:
@@ -731,7 +731,7 @@ class Hparams(DirJSONable):
                 hmin, hmax = np.log10(hmin), np.log10(hmax)
             hval = hmin + (hmax - hmin) * cont
             if hpc.log_scale:
-                hval = 10 ** hval
+                hval = 10**hval
             hps.append(hpc.new(hval))
 
         if Halton_ord.d > 0:

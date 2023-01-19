@@ -24,7 +24,7 @@ from src.hparams.hparams import Hparams
 
 def is_bad_tar(containing_tar: TarFile, info: TarInfo) -> bool:
     inner_fo: ExFileObject
-    with containing_tar.extractfile(info) as inner_fo:
+    with containing_tar.extractfile(info) as inner_fo:  # type: ignore
         try:
             inner_tar = tarfile.open(fileobj=inner_fo, mode="r")
             inner_tar.close()
@@ -48,7 +48,7 @@ def find_bad_tars(targz_path: Path) -> Any:
 def read_tar_json(inner_tar: TarFile, name: str) -> dict[str, Any]:
     info: TarInfo = inner_tar.getmember(name)
     exfile: ExFileObject
-    with inner_tar.extractfile(info) as exfile:
+    with inner_tar.extractfile(info) as exfile:  # type: ignore
         data = json.load(exfile)
     return data
 
@@ -56,7 +56,7 @@ def read_tar_json(inner_tar: TarFile, name: str) -> dict[str, Any]:
 def read_tar_npz(inner_tar: TarFile, name: str) -> dict[str, Any]:
     info: TarInfo = inner_tar.getmember(name)
     exfile: ExFileObject
-    with inner_tar.extractfile(info) as exfile:
+    with inner_tar.extractfile(info) as exfile:  # type: ignore
         data = np.load(exfile)
         if "preds" in data:
             return {"preds": data["preds"]}
@@ -83,7 +83,7 @@ def parse_tar_gz(
             for info in tqdm(infos):
 
                 inner_archive: ExFileObject
-                with gz_archive.extractfile(info) as inner_archive:
+                with gz_archive.extractfile(info) as inner_archive:  # type: ignore
 
                     # loops here should be cheap / acceptable relative to loops
                     # over full gz archive

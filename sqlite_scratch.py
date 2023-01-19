@@ -13,9 +13,11 @@ class Isolation(Enum):
     Exclusive = "EXCLUSIVE"
     Deferred = "DEFERRED"
 
+
 DB = Path(__file__).resolve().parent / "test_db.db"
 
-def insert_i(i: int) -> int:
+
+def insert_i(i: int) -> None:
     with sqlite3.connect(
         str(DB), timeout=5, isolation_level=Isolation.Exclusive.value
     ) as connection:

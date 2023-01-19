@@ -22,7 +22,7 @@ def is_bad_tar(tarpath: Path) -> Union[Path, None]:
     with open(tarpath, "rb") as fp:
         gz_archive: TarFile
         try:
-            with tarfile.open(fileobj=fp, mode="r") as gz_archive:
+            with tarfile.open(fileobj=fp, mode="r") as gz_archive:  # noqa
                 ...
         except ReadError:
             return tarpath
