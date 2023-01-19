@@ -57,7 +57,7 @@ def read_tar_npz(inner_tar: TarFile, name: str) -> dict[str, Any]:
     info: TarInfo = inner_tar.getmember(name)
     exfile: ExFileObject
     with inner_tar.extractfile(info) as exfile:  # type: ignore
-        data = np.load(exfile)
+        data = np.load(exfile)  # type: ignore
         if "preds" in data:
             return {"preds": data["preds"]}
         elif "targets" in data:
@@ -119,4 +119,18 @@ def parse_tar_gz(
                             all_targs.append(targs["targs"])
                     except ReadError:
                         read_fails += 1
-    return DataFrame(ev_dicts), all_hps, all_preds, all_targs, read_fails
+
+    # get rid of useless `object` dtypes
+    df = DataFrame(ev_dicts)
+    df["dimension_reduction"] = df["dimension_reduction"].astype(float)
+    df["categorical_perturb"] = df["categorical_perturb"].astype(float)
+    df["train_downsample"] = df["train_downsample"].astype(float)
+    for column in df.columns:
+        col = df[column]
+        if col.dtype == "object":
+            df[column] = col.apply(str).astype("string")
+    df["continuous_perturb"].fillna(value="None", inplace=True)
+    df["hparam_perturb"].fillna(value="None", inplace=True)
+
+
+    return df, all_hps, all_preds, all_targs, read_fails
