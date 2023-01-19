@@ -15,7 +15,7 @@ from argparse import Namespace
 from base64 import urlsafe_b64encode
 from enum import Enum, EnumMeta
 from shutil import make_archive, rmtree
-from time import strftime
+from time import sleep, strftime
 from typing import Any, Literal, Type, TypeVar, overload
 from uuid import uuid4
 
@@ -201,17 +201,19 @@ class Evaluator(DirJSONable):
         dim = self.dimension_reduction
         red = "full" if dim is None else f"reduce={dim}"
 
-        rep = f"rep={self.repeat:03d}"
-        run = f"run={self.run:03d}"
+        # rep = f"rep={self.repeat:03d}"
+        # run = f"run={self.run:03d}"
+
+        arg_id = self.get_id()
+
+        logdir = ensure_dir(root / f"{arg_id}")
 
         jid = os.environ.get("SLURM_JOB_ID")
         aid = os.environ.get("SLURM_ARRAY_TASK_ID")
-        if jid is None:
-            slurm_id = None
-        elif aid is not None:
-            slurm_id = f"{jid}_{aid}"
-        else:
-            slurm_id = jid
+        if jid is not None:
+            (logdir / f"{jid}.jobid").touch(exist_ok=True)
+        if aid is not None:
+            (logdir / f"{aid}.arrayid").touch(exist_ok=True)
 
         ts = strftime("%b-%d--%H-%M-%S")
         hsh = urlsafe_b64encode(uuid4().bytes).decode()
@@ -219,10 +221,6 @@ class Evaluator(DirJSONable):
         root = DEBUG_LOGS if self.debug else LOGS
         logdir = ensure_dir(root / f"{c}/{d}/{red}/{rep}/{run}/{uid}")
         # create these for easy deletion in case of failed jobs
-        if jid is not None:
-            (logdir / f"{jid}.jobid").touch(exist_ok=True)
-        if aid is not None:
-            (logdir / f"{aid}.arrayid").touch(exist_ok=True)
 
         return logdir
 
@@ -399,6 +397,7 @@ class Evaluator(DirJSONable):
             self.save_preds(preds)
             self.save_targs(targs)
             self.archive()
+            sleep(5)  # dunno, maybe this prevents sudden stops?
             with open(self.ckpt_file, "w+") as fp:
                 fp.write(f"{self.logdir}\n")
             self.cleanup(remove_ckpt=False, silent=True)

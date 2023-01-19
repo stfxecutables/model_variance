@@ -4,7 +4,7 @@ import json
 import sys
 import tarfile
 from pathlib import Path
-from tarfile import ExFileObject, TarFile, TarInfo
+from tarfile import ExFileObject, ReadError, TarFile, TarInfo
 from typing import Any, List, Optional, Sequence, Tuple, Union, cast, no_type_check
 
 import matplotlib.pyplot as plt
@@ -20,6 +20,29 @@ from src.hparams.hparams import Hparams
 
 ROOT = Path(__file__).resolve().parent
 TEST_TAR = ROOT / "test_logs.tar"
+
+
+def is_bad_tar(containing_tar: TarFile, info: TarInfo) -> bool:
+    inner_fo: ExFileObject
+    with containing_tar.extractfile(info) as inner_fo:
+        try:
+            inner_tar = tarfile.open(fileobj=inner_fo, mode="r")
+            inner_tar.close()
+        except ReadError:
+            return True
+    return False
+
+
+def find_bad_tar(targz_path: Path) -> Any:
+    bads = []
+    with open(targz_path, "rb") as fp:
+        outer_tar: TarFile
+        with tarfile.open(fileobj=fp, mode="r") as outer_tar:
+            infos: list[TarInfo] = [*outer_tar.getmembers()]
+            for info in tqdm(infos):
+                if is_bad_tar(outer_tar, info):
+                    bads.append(info.name)
+    return bads
 
 
 def read_tar_json(inner_tar: TarFile, name: str) -> dict[str, Any]:
@@ -122,4 +145,9 @@ class Results:
 
 
 if __name__ == "__main__":
+    bads = find_bad_tar(TEST_TAR)
+    if len(bads) > 0:
+        for bad in bads:
+            print(bad)
+    sys.exit()
     results = Results.from_tar_gz(TEST_TAR)
