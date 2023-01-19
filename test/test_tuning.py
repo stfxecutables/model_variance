@@ -1,19 +1,14 @@
-import traceback
 from shutil import rmtree
-from time import time
 from typing import Any
 
-import pytest
-from pandas import DataFrame
-from pytest import CaptureFixture, raises
-from tqdm import tqdm
+from pytest import raises
 
-from src.enumerables import ClassifierKind, DatasetName, RuntimeClass
+from src.enumerables import ClassifierKind, RuntimeClass
 from src.evaluator import Evaluator, Tuner
 from src.hparams.hparams import Hparams
-from src.hparams.logistic import LRHparams, SGDLRHparams
+from src.hparams.logistic import SGDLRHparams
 from src.hparams.mlp import MLPHparams
-from src.hparams.svm import LinearSVMHparams, SGDLinearSVMHparams, SVMHparams
+from src.hparams.svm import SGDLinearSVMHparams
 from src.hparams.xgboost import XGBoostHparams
 
 FASTS = RuntimeClass.very_fasts()

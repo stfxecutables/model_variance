@@ -3,12 +3,12 @@ from shutil import rmtree
 from tarfile import TarFile
 from tarfile import open as tar_open
 from time import time
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 import pytest
 from pandas import DataFrame
-from pytest import CaptureFixture, raises
+from pytest import CaptureFixture
 from tqdm import tqdm
 
 from src.enumerables import (
@@ -72,7 +72,7 @@ def random_evaluator(rng: np.random.Generator | None = None) -> Evaluator:
         val = rng.choice(x)
         if isinstance(val, np.ndarray):
             val = val.item()
-        if isinstance(val, np.int64):
+        if isinstance(val, np.int64):  # type: ignore
             val = int(val)
         return val
 
