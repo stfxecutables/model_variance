@@ -33,7 +33,7 @@ def is_bad_tar(containing_tar: TarFile, info: TarInfo) -> bool:
     return False
 
 
-def find_bad_tar(targz_path: Path) -> Any:
+def find_bad_tars(targz_path: Path) -> Any:
     bads = []
     with open(targz_path, "rb") as fp:
         outer_tar: TarFile
@@ -145,7 +145,7 @@ class Results:
 
 
 if __name__ == "__main__":
-    bads = find_bad_tar(TEST_TAR)
+    bads = find_bad_tars(TEST_TAR)
     if len(bads) > 0:
         for bad in bads:
             print(bad)

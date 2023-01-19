@@ -196,17 +196,15 @@ class Evaluator(DirJSONable):
         return ckpt.stem.replace(".ckpt", "")
 
     def setup_logdir(self) -> Path:
+        root = DEBUG_LOGS if self.debug else LOGS
+
         c = self.classifier_kind.value
         d = self.dataset_name.value
         dim = self.dimension_reduction
         red = "full" if dim is None else f"reduce={dim}"
 
-        # rep = f"rep={self.repeat:03d}"
-        # run = f"run={self.run:03d}"
-
-        arg_id = self.get_id()
-
-        logdir = ensure_dir(root / f"{arg_id}")
+        rep = f"rep={self.repeat:03d}"
+        run = f"run={self.run:03d}"
 
         jid = os.environ.get("SLURM_JOB_ID")
         aid = os.environ.get("SLURM_ARRAY_TASK_ID")
@@ -218,7 +216,6 @@ class Evaluator(DirJSONable):
         ts = strftime("%b-%d--%H-%M-%S")
         hsh = urlsafe_b64encode(uuid4().bytes).decode()
         uid = f"{ts}__{hsh}" if slurm_id is None else f"{slurm_id}__{ts}__{hsh}"
-        root = DEBUG_LOGS if self.debug else LOGS
         logdir = ensure_dir(root / f"{c}/{d}/{red}/{rep}/{run}/{uid}")
         # create these for easy deletion in case of failed jobs
 
