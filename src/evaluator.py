@@ -197,6 +197,7 @@ class Evaluator(DirJSONable):
 
     def setup_logdir(self) -> Path:
         root = DEBUG_LOGS if self.debug else LOGS
+        arg_id = self.get_id()
 
         c = self.classifier_kind.value
         d = self.dataset_name.value
@@ -206,18 +207,13 @@ class Evaluator(DirJSONable):
         rep = f"rep={self.repeat:03d}"
         run = f"run={self.run:03d}"
 
-        jid = os.environ.get("SLURM_JOB_ID")
-        aid = os.environ.get("SLURM_ARRAY_TASK_ID")
-        if jid is not None:
-            (logdir / f"{jid}.jobid").touch(exist_ok=True)
-        if aid is not None:
-            (logdir / f"{aid}.arrayid").touch(exist_ok=True)
+        logdir = ensure_dir(root / arg_id)
 
         ts = strftime("%b-%d--%H-%M-%S")
         hsh = urlsafe_b64encode(uuid4().bytes).decode()
-        uid = f"{ts}__{hsh}" if slurm_id is None else f"{slurm_id}__{ts}__{hsh}"
-        logdir = ensure_dir(root / f"{c}/{d}/{red}/{rep}/{run}/{uid}")
-        # create these for easy deletion in case of failed jobs
+        uid = f"{ts}__{hsh}"
+        # we put arg_id near very end to make deletions of failed / corrupt jobs easy
+        logdir = ensure_dir(root / f"{c}/{d}/{red}/{rep}/{run}/{arg_id}/{uid}")
 
         return logdir
 
