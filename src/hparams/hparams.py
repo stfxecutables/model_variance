@@ -77,6 +77,10 @@ class Hparam(FileJSONable["Hparam"], Generic[T, H]):
     def clone(self) -> Hparam:
         ...
 
+    @staticmethod
+    def from_dict(tardict: dict[str, Any]) -> Hparam:
+        ...
+
     @abstractmethod
     def __sub__(self, o: Hparam) -> float:
         if not isinstance(o, Hparam):
@@ -178,7 +182,7 @@ class ContinuousHparam(Hparam):
             if vmin > vmax:
                 vmin, vmax = vmax, vmin
             raw = rng.uniform(vmin, vmax)
-            value = 10 ** raw if self.log_scale else raw
+            value = 10**raw if self.log_scale else raw
         elif method is HparamPerturbation.AbsPercent10:
             value = self.val_perturb_10(rng)
         else:
@@ -242,6 +246,18 @@ class ContinuousHparam(Hparam):
     def from_json(path: Path) -> ContinuousHparam:
         with open(path, "r") as handle:
             d = Namespace(**json.load(handle))
+        return ContinuousHparam(
+            name=d.name,
+            value=d.value,
+            min=d.min,
+            max=d.max,
+            log_scale=d.log_scale,
+            default=d.default,
+        )
+
+    @staticmethod
+    def from_dict(tardict: dict[str, Any]) -> ContinuousHparam:
+        d = Namespace(**tardict)
         return ContinuousHparam(
             name=d.name,
             value=d.value,
@@ -380,6 +396,17 @@ class OrdinalHparam(Hparam):
             max=d.max,
         )
 
+    @staticmethod
+    def from_dict(tardict: dict[str, Any]) -> OrdinalHparam:
+        d = Namespace(**tardict)
+        return OrdinalHparam(
+            name=d.name,
+            value=d.value,
+            default=d.default,
+            min=d.min,
+            max=d.max,
+        )
+
     def __len__(self) -> int:
         return self.max - self.min + 1
 
@@ -487,6 +514,16 @@ class CategoricalHparam(Hparam):
             categories=d.categories,
         )
 
+    @staticmethod
+    def from_dict(tardict: dict[str, Any]) -> CategoricalHparam:
+        d = Namespace(**tardict)
+        return CategoricalHparam(
+            name=d.name,
+            value=d.value,
+            default=d.default,
+            categories=d.categories,
+        )
+
     def __len__(self) -> int:
         return self.n_categories
 
@@ -562,6 +599,15 @@ class FixedHparam(Hparam, Generic[T]):
     def from_json(path: Path) -> FixedHparam:
         with open(path, "r") as handle:
             d = Namespace(**json.load(handle))
+        return FixedHparam(
+            name=d.name,
+            value=d.value,
+            default=d.default,
+        )
+
+    @staticmethod
+    def from_dict(tardict: dict[str, Any]) -> FixedHparam:
+        d = Namespace(**tardict)
         return FixedHparam(
             name=d.name,
             value=d.value,
@@ -685,7 +731,7 @@ class Hparams(DirJSONable):
                 hmin, hmax = np.log10(hmin), np.log10(hmax)
             hval = hmin + (hmax - hmin) * cont
             if hpc.log_scale:
-                hval = 10 ** hval
+                hval = 10**hval
             hps.append(hpc.new(hval))
 
         if Halton_ord.d > 0:
@@ -741,6 +787,23 @@ class Hparams(DirJSONable):
                 hp = ContinuousHparam.from_json(path=path)
             elif path.parent.name == "fixed":
                 hp = FixedHparam.from_json(path=path)
+            else:
+                raise ValueError("Impossible!")
+            hparams.append(hp)
+        return cls(hparams=hparams)
+
+    @classmethod
+    def from_dicts(cls: Type[Hparams], tardicts: list[dict[str, Any]]) -> Hparams:
+        hparams = []
+        for tardict in tardicts:
+            if tardict["kind"] == "categorical":
+                hp = CategoricalHparam.from_dict(tardict=tardict)
+            elif tardict["kind"]== "ordinal":
+                hp = OrdinalHparam.from_dict(tardict=tardict)
+            elif tardict["kind"]== "continuous":
+                hp = ContinuousHparam.from_dict(tardict=tardict)
+            elif tardict["kind"]== "fixed":
+                hp = FixedHparam.from_dict(tardict=tardict)
             else:
                 raise ValueError("Impossible!")
             hparams.append(hp)

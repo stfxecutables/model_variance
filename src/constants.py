@@ -10,6 +10,7 @@ def ensure_dir(path: Path) -> Path:
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS = ensure_dir(ROOT / "results")
 CC_RESULTS = ensure_dir(ROOT / "cc_results")
+TESTING_TEMP = ensure_dir(ROOT / "testing_temp")
 DATA = ensure_dir(ROOT / "data")
 LOGS = ensure_dir(ROOT / "logs")
 CKPTS = ensure_dir(ROOT / "ckpts")
