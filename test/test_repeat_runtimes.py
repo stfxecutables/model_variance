@@ -7,6 +7,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+import pytest
 from pandas import DataFrame
 from pytest import CaptureFixture
 from tqdm import tqdm
@@ -219,6 +220,7 @@ def summarize_times(
 #     )
 
 
+@pytest.mark.slow
 class TestFast:
     def test_sgd_svm(self, capsys: CaptureFixture) -> None:
         summarize_times(
@@ -288,6 +290,7 @@ class TestFast:
 #     )
 
 
+@pytest.mark.slow
 class TestMed:
     def test_sgd_svm(self, capsys: CaptureFixture) -> None:
         summarize_times(
@@ -344,6 +347,7 @@ class TestMed:
     #     )
 
 
+@pytest.mark.slow
 class TestSlow:
     def test_sgd_svm(self, capsys: CaptureFixture) -> None:
         summarize_times(
