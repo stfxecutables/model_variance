@@ -89,6 +89,6 @@ if __name__ == "__main__":
     #     for bad in bads:
     #         print(bad)
     # sys.exit()
-    results = Results.from_tar_gz(ROOT / "preliminary.tar")
+    results = Results.from_tar_gz(ROOT / "preliminary.tar", save_test=True)
     # results = Results.from_tar_gz(TEST_TAR)
     # results = Results.from_test_cached()
