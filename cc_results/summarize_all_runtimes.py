@@ -9,14 +9,9 @@ sys.path.append(str(ROOT))  # isort: skip
 
 import sys
 from pathlib import Path
-from typing import Any, List, Optional, Sequence, Tuple, Union, cast, no_type_check
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sbn
-from numpy import ndarray
-from pandas import DataFrame, Series
 from typing_extensions import Literal
 
 from src.constants import CC_RESULTS

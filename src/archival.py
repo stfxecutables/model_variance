@@ -8,23 +8,17 @@ sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
 import json
-import pickle
 import sys
 import tarfile
 from pathlib import Path
 from tarfile import ExFileObject, ReadError, TarFile, TarInfo
-from typing import Any, List, Optional, Sequence, Tuple, Type, Union, cast, no_type_check
+from typing import Any
 
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from numpy import ndarray
-from pandas import DataFrame, Series
+from pandas import DataFrame
 from tqdm import tqdm
-from typing_extensions import Literal
 
-from src.constants import TESTING_TEMP
-from src.evaluator import Evaluator
 from src.hparams.hparams import Hparams
 
 

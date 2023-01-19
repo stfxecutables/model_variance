@@ -284,6 +284,7 @@ class DataPerturbation(Indexable):
         # +1 for None Case
         return [*DataPerturbation].index(self) + 1
 
+
 class CatPerturbLevel(Indexable):
     Sample = "sample"
     Label = "label"
@@ -291,6 +292,7 @@ class CatPerturbLevel(Indexable):
     def index(self) -> int:
         # +1 for None Case
         return [*CatPerturbLevel].index(self) + 1
+
 
 class HparamPerturbation(Indexable):
     SigZero = "sig-zero"  # Yes
