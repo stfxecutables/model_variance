@@ -44,7 +44,8 @@ and then augment these metric values into Results.evaluators as columns. Then
 this augmented DataFrame (or just the columns) can be passed into metrics that
 only need summary values.
 
-By contrast, `PredMetric`s always need to be able to access the full preds/targs.
+By contrast, `PredMetric`s always need to be able to access the full preds/targs
+and/or hparams.
 
 Likewise, there can be metrics that summarize within or across repeats. E.g. EC
 summarizes within a repeat, but we cou
@@ -113,41 +114,57 @@ class Accuracy(PredMetric):
 
 
 if __name__ == "__main__":
-    ...
     results = Results.from_test_cached()
-    res1 = results.select(
-        dsnames=[DatasetName.Anneal],
-        classifier_kinds=[ClassifierKind.XGBoost],
-        reductions=[None],
-        cont_perturb=[DataPerturbation.SigDigZero],
-        cat_perturb="all",
-        hp_perturb=[HparamPerturbation.SigZero],
-        train_downsample=[None],
-    )
-    res2 = results.select(
-        dsnames=[DatasetName.Anneal],
-        classifier_kinds=[ClassifierKind.XGBoost],
-        reductions=[None],
-        cont_perturb=[DataPerturbation.RelPercent10],
-        cat_perturb="all",
-        hp_perturb=[HparamPerturbation.RelPercent10],
-        train_downsample=[None],
-    )
-    res3 = results.select(
-        dsnames=[DatasetName.Anneal],
-        classifier_kinds=[ClassifierKind.XGBoost],
-        reductions=[None],
-        cont_perturb=[DataPerturbation.HalfNeighbor],
-        cat_perturb="all",
-        hp_perturb=[None],
-        train_downsample=[None],
-    )
-    acc1 = Accuracy(res1)
-    acc2 = Accuracy(res2)
-    acc3 = Accuracy(res3)
-
-    acc1.compute()
-    acc2.compute()
-    acc3.compute()
-
-    print("")
+    descs = []
+    for name in [DatasetName.Anneal, DatasetName.Vehicle]:
+        for kind in [
+            ClassifierKind.XGBoost,
+            ClassifierKind.SGD_SVM,
+            ClassifierKind.SGD_LR,
+        ]:
+            for dat_pert in [
+                DataPerturbation.SigDigZero,
+                DataPerturbation.HalfNeighbor,
+                DataPerturbation.RelPercent10,
+                None,
+            ]:
+                for cat_pert in [None, 0.1]:
+                    for hp_pert in [
+                        HparamPerturbation.SigZero,
+                        HparamPerturbation.RelPercent10,
+                        HparamPerturbation.AbsPercent10,
+                        None,
+                    ]:
+                        for tdown in [None, 50, 75]:
+                            res = results.select(
+                                dsnames=[name],
+                                classifier_kinds=[kind],
+                                reductions=[None],
+                                cont_perturb=[dat_pert],
+                                cat_perturb=[cat_pert],
+                                hp_perturb=[hp_pert],
+                                train_downsample=[tdown],
+                            )
+                            acc = Accuracy(res)
+                            desc = acc.compute().describe()
+                            info = {
+                                "data": name.name,
+                                "classifier": kind.value,
+                                "cont_pert": "None"
+                                if dat_pert is None
+                                else dat_pert.value,
+                                "cat_pert": float("nan")
+                                if cat_pert is None
+                                else cat_pert,
+                                "hp_pert": "None" if hp_pert is None else hp_pert.value,
+                                "tdown": str(tdown),
+                            }
+                            info.update(desc.to_dict())  # type: ignore
+                            df = pd.DataFrame(info, index=[0])
+                            descs.append(df)
+                            print(df)
+    df = pd.concat(descs, axis=0, ignore_index=True)
+    OUT = ROOT / "prelim_results.parquet"
+    df.to_parquet(OUT)
+    print(f"Saved prelim df results to {OUT}")
+    print(df)

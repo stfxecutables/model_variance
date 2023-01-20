@@ -10,6 +10,7 @@ sys.path.append(str(ROOT))  # isort: skip
 import pickle
 import sys
 from enum import Enum
+from itertools import combinations
 from pathlib import Path
 from typing import Any, Literal, Type, TypeVar, Union
 
@@ -110,14 +111,21 @@ class Results:
         if runs != "all":
             idx &= df["run"].isin(runs)
 
+        idx_int = np.where(idx)[0].tolist()
+
         return Results(
             evaluators=df.loc[idx].copy(),
-            hps=np.array(self.hps, dtype=object, copy=False)[idx].tolist(),
-            preds=np.array(self.preds, dtype=object, copy=False)[idx].tolist(),
-            targs=np.array(self.targs, dtype=object, copy=False)[idx].tolist(),
+            # hps=np.array(self.hps, dtype=object, copy=False)[idx].tolist(),
+            hps=[self.hps[i] for i in idx_int],
+            preds=[self.preds[i] for i in idx_int],
+            targs=[self.targs[i] for i in idx_int],
         )
 
-        ...
+    def repeat_pairs(self, repeat: int) -> list[tuple[int, int]]:
+        """Return indices of pairs matching `repeat`"""
+        df = self.evaluators["repeat"]
+        idx = df[df.isin([repeat])].index.to_list()
+        return list(combinations(idx, 2))
 
     @classmethod
     def from_tar_gz(cls: Type[Results], targz: Path, save_test: bool = False) -> Results:
