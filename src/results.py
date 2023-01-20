@@ -72,6 +72,8 @@ class Results:
         hp_perturb: list[HparamPerturbation | None] | All = "all",
         train_downsample: list[Literal[25, 50, 75] | None] | All = "all",
         cat_perturb_level: list[CatPerturbLevel] | All = "all",
+        repeats: list[int] | All = "all",
+        runs: list[int] | All = "all",
     ) -> Results:
         def to_floats(vals: list[Any]) -> list[float]:
             ret = []
@@ -103,6 +105,10 @@ class Results:
             idx &= df["train_downsample"].isin(to_floats(train_downsample))
         if cat_perturb_level != "all":
             idx &= df["categorical_perturb_level"].isin(to_strs(cat_perturb_level))
+        if repeats != "all":
+            idx &= df["repeat"].isin(repeats)
+        if runs != "all":
+            idx &= df["run"].isin(runs)
 
         return Results(
             evaluators=df.loc[idx].copy(),

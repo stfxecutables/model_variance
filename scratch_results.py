@@ -24,6 +24,13 @@ from src.archival import (
     read_tar_npz,
 )
 from src.constants import TESTING_TEMP
+from src.enumerables import (
+    CatPerturbLevel,
+    ClassifierKind,
+    DataPerturbation,
+    DatasetName,
+    HparamPerturbation,
+)
 from src.evaluator import Evaluator
 from src.hparams.hparams import Hparams
 from src.results import Results
