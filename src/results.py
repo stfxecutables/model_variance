@@ -141,18 +141,28 @@ class Results:
         print("Loading hparams")
         with open(TEST_HPS_PICKLE, "rb") as fp:
             all_hps = pickle.load(fp)
+
         print("Loading preds")
-        with open(TEST_PREDS_PICKLE, "rb") as fp:
-            all_preds = pickle.load(fp)
-        # with np.load(TEST_PREDS) as data:
-        #     N = len(data)
-        #     all_preds = [data[str(i)] for i in tqdm(range(N))]
+        if TEST_PREDS_PICKLE.exists():
+            with open(TEST_PREDS_PICKLE, "rb") as fp:
+                all_preds = pickle.load(fp)
+        else:
+            with np.load(TEST_PREDS) as data:
+                N = len(data)
+                all_preds = [data[str(i)] for i in tqdm(range(N))]
+            with open(TEST_PREDS_PICKLE, "wb") as fp:
+                pickle.dump(all_preds, fp)
+
         print("Loading targs")
-        with open(TEST_TARGS_PICKLE, "rb") as fp:
-            all_targs = pickle.load(fp)
-        # with np.load(TEST_TARGS) as data:
-        #     N = len(data)
-        #     all_targs = [data[str(i)] for i in tqdm(range(N))]
+        if TEST_TARGS_PICKLE.exists():
+            with open(TEST_TARGS_PICKLE, "rb") as fp:
+                all_targs = pickle.load(fp)
+        else:
+            with np.load(TEST_TARGS) as data:
+                N = len(data)
+                all_targs = [data[str(i)] for i in tqdm(range(N))]
+            with open(TEST_TARGS_PICKLE, "wb") as fp:
+                pickle.dump(all_targs, fp)
 
         return cls(evaluators=evals, hps=all_hps, preds=all_preds, targs=all_targs)
 

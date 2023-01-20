@@ -65,6 +65,10 @@ class PredMetric(ABC):
         if self.computed is not None:
             return self.computed
         args = list(zip(self.results.preds, self.results.targs))
+        if len(args) < 1:
+            raise RuntimeError(
+                f"Insufficient predictions / targets to compute {self.name} metric."
+            )
         vals = process_map(
             self.computer,
             args,
