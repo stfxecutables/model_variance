@@ -110,7 +110,6 @@ def evaluate(args: dict[str, Any]) -> None:
 
 if __name__ == "__main__":
     grid = create_grid()
-    sys.exit()
     process_map(
         evaluate, grid, total=len(grid), desc="Evaluating", chunksize=10, smoothing=0.08
     )
