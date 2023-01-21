@@ -59,7 +59,7 @@ def get_evaluator(kind: ClassifierKind, random: bool, i: int) -> Evaluator:
         categorical_perturb=None,
         hparam_perturb=None,
         train_downsample=None,
-        hparams=hps,
+        base_hps=hps,
         debug=True,
     )
 
@@ -95,7 +95,7 @@ def random_evaluator(rng: np.random.Generator | None = None) -> Evaluator:
         categorical_perturb_level=choice([*CatPerturbLevel]),
         hparam_perturb=choice([*HparamPerturbation]),
         train_downsample=choice([None, 25, 50, 75]),
-        hparams=hps,
+        base_hps=hps,
         debug=True,
     )
 

@@ -74,7 +74,7 @@ def get_evaluator(targs: TimingArgs) -> Evaluator:
         categorical_perturb=None,
         hparam_perturb=None,
         train_downsample=None,
-        hparams=hps,
+        base_hps=hps,
         debug=True,
     )
 

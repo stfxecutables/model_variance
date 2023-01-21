@@ -154,7 +154,7 @@ def test_evaluator() -> None:
         ev = Evaluator(
             dataset_name=ds,
             classifier_kind=classifier_kind,
-            hparams=hps,
+            base_hps=hps,
             dimension_reduction=dim_reduce,
             continuous_perturb=cont_perturb,
             categorical_perturb=cat_perturb,

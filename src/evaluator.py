@@ -38,6 +38,7 @@ from src.models.mlp import MLPModel
 from src.models.model import ClassifierModel
 from src.models.svc import LinearSVCModel, SGDLinearSVCModel, SVCModel
 from src.models.xgb import XGBoostModel
+from src.seeding import load_run_rng
 from src.serialize import DirJSONable
 from src.utils import missing_keys
 
@@ -120,7 +121,7 @@ class Evaluator(DirJSONable):
         classifier_kind: ClassifierKind,
         repeat: int,
         run: int,
-        hparams: Hparams,
+        base_hps: Hparams,
         dimension_reduction: Percentage | None,
         continuous_perturb: DataPerturbation | None,
         categorical_perturb: float | None,
@@ -136,7 +137,7 @@ class Evaluator(DirJSONable):
         self.classifier_kind: ClassifierKind = classifier_kind
         self.repeat: int = repeat
         self.run: int = run
-        self.hparams: Hparams = hparams
+        self.base_hps: Hparams = base_hps
         self.dimension_reduction: Percentage | None = dimension_reduction
         self.continuous_perturb: DataPerturbation | None = continuous_perturb
         self.categorical_perturb: float | None = categorical_perturb
@@ -175,8 +176,14 @@ class Evaluator(DirJSONable):
             ]
             else self.dl_dir
         )
+        rng = load_run_rng(repeat=self.repeat, run=self.run)
+        hpmethod = self.hparam_perturb
+        if hpmethod is not None:
+            run_hps = self.base_hps.perturbed(method=hpmethod, rng=rng)
+        else:
+            run_hps = self.base_hps.clone()
         args: dict[str, Any] = dict(
-            hparams=self.hparams,
+            hparams=run_hps,
             dataset=self.dataset,
             logdir=logdir,
         )
@@ -271,7 +278,7 @@ class Evaluator(DirJSONable):
         hps = root / "hparams"
         out = root / "evaluator.json"
 
-        self.hparams.to_json(hps)
+        self.base_hps.to_json(hps)
         with open(out, "w") as fp:
             json.dump(
                 {
@@ -308,7 +315,7 @@ class Evaluator(DirJSONable):
         new = cls(
             dataset_name=DatasetName(d.dataset_name),
             classifier_kind=ClassifierKind(d.classifier_kind),
-            hparams=hparams,
+            base_hps=hparams,
             dimension_reduction=d.dimension_reduction,
             continuous_perturb=c_perturb,
             categorical_perturb=d.categorical_perturb,
@@ -454,7 +461,7 @@ class Evaluator(DirJSONable):
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Evaluator):
             return False
-        if not (self.hparams == other.hparams):
+        if not (self.base_hps == other.base_hps):
             return False
         d1 = {**self.__dict__}
         d2 = {**other.__dict__}
@@ -500,7 +507,7 @@ class Tuner(Evaluator):
             classifier_kind=classifier_kind,
             repeat=repeat,
             run=run,
-            hparams=hparams,
+            base_hps=hparams,
             dimension_reduction=dimension_reduction,
             continuous_perturb=continuous_perturb,
             categorical_perturb=categorical_perturb,
@@ -600,7 +607,7 @@ class Tuner(Evaluator):
         hps = root / "hparams"
         out = root / "tuner.json"
 
-        self.hparams.to_json(hps)
+        self.base_hps.to_json(hps)
         with open(out, "w") as fp:
             json.dump(
                 {
