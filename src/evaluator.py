@@ -221,8 +221,6 @@ class Evaluator(DirJSONable):
         rep = f"rep={self.repeat:03d}"
         run = f"run={self.run:03d}"
 
-        logdir = ensure_dir(root / arg_id)
-
         ts = strftime("%b-%d--%H-%M-%S")
         hsh = urlsafe_b64encode(uuid4().bytes).decode()
         uid = f"{ts}__{hsh}"
