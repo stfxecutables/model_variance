@@ -279,6 +279,7 @@ class DataPerturbation(Indexable):
     RelPercent20 = "rel-20"  # Yes
     RelPercent10 = "rel-10"  # Yes
     RelPercent05 = "rel-05"
+    Percentile20 = "percentile-20"
     Percentile10 = "percentile-10"
     Percentile05 = "percentile-05"
 

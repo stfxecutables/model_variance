@@ -35,15 +35,19 @@ def create_grid() -> list[dict[str, Any]]:
     classifiers = [ClassifierKind.SGD_LR, ClassifierKind.SGD_SVM, ClassifierKind.XGBoost]
     data_perturbs = [
         None,
+        DataPerturbation.FullNeighbor,
         DataPerturbation.HalfNeighbor,
         DataPerturbation.RelPercent10,
+        DataPerturbation.RelPercent20,
+        DataPerturbation.Percentile10,
+        DataPerturbation.Percentile20,
         DataPerturbation.SigDigZero,
     ]
     hp_perturbs = [
         None,
         HparamPerturbation.SigZero,
-        HparamPerturbation.RelPercent10,
-        HparamPerturbation.AbsPercent10,
+        HparamPerturbation.RelPercent20,
+        HparamPerturbation.AbsPercent20,
     ]
     dsnames = RuntimeClass.most_fastest()
     grid = list(

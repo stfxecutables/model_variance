@@ -209,13 +209,18 @@ class Dataset:
         if perturbation is None:
             return X_f
         if perturbation in [
+            DataPerturbation.FullNeighbor,
             DataPerturbation.HalfNeighbor,
             DataPerturbation.QuarterNeighbor,
         ]:
             # we use the "normalized Gaussians" method to get a
             # random perturbation vector for each sample in d_nn / 2, where
             # d_nn = sqrt(|x^2 - x_nn^2|) for sample x and nearest neighor x_nn
-            scale = 2 if perturbation is DataPerturbation.HalfNeighbor else 4
+            scale = {
+                DataPerturbation.FullNeighbor: 1,
+                DataPerturbation.HalfNeighbor: 2,
+                DataPerturbation.QuarterNeighbor: 4,
+            }[perturbation]
             distances = self.nearest_distances(reduction=reduction)
             if distances is None:
                 raise ValueError(
@@ -227,12 +232,24 @@ class Dataset:
             n_digits = 0 if perturbation is DataPerturbation.SigDigZero else 1
             perturbed = sig_perturb_plus(X_f, n_digits=n_digits, rng=rng)
             return perturbed
-        if perturbation in [DataPerturbation.RelPercent05, DataPerturbation.RelPercent10]:
-            magnitude = 0.05 if perturbation is DataPerturbation.RelPercent05 else 0.10
+        if perturbation in [
+            DataPerturbation.RelPercent05,
+            DataPerturbation.RelPercent10,
+            DataPerturbation.RelPercent20,
+        ]:
+            magnitude = {
+                DataPerturbation.RelPercent05: 0.05,
+                DataPerturbation.RelPercent10: 0.10,
+                DataPerturbation.RelPercent20: 0.20,
+            }[perturbation]
             deltas = rng.uniform(-magnitude, magnitude, size=X_f.shape)
             perturbed = X_f + deltas * X_f
             return perturbed
-        if perturbation in [DataPerturbation.Percentile05, DataPerturbation.Percentile10]:
+        if perturbation in [
+            DataPerturbation.Percentile05,
+            DataPerturbation.Percentile10,
+            DataPerturbation.Percentile20,
+        ]:
             """
             raise NotImplementedError(
                 "This method doesn't make sense with clustered data. E.g. if you have\n"
@@ -245,7 +262,11 @@ class Dataset:
                 "the absolute value, then I think we are OK"
             )
             """
-            magnitude = 0.05 if perturbation is DataPerturbation.Percentile05 else 0.10
+            magnitude = {
+                DataPerturbation.Percentile05: 0.05,
+                DataPerturbation.Percentile10: 0.10,
+                DataPerturbation.Percentile20: 0.20,
+            }[perturbation] / 2
             # m = magnitude / 2
             percs = np.percentile(np.abs(X_f), q=magnitude, axis=0)
             # percs_lo = np.percentile(np.abs(X_f), q=m, axis=0)

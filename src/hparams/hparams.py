@@ -174,7 +174,11 @@ class ContinuousHparam(Hparam):
         mag = method.magnitude()
         if method in [HparamPerturbation.SigOne, HparamPerturbation.SigZero]:
             value = float(sig_perturb_plus(self.value, n_digits=int(mag)))
-        elif method in [HparamPerturbation.RelPercent10, HparamPerturbation.RelPercent20]:
+        elif method in [
+            HparamPerturbation.RelPercent05,
+            HparamPerturbation.RelPercent10,
+            HparamPerturbation.RelPercent20,
+        ]:
             val = np.log10(self.value) if self.log_scale else self.value
             delta = mag * val
             vmin = val - delta
@@ -183,7 +187,11 @@ class ContinuousHparam(Hparam):
                 vmin, vmax = vmax, vmin
             raw = rng.uniform(vmin, vmax)
             value = 10**raw if self.log_scale else raw
-        elif method in [HparamPerturbation.AbsPercent10, HparamPerturbation.AbsPercent20]:
+        elif method in [
+            HparamPerturbation.AbsPercent05,
+            HparamPerturbation.AbsPercent10,
+            HparamPerturbation.AbsPercent20,
+        ]:
             value = self.val_perturb(mag, rng)
         else:
             raise NotImplementedError(
@@ -337,8 +345,10 @@ class OrdinalHparam(Hparam):
         value = self.value
         if method not in [
             HparamPerturbation.SigOne,
+            HparamPerturbation.RelPercent05,
             HparamPerturbation.RelPercent10,
             HparamPerturbation.RelPercent20,
+            HparamPerturbation.AbsPercent05,
             HparamPerturbation.AbsPercent10,
             HparamPerturbation.AbsPercent20,
         ]:
@@ -348,14 +358,22 @@ class OrdinalHparam(Hparam):
         mag = method.magnitude()
         if method is HparamPerturbation.SigOne:  # mag == 1
             value = value + rng.integers(-1, 2)
-        elif method in [HparamPerturbation.RelPercent10, HparamPerturbation.RelPercent20]:
+        elif method in [
+            HparamPerturbation.RelPercent05,
+            HparamPerturbation.RelPercent10,
+            HparamPerturbation.RelPercent20,
+        ]:
             delta = ceil(mag * value)
             value = rng.integers(value - delta, value + delta + 1)
-        elif method is [HparamPerturbation.AbsPercent10, HparamPerturbation.AbsPercent20]:
+        elif method in [
+            HparamPerturbation.AbsPercent05,
+            HparamPerturbation.AbsPercent10,
+            HparamPerturbation.AbsPercent20,
+        ]:
             delta = ceil((self.max - self.min) * (mag / 2))
             value = value + rng.integers(-delta, delta + 1)
         else:
-            raise NotImplementedError()
+            raise NotImplementedError(f"Unknown method: {method}")
 
         val = np.clip(value, a_min=self.min, a_max=self.max)
         return self.new(val)
@@ -475,7 +493,7 @@ class CategoricalHparam(Hparam):
     ) -> Hparam:
         if self.value is None:
             raise ValueError("Cannot perturb categorical hparam with value None.")
-        if method is HparamPerturbation.SigOne:
+        if method in [HparamPerturbation.SigOne, HparamPerturbation.SigZero]:
             # No coherent definition for this, also sig dig perturbation
             # is supposed to be "invisible", so perhaps leaving no impact on
             # categoricals makes most sense here.

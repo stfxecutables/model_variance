@@ -27,23 +27,19 @@ class TestCategorical:
 
     def test_perturb(self) -> None:
         N = 250
-        for method in [
-            HparamPerturbation.SigOne,
-            HparamPerturbation.RelPercent10,
-            HparamPerturbation.AbsPercent10,
-        ]:
+        for method in [*HparamPerturbation]:
             equals = []
             hp = random_categorical()
             for _ in range(N):
                 h2 = hp.perturbed(method=method)
                 equals.append(int(hp - h2) == 0)
             total = sum(equals)
-            if method is HparamPerturbation.SigOne:
+            if method in [HparamPerturbation.SigOne, HparamPerturbation.SigZero]:
                 assert total == N
             else:
                 # preturbation is random, but the probability all are equal approaches
                 # nil as the number of perturbed copies grows large
-                assert (total > 0) and (total < N)
+                assert (total > 0) and (total < N), f"Problem for method: {method}"
 
 
 class TestFixed:
@@ -55,11 +51,7 @@ class TestFixed:
 
     def test_perturb(self) -> None:
         N = 50
-        for method in [
-            HparamPerturbation.SigOne,
-            HparamPerturbation.RelPercent10,
-            HparamPerturbation.AbsPercent10,
-        ]:
+        for method in [*HparamPerturbation]:
             hp = random_fixed()
             for _ in range(N):
                 h2 = hp.perturbed(method=method)
@@ -99,24 +91,32 @@ class TestOrdinal:
             h2 = hp.perturbed(method=method)
             assert (hp - h2) < 2
 
-    def test_perturb_rel_10(self) -> None:
-        method = HparamPerturbation.RelPercent10
-        mag = float(method.magnitude())
-        for _ in range(self.N):
-            hp = random_ordinal()
-            assert hp.value is not None
-            delta = ceil(mag * hp.value)
-            h2 = hp.perturbed(method=method)
-            assert (hp - h2) <= delta
+    def test_perturb_rel(self) -> None:
+        for method in [
+            HparamPerturbation.RelPercent05,
+            HparamPerturbation.RelPercent10,
+            HparamPerturbation.RelPercent20,
+        ]:
+            mag = float(method.magnitude())
+            for _ in range(self.N):
+                hp = random_ordinal()
+                assert hp.value is not None
+                delta = ceil(mag * hp.value)
+                h2 = hp.perturbed(method=method)
+                assert (hp - h2) <= delta
 
-    def test_perturb_abs_10(self) -> None:
-        method = HparamPerturbation.AbsPercent10
-        mag = method.magnitude()
-        for _ in range(self.N):
-            hp = random_ordinal()
-            delta = ceil((hp.max - hp.min) * mag)
-            h2 = hp.perturbed(method=method)
-            assert (hp - h2) <= delta
+    def test_perturb_abs(self) -> None:
+        for method in [
+            HparamPerturbation.AbsPercent05,
+            HparamPerturbation.AbsPercent10,
+            HparamPerturbation.AbsPercent20,
+        ]:
+            mag = method.magnitude()
+            for _ in range(self.N):
+                hp = random_ordinal()
+                delta = ceil((hp.max - hp.min) * mag)
+                h2 = hp.perturbed(method=method)
+                assert (hp - h2) <= delta
 
 
 class TestContinuous:
@@ -139,34 +139,42 @@ class TestContinuous:
             equals.append(hp == h2)
         assert sum(equals) <= self.ALLOWANCE
 
-    def test_perturb_rel_10(self) -> None:
-        method = HparamPerturbation.RelPercent10
-        mag = method.magnitude()
-        equals = []
-        for _ in range(self.N):
-            hp = random_continuous()
-            # delta = ceil(mag * hp.value)
-            h2 = hp.perturbed(method=method)
-            equals.append(hp == h2)
-            assert hp.value is not None
-            assert h2.value is not None
-            if hp.log_scale:
-                diff = abs(np.log10(hp.value) - np.log10(h2.value))
-                assert diff <= abs(mag * np.log10(hp.value))
-            else:
-                diff = hp - h2
-                assert diff <= mag * hp.value
-        assert sum(equals) <= self.ALLOWANCE
+    def test_perturb_rel(self) -> None:
+        for method in [
+            HparamPerturbation.RelPercent05,
+            HparamPerturbation.RelPercent10,
+            HparamPerturbation.RelPercent20,
+        ]:
+            mag = method.magnitude()
+            equals = []
+            for _ in range(self.N):
+                hp = random_continuous()
+                # delta = ceil(mag * hp.value)
+                h2 = hp.perturbed(method=method)
+                equals.append(hp == h2)
+                assert hp.value is not None
+                assert h2.value is not None
+                if hp.log_scale:
+                    diff = abs(np.log10(hp.value) - np.log10(h2.value))
+                    assert diff <= abs(mag * np.log10(hp.value))
+                else:
+                    diff = hp - h2
+                    assert diff <= mag * hp.value
+            assert sum(equals) <= self.ALLOWANCE
 
     def test_perturb_abs_10(self) -> None:
-        method = HparamPerturbation.AbsPercent10
-        mag = method.magnitude()
-        equals = []
-        for _ in range(self.N):
-            hp = random_continuous()
-            # delta = ceil((hp.max - hp.min) * mag)
-            h2 = hp.perturbed(method=method)
-            equals.append(hp == h2)
-            diff = hp - h2
-            assert diff <= mag * abs(hp.max - hp.min)
-        assert sum(equals) <= self.ALLOWANCE
+        for method in [
+            HparamPerturbation.AbsPercent05,
+            HparamPerturbation.AbsPercent10,
+            HparamPerturbation.AbsPercent20,
+        ]:
+            mag = method.magnitude()
+            equals = []
+            for _ in range(self.N):
+                hp = random_continuous()
+                # delta = ceil((hp.max - hp.min) * mag)
+                h2 = hp.perturbed(method=method)
+                equals.append(hp == h2)
+                diff = hp - h2
+                assert diff <= mag * abs(hp.max - hp.min)
+            assert sum(equals) <= self.ALLOWANCE
