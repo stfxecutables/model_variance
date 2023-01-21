@@ -346,6 +346,7 @@ class OrdinalHparam(Hparam):
         value = self.value
         if method not in [
             HparamPerturbation.SigOne,
+            HparamPerturbation.SigZero,
             HparamPerturbation.RelPercent05,
             HparamPerturbation.RelPercent10,
             HparamPerturbation.RelPercent20,
@@ -353,11 +354,10 @@ class OrdinalHparam(Hparam):
             HparamPerturbation.AbsPercent10,
             HparamPerturbation.AbsPercent20,
         ]:
-            raise ValueError(
-                f"Got invalid perturbation method: {method}"
-            )
+            raise ValueError(f"Got invalid perturbation method: {method}")
         mag = method.magnitude()
-        if method is HparamPerturbation.SigOne:  # mag == 1
+        if method in [HparamPerturbation.SigOne, HparamPerturbation.SigZero]:
+            # treat all as +-1
             value = value + rng.integers(-1, 2)
         elif method in [
             HparamPerturbation.RelPercent05,
