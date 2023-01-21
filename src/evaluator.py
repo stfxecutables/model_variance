@@ -72,7 +72,7 @@ def ckpt_file(
     hparam_perturb: HparamPerturbation | None,
     train_downsample: Percentage | None,
     categorical_perturb_level: CatPerturbLevel,
-    mode: str = "debug",
+    label: str = "debug",
     **kwargs: Any,  # to ignore
 ) -> Path:
     cid = "_".join(
@@ -89,7 +89,7 @@ def ckpt_file(
             f"{get_index(categorical_perturb_level)}",
         ]
     )
-    outdir = CKPTS / mode
+    outdir = CKPTS / label
     ensure_dir(outdir)
     return outdir / f"{cid}.ckpt"
 
@@ -127,6 +127,7 @@ class Evaluator(DirJSONable):
         hparam_perturb: HparamPerturbation | None,
         train_downsample: Percentage | None,
         categorical_perturb_level: CatPerturbLevel = CatPerturbLevel.Label,
+        label: str | None = None,
         debug: bool = False,
         _suppress_json: bool = False,
     ) -> None:
@@ -144,6 +145,12 @@ class Evaluator(DirJSONable):
         self._model: ClassifierModel | None = None
         self.categorical_perturb_level: CatPerturbLevel = categorical_perturb_level
         self.debug = debug
+        self._label = label
+        if self._label is None:
+            self.label = "debug" if self.debug else "eval"
+        else:
+            self.label = self._label
+
         self.logdir = self.setup_logdir()
         if not _suppress_json:
             self.to_json(self.logdir)
@@ -213,7 +220,9 @@ class Evaluator(DirJSONable):
         hsh = urlsafe_b64encode(uuid4().bytes).decode()
         uid = f"{ts}__{hsh}"
         # we put arg_id near very end to make deletions of failed / corrupt jobs easy
-        logdir = ensure_dir(root / f"{c}/{d}/{red}/{rep}/{run}/{arg_id}/{uid}")
+        logdir = ensure_dir(
+            root / f"{self.label}/{d}/{c}/{red}/{rep}/{run}/{arg_id}/{uid}"
+        )
 
         return logdir
 
@@ -248,7 +257,7 @@ class Evaluator(DirJSONable):
             hparam_perturb=self.hparam_perturb,
             train_downsample=self.train_downsample,
             categorical_perturb_level=self.categorical_perturb_level,
-            mode="debug" if self.debug else "eval",
+            label=self.label,
         )
 
     @property
@@ -277,6 +286,7 @@ class Evaluator(DirJSONable):
                     "repeat": self.repeat,
                     "run": self.run,
                     "debug": self.debug,
+                    "label": self._label,
                 },
                 fp,
                 indent=2,
@@ -307,6 +317,7 @@ class Evaluator(DirJSONable):
             categorical_perturb_level=cat_perturb,
             repeat=d.repeat,
             run=d.run,
+            label=d.label,
             debug=d.debug,
             _suppress_json=True,
         )
@@ -480,24 +491,30 @@ class Tuner(Evaluator):
         hparam_perturb: HparamPerturbation | None,
         train_downsample: Percentage | None,
         categorical_perturb_level: CatPerturbLevel = CatPerturbLevel.Label,
+        label: str | None = None,
         debug: bool = False,
         _suppress_json: bool = False,
     ) -> None:
         super().__init__(
-            dataset_name,
-            classifier_kind,
-            repeat,
-            run,
-            hparams,
-            dimension_reduction,
-            continuous_perturb,
-            categorical_perturb,
-            hparam_perturb,
-            train_downsample,
-            categorical_perturb_level,
-            debug,
+            dataset_name=dataset_name,
+            classifier_kind=classifier_kind,
+            repeat=repeat,
+            run=run,
+            hparams=hparams,
+            dimension_reduction=dimension_reduction,
+            continuous_perturb=continuous_perturb,
+            categorical_perturb=categorical_perturb,
+            hparam_perturb=hparam_perturb,
+            train_downsample=train_downsample,
+            categorical_perturb_level=categorical_perturb_level,
+            label=label,
+            debug=debug,
             _suppress_json=True,
         )
+        if self._label is None:
+            self.label = "debug" if self.debug else "tune"
+        else:
+            self.label = self._label
         self.logdir = self.setup_logdir()
         if not _suppress_json:
             self.to_json(self.logdir)
@@ -536,6 +553,7 @@ class Tuner(Evaluator):
             raise RuntimeError(f"Could not fit model:\n{info}") from e
 
     def setup_logdir(self) -> Path:
+        arg_id = self.get_id()
         c = self.classifier_kind.value
         d = self.dataset_name.value
         dim = self.dimension_reduction
@@ -556,16 +574,26 @@ class Tuner(Evaluator):
         hsh = urlsafe_b64encode(uuid4().bytes).decode()
         uid = f"{ts}__{hsh}" if slurm_id is None else f"{slurm_id}__{ts}__{hsh}"
         root = DEBUG_LOGS if self.debug else LOGS
-        return ensure_dir(root / f"tuning/{c}/{d}/{red}/{rep}/{run}/{uid}")
+        return ensure_dir(
+            root / f"tuning/{self.label}/{c}/{d}/{red}/{rep}/{run}/{arg_id}/{uid}"
+        )
 
     @property
     def ckpt_file(self) -> Path:
         """This should be a unique"""
-        outdir = CKPTS / "debug" if self.debug else CKPTS / "tune"
-        ensure_dir(outdir)
-        cid = self.get_id()
-        # do NOT ensure it exists: we create it after saving preds
-        return outdir / f"{cid}.ckpt"
+        return ckpt_file(
+            dataset_name=self.dataset_name,
+            classifier_kind=self.classifier_kind,
+            repeat=self.repeat,
+            run=self.run,
+            dimension_reduction=self.dimension_reduction,
+            continuous_perturb=self.continuous_perturb,
+            categorical_perturb=self.categorical_perturb,
+            hparam_perturb=self.hparam_perturb,
+            train_downsample=self.train_downsample,
+            categorical_perturb_level=self.categorical_perturb_level,
+            label=self.label,
+        )
 
     def to_json(self, root: Path) -> None:
         root.mkdir(exist_ok=True, parents=True)
@@ -585,6 +613,7 @@ class Tuner(Evaluator):
                     "train_downsample": self.train_downsample,
                     "categorical_perturb_level": self.categorical_perturb_level.value,
                     "repeat": self.repeat,
+                    "label": self._label,
                     "run": self.run,
                     "debug": self.debug,
                 },
@@ -617,6 +646,7 @@ class Tuner(Evaluator):
             categorical_perturb_level=cat_perturb,
             repeat=d.repeat,
             run=d.run,
+            label=d.label,
             debug=d.debug,
             _suppress_json=True,
         )

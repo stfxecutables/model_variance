@@ -8,19 +8,24 @@ def ensure_dir(path: Path) -> Path:
 
 # Paths
 ROOT = Path(__file__).resolve().parent.parent
-RESULTS = ensure_dir(ROOT / "results")
-CC_RESULTS = ensure_dir(ROOT / "cc_results")
-TESTING_TEMP = ensure_dir(ROOT / "testing_temp")
+
 DATA = ensure_dir(ROOT / "data")
-LOGS = ensure_dir(ROOT / "logs")
-CKPTS = ensure_dir(ROOT / "ckpts")
-DEBUG_LOGS = ensure_dir(ROOT / "debug_logs")
 PQS = ensure_dir(DATA / "parquet")
-CAT_REDUCED = ensure_dir(PQS / "categorical_reductions")
-CONT_REDUCED = ensure_dir(PQS / "continuous_reductions")
 DISTANCES = ensure_dir(DATA / "precomputed")
 SEEDS = ensure_dir(DATA / "seeds")
 DEFAULT_SEEDS = SEEDS / "seed_seqs.json"
+
+CAT_REDUCED = ensure_dir(PQS / "categorical_reductions")
+CONT_REDUCED = ensure_dir(PQS / "continuous_reductions")
+
+LOGS = ensure_dir(ROOT / "logs")
+CKPTS = ensure_dir(ROOT / "ckpts")
+DEBUG_LOGS = ensure_dir(ROOT / "debug_logs")
+
+RESULTS = ensure_dir(ROOT / "results")
+PLOTS = ensure_dir(RESULTS / "plots")
+CC_RESULTS = ensure_dir(ROOT / "cc_results")
+TESTING_TEMP = ensure_dir(ROOT / "testing_temp")
 
 # constants
 TEST_SIZE = 0.25

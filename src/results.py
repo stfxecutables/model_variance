@@ -9,6 +9,7 @@ sys.path.append(str(ROOT))  # isort: skip
 
 import pickle
 import sys
+from dataclasses import dataclass
 from enum import Enum
 from itertools import combinations
 from pathlib import Path
@@ -49,7 +50,26 @@ Enums = Union[
 ]
 
 
+@dataclass
+class PredTarg:
+    preds: ndarray
+    targs: ndarray
+
+
 class Results:
+    ALL_COLS = [
+        "dataset_name",
+        "classifier_kind",
+        "continuous_perturb",
+        "categorical_perturb",
+        "hparam_perturb",
+        "train_downsample",
+        "categorical_perturb_level",
+        "repeat",
+        "run",
+    ]
+    GRP_COLS = ALL_COLS[:-1]
+
     def __init__(
         self,
         evaluators: DataFrame,
@@ -121,11 +141,45 @@ class Results:
             targs=[self.targs[i] for i in idx_int],
         )
 
+    def repeat_dfs(self) -> tuple[list[int], list[DataFrame]]:
+        df = self.evaluators.copy()
+        df.categorical_perturb.fillna(0.0, inplace=True)
+        df.train_downsample.fillna(100, inplace=True)
+
+        # reduce df to non-constant columns
+        cols = df.columns.to_list()
+        const_cols = [c for c in cols if len(df[c].unique()) == 1]
+        for col in const_cols:
+            cols.pop(cols.index(col))
+        cols.pop(cols.index("run"))
+
+        dfs = []
+        reps = []
+        for _, sub_df in df.groupby(cols):
+            rep = int(sub_df["repeat"].iloc[0])
+            dfs.append(sub_df.sort_values(by="run", ascending=True).drop(columns="run"))
+            # dfs.append(sub_df)
+            reps.append(rep)
+        return reps, dfs
+
     def repeat_pairs(self, repeat: int) -> list[tuple[int, int]]:
         """Return indices of pairs matching `repeat`"""
         df = self.evaluators["repeat"]
         idx = df[df.isin([repeat])].index.to_list()
-        return list(combinations(idx, 2))
+        combs = list(combinations(idx, 2))
+        return combs
+
+    def repeat_preds_targs(self, repeat: int) -> list[tuple[PredTarg, PredTarg]]:
+        idx = self.repeat_pairs(repeat)
+        pairs = []
+        for i1, i2 in idx:
+            pairs.append(
+                (
+                    PredTarg(preds=self.preds[i1], targs=self.targs[i1]),
+                    PredTarg(preds=self.preds[i2], targs=self.targs[i2]),
+                )
+            )
+        return pairs
 
     @classmethod
     def from_tar_gz(cls: Type[Results], targz: Path, save_test: bool = False) -> Results:

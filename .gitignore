@@ -18,13 +18,15 @@ data/parquet/continuous_reductions/FashionMnist_50percent.npy
 data/parquet/continuous_reductions/FashionMnist_75percent.npy
 
 results
-testing_temp
+testing_temp*
 cc_results
 
 debug_logs
 logs
 
 **/__pycache__
+*.parquet
+*.tar
 
 
 

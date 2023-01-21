@@ -16,7 +16,9 @@ from typing import Any, Callable, Literal, Type, TypeVar, Union
 
 import numpy as np
 import pandas as pd
+from numba import njit, prange
 from numpy import ndarray
+from numpy.typing import NDArray
 from pandas import DataFrame, Series
 from tqdm import tqdm
 
@@ -30,12 +32,66 @@ from src.enumerables import (
     HparamPerturbation,
 )
 from src.hparams.hparams import Hparams
-from src.results import Results
+from src.results import PredTarg, Results
 
 RunComputer = Callable[[tuple[ndarray, ndarray]], float]
+RunPairComputer = Callable[[tuple[PredTarg, PredTarg]], float]
+
 
 def _default(preds_targs: tuple[ndarray, ndarray]) -> float:
     raise NotImplementedError("Must implement a `computer`!")
+
+
+@njit(parallel=True)
+def _ecs(
+    y_errs: NDArray[np.bool_],
+    empty_unions: Literal["nan", "0", "1"] = "nan",
+    local_norm: bool = False,
+) -> ndarray:
+    """
+    Parameters
+    ----------
+    y_errs: ndarray
+        Array of shape (n_pairs, n_samples)
+    """
+    L = len(y_errs)
+    # matrix = np.nan * np.ones((L, L))
+    matrix = np.full((L, L), np.nan)
+    for i in prange(L):
+        err_i = y_errs[i]
+        for j in range(L):
+            err_j = y_errs[j]
+            if i == j:
+                matrix[i, j] = 1.0
+                continue
+            if i > j:
+                continue
+            if local_norm is True:
+                union = (err_i | err_j)
+                local_union = np.sum(union)
+                if local_union == 0:
+                    if empty_unions == "nan":
+                        continue
+                    elif empty_unions == "0":
+                        matrix[i, j] = matrix[j, i] = 0.0
+                        continue
+                    elif empty_unions == "1":
+                        matrix[i, j] = matrix[j, i] = 1.0
+                        continue
+            else:
+                local_union = len(err_i)
+            score = np.sum(err_i & err_j) / local_union
+            matrix[i, j] = matrix[j, i] = score
+    return matrix
+
+
+def _ec(
+    y_errs: NDArray[np.bool_],
+    empty_unions: Literal["nan", "0", "1"] = "nan",
+    local_norm: bool = False,
+) -> ndarray:
+    matrix = _ecs(y_errs, empty_unions, local_norm)
+    return matrix[np.triu_indices_from(matrix, k=1)]
 
 
 def _accuracy(preds_targs: tuple[ndarray, ndarray]) -> float:
