@@ -340,6 +340,7 @@ class OrdinalHparam(Hparam):
     ) -> Hparam:
         if self.value is None:
             raise ValueError("Cannot perturn hparam if value is None.")
+
         if rng is None:
             rng = np.random.default_rng()
         value = self.value
@@ -353,7 +354,7 @@ class OrdinalHparam(Hparam):
             HparamPerturbation.AbsPercent20,
         ]:
             raise ValueError(
-                "Ordinal perturbation makes sense only for 1 sig dig or 10-20%"
+                f"Got invalid perturbation method: {method}"
             )
         mag = method.magnitude()
         if method is HparamPerturbation.SigOne:  # mag == 1
