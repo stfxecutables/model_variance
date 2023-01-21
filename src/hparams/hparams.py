@@ -168,7 +168,7 @@ class ContinuousHparam(Hparam):
         rng: Generator | None = None,
     ) -> Hparam:
         if self.value is None:
-            raise ValueError("Cannot perturn hparam if value is None.")
+            raise ValueError("Cannot perturb hparam if value is None.")
         if rng is None:
             rng = np.random.default_rng()
         mag = method.magnitude()

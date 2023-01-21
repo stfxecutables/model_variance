@@ -76,30 +76,100 @@ def xgboost_hparams(
     min_child_weight: float | None = None,
     subsample: float | None = None,
 ) -> list[Hparam]:
-    """Note defaults are all None for XGBClassifier"""
+    """Note we define ranges as per https://arxiv.org/abs/2106.11189 Appendix B.2,
+    Table 6
+
+    See https://xgboost.readthedocs.io/en/latest/parameter.html for defaults. When
+    defaults conflict with the tuning ranges given above, we choose a default as
+    close as possible to the XGBoost default.
+    """
     return [
-        ContinuousHparam("eta", eta, max=1.0, min=0.001, log_scale=True),
-        ContinuousHparam("lambda", lamda, max=1.0, min=1e-10, log_scale=True),
-        ContinuousHparam("alpha", alpha, max=1.0, min=1e-10, log_scale=True),
+        ContinuousHparam(
+            "eta",
+            eta,
+            max=1.0,
+            min=0.001,
+            log_scale=True,
+            default=0.3,
+        ),
+        ContinuousHparam(
+            "lambda",
+            lamda,
+            max=1.0,
+            min=1e-10,
+            log_scale=True,
+            default=1.0,
+        ),
+        ContinuousHparam(
+            "alpha",
+            alpha,
+            max=1.0,
+            min=1e-10,
+            log_scale=True,
+            default=1e-10,
+        ),
         # XGB complains below are unused
         # OrdinalHparam("num_round", num_round, max=1000, min=1),
-        ContinuousHparam("gamma", gamma, max=1.0, min=0.1, log_scale=True),
         ContinuousHparam(
-            "colsample_bylevel", colsample_bylevel, max=1.0, min=0.1, log_scale=False
+            "gamma",
+            gamma,
+            max=1.0,
+            min=0.1,
+            log_scale=True,
+            default=0.1,
         ),
         ContinuousHparam(
-            "colsample_bynode", colsample_bynode, max=1.0, min=0.1, log_scale=False
+            "colsample_bylevel",
+            colsample_bylevel,
+            max=1.0,
+            min=0.1,
+            log_scale=False,
+            default=1.0,
         ),
         ContinuousHparam(
-            "colsample_bytree", colsample_bytree, max=1.0, min=0.1, log_scale=False
+            "colsample_bynode",
+            colsample_bynode,
+            max=1.0,
+            min=0.1,
+            log_scale=False,
+            default=1.0,
         ),
-        OrdinalHparam("max_depth", max_depth, max=20, min=1),
-        OrdinalHparam("max_delta_step", max_delta_step, max=10, min=0),
         ContinuousHparam(
-            "min_child_weight", min_child_weight, max=20, min=0.1, log_scale=True
+            "colsample_bytree",
+            colsample_bytree,
+            max=1.0,
+            min=0.1,
+            log_scale=False,
+            default=1.0,
         ),
-        ContinuousHparam("subsample", subsample, max=1.0, min=0.01, log_scale=False),
-        FixedHparam("enable_categorical", value=True),
+        OrdinalHparam(
+            "max_depth",
+            max_depth,
+            max=20,
+            min=1,
+            default=6,
+        ),
+        OrdinalHparam("max_delta_step", max_delta_step, max=10, min=0, default=0),
+        ContinuousHparam(
+            "min_child_weight",
+            min_child_weight,
+            max=20,
+            min=0.1,
+            log_scale=True,
+            default=1,
+        ),
+        ContinuousHparam(
+            "subsample",
+            subsample,
+            max=1.0,
+            min=0.01,
+            log_scale=False,
+            default=1,
+        ),
+        FixedHparam(
+            "enable_categorical",
+            value=True,
+        ),
         FixedHparam("tree_method", value="hist"),
     ]
 

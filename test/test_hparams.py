@@ -4,7 +4,11 @@ from pathlib import Path
 import numpy as np
 from pytest import raises
 
-from src.hparams.hparams import HparamPerturbation
+from src.hparams.hparams import Hparam, HparamPerturbation
+from src.hparams.logistic import SGDLRHparams
+from src.hparams.mlp import MLPHparams
+from src.hparams.svm import SGDLinearSVMHparams
+from src.hparams.xgboost import XGBoostHparams
 from test.helpers import (
     random_categorical,
     random_continuous,
@@ -162,7 +166,7 @@ class TestContinuous:
                     assert diff <= mag * hp.value
             assert sum(equals) <= self.ALLOWANCE
 
-    def test_perturb_abs_10(self) -> None:
+    def test_perturb_abs(self) -> None:
         for method in [
             HparamPerturbation.AbsPercent05,
             HparamPerturbation.AbsPercent10,
@@ -178,3 +182,33 @@ class TestContinuous:
                 diff = hp - h2
                 assert diff <= mag * abs(hp.max - hp.min)
             assert sum(equals) <= self.ALLOWANCE
+
+
+class TestDefaults:
+    def test_sgd_svm(self) -> None:
+        hps = SGDLinearSVMHparams().defaults()
+        hp: Hparam
+        for name, hp in hps.hparams.items():
+            if hp.value is None:
+                raise ValueError(f"Got None in hyperparameter '{name}': {hp}")
+
+    def test_sgd_lr(self) -> None:
+        hps = SGDLRHparams().defaults()
+        hp: Hparam
+        for name, hp in hps.hparams.items():
+            if hp.value is None:
+                raise ValueError(f"Got None in hyperparameter '{name}': {hp}")
+
+    def test_xgboost(self) -> None:
+        hps = XGBoostHparams().defaults()
+        hp: Hparam
+        for name, hp in hps.hparams.items():
+            if hp.value is None:
+                raise ValueError(f"Got None in hyperparameter '{name}': {hp}")
+
+    def test_mlp(self) -> None:
+        hps = MLPHparams().defaults()
+        hp: Hparam
+        for name, hp in hps.hparams.items():
+            if hp.value is None:
+                raise ValueError(f"Got None in hyperparameter '{name}': {hp}")
