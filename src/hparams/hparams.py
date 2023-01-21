@@ -174,17 +174,17 @@ class ContinuousHparam(Hparam):
         mag = method.magnitude()
         if method in [HparamPerturbation.SigOne, HparamPerturbation.SigZero]:
             value = float(sig_perturb_plus(self.value, n_digits=int(mag)))
-        elif method is HparamPerturbation.RelPercent10:
+        elif method in [HparamPerturbation.RelPercent10, HparamPerturbation.RelPercent20]:
             val = np.log10(self.value) if self.log_scale else self.value
-            delta = mag * val  # mag = 0.10
+            delta = mag * val
             vmin = val - delta
             vmax = val + delta
             if vmin > vmax:
                 vmin, vmax = vmax, vmin
             raw = rng.uniform(vmin, vmax)
             value = 10**raw if self.log_scale else raw
-        elif method is HparamPerturbation.AbsPercent10:
-            value = self.val_perturb_10(rng)
+        elif method in [HparamPerturbation.AbsPercent10, HparamPerturbation.AbsPercent20]:
+            value = self.val_perturb(mag, rng)
         else:
             raise NotImplementedError(
                 f"Continuous perturbation not implemented for {method.name}"
@@ -192,7 +192,7 @@ class ContinuousHparam(Hparam):
         val = np.clip(value, a_min=self.min, a_max=self.max)
         return self.new(value=val)
 
-    def val_perturb_10(self, rng: Generator) -> float:
+    def val_perturb(self, mag: float, rng: Generator) -> float:
         if self.value is None:
             raise ValueError("Cannot perturn hparam if value is None.")
         if self.log_scale:
@@ -207,7 +207,7 @@ class ContinuousHparam(Hparam):
             val = self.value
             mn, mx = self.min, self.max
 
-        d = 0.05 * (mx - mn)  # 0.05 == 0.10 / 2, so
+        d = (mag / 2) * (mx - mn)
         val_min = val - d
         val_max = val + d
 
@@ -338,17 +338,21 @@ class OrdinalHparam(Hparam):
         if method not in [
             HparamPerturbation.SigOne,
             HparamPerturbation.RelPercent10,
+            HparamPerturbation.RelPercent20,
             HparamPerturbation.AbsPercent10,
+            HparamPerturbation.AbsPercent20,
         ]:
-            raise ValueError("Ordinal perturbation makes sense only for 1 sig dig or 10%")
+            raise ValueError(
+                "Ordinal perturbation makes sense only for 1 sig dig or 10-20%"
+            )
         mag = method.magnitude()
         if method is HparamPerturbation.SigOne:  # mag == 1
             value = value + rng.integers(-1, 2)
-        elif method is HparamPerturbation.RelPercent10:  # mag is 0.10
+        elif method in [HparamPerturbation.RelPercent10, HparamPerturbation.RelPercent20]:
             delta = ceil(mag * value)
             value = rng.integers(value - delta, value + delta + 1)
-        elif method is HparamPerturbation.AbsPercent10:  # mag == 0.10
-            delta = ceil((self.max - self.min) * mag)
+        elif method is [HparamPerturbation.AbsPercent10, HparamPerturbation.AbsPercent20]:
+            delta = ceil((self.max - self.min) * (mag / 2))
             value = value + rng.integers(-delta, delta + 1)
         else:
             raise NotImplementedError()

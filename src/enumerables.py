@@ -271,10 +271,12 @@ class Percentage(Indexable):
 
 
 class DataPerturbation(Indexable):
+    FullNeighbor = "full-neighbour"  # Yes
     HalfNeighbor = "half-neighbour"  # Yes
-    QuarterNeighbor = "quarter-neighbour"
+    QuarterNeighbor = "quarter-neighbour"  # No
     SigDigZero = "sig0"  # Yes
-    SigDigOne = "sig1"
+    SigDigOne = "sig1"  # No
+    RelPercent20 = "rel-20"  # Yes
     RelPercent10 = "rel-10"  # Yes
     RelPercent05 = "rel-05"
     Percentile10 = "percentile-10"
@@ -296,11 +298,13 @@ class CatPerturbLevel(Indexable):
 
 class HparamPerturbation(Indexable):
     SigZero = "sig-zero"  # Yes
-    SigOne = "sig-one"
-    Percentile10 = "percentile-10"
-    Percentile05 = "percentile-05"
+    SigOne = "sig-one"  # No
+    # Percentile10 = "percentile-10"
+    # Percentile05 = "percentile-05"
+    RelPercent20 = "rel-percent-20"
     RelPercent10 = "rel-percent-10"
     RelPercent05 = "rel-percent-05"
+    AbsPercent20 = "abs-percent-20"
     AbsPercent10 = "abs-percent-10"
     AbsPercent05 = "abs-percent-05"
 
@@ -311,12 +315,14 @@ class HparamPerturbation(Indexable):
         return {
             HparamPerturbation.SigZero: 0,
             HparamPerturbation.SigOne: 1,
-            HparamPerturbation.Percentile05: 5,
-            HparamPerturbation.Percentile10: 10,
+            # HparamPerturbation.Percentile05: 5,
+            # HparamPerturbation.Percentile10: 10,
             HparamPerturbation.RelPercent05: 0.05,
             HparamPerturbation.RelPercent10: 0.10,
+            HparamPerturbation.RelPercent20: 0.20,
             HparamPerturbation.AbsPercent05: 0.05,
             HparamPerturbation.AbsPercent10: 0.10,
+            HparamPerturbation.AbsPercent20: 0.20,
         }[self]
 
 
