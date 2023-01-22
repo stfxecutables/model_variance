@@ -198,24 +198,30 @@ def get_describes_df(
 
 
 if __name__ == "__main__":
+
+    # results = Results.from_tar_gz(ROOT / "hperturb.tar", save_test=True)
     results = Results.from_test_cached()
+    # sys.exit()
 
     # dfs, ecs = ErrorConsistency(results).compute(show_progress=True)
-    df = ErrorConsistency(results, local_norm=False).compute()
-    out = ROOT / "repeat_ecs_global_norm.parquet"
-    df.to_parquet(out)
-    print(f"Saved ECs to {out}")
+    # df = ErrorConsistency(results, local_norm=False).compute()
+    # out = ROOT / "repeat_ecs_global_norm.parquet"
+    # df.to_parquet(out)
+    # print(f"Saved ECs to {out}")
 
-    df = ErrorConsistency(results, local_norm=True, empty_unions="0").compute()
-    out = ROOT / "repeat_ecs_local_norm_0.parquet"
-    df.to_parquet(out)
-    print(f"Saved ECs to {out}")
-    sys.exit()
+    # df = ErrorConsistency(results, local_norm=True, empty_unions="0").compute()
+    # out = ROOT / "repeat_ecs_local_norm_0.parquet"
+    # df.to_parquet(out)
+    # print(f"Saved ECs to {out}")
 
+    acc = Accuracy(results)
     accs = acc.compute(show_progress=True)
     df = results.evaluators
-    # df["acc"] = accs
-    # df.to_parquet(ROOT / "prelim_accs.parquet")
+    df["acc"] = accs
+    out = ROOT / "prelim_accs.parquet"
+    df.to_parquet(out)
+    print(f"Saved accs to {out}")
+    sys.exit()
 
     descs = []
     for name in [DatasetName.Anneal, DatasetName.Vehicle]:

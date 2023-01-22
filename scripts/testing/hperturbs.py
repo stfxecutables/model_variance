@@ -32,7 +32,8 @@ from src.hparams.xgboost import XGBoostHparams
 
 
 def create_grid() -> list[dict[str, Any]]:
-    classifiers = [ClassifierKind.SGD_LR, ClassifierKind.SGD_SVM, ClassifierKind.XGBoost]
+    # classifiers = [ClassifierKind.SGD_LR, ClassifierKind.SGD_SVM, ClassifierKind.XGBoost]
+    classifiers = [ClassifierKind.MLP]
     data_perturbs = [
         None,
         DataPerturbation.FullNeighbor,
