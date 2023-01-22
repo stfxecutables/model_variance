@@ -7,7 +7,7 @@
 #SBATCH --mail-type=TIME_LIMIT_90
 #SBATCH --profile=all
 #SBATCH --job-name=mlp_hps
-#SBATCH --output=mlp_hps_%A_%a_%j.out
+#SBATCH --output=/scratch/dberger/model_variance/slurm_logs/mlp_hps_%A_%a_%j.out
 #SBATCH --array=0-9
 #SBATCH --time=00-08:00:00
 #SBATCH --nodes=1
