@@ -8,6 +8,7 @@ sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
 
+import logging
 import sys
 from pathlib import Path
 from typing import Mapping
@@ -72,6 +73,7 @@ class DLModel(ClassifierModel):
         self.fitted: bool = False
 
     def fit(self, X: ndarray, y: ndarray) -> None:
+        logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
         is_fast = self.dataset.name in RuntimeClass.Fast.members()
         is_mid = self.dataset.name in RuntimeClass.Mid.members()
         is_slow = self.dataset.name in RuntimeClass.Slow.members()
