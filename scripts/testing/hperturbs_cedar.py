@@ -8,6 +8,7 @@ sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
 
+import os
 import sys
 import traceback
 from pathlib import Path
@@ -111,6 +112,8 @@ def evaluate(args: dict[str, Any]) -> None:
 
 if __name__ == "__main__":
     grid = create_grid()
+    idx = int(os.environ.get("GRID_IDX"))
+    grid = grid[idx::20]
     process_map(
         evaluate,
         grid,
