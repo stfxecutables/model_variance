@@ -405,6 +405,8 @@ class Evaluator(DirJSONable):
             preds, targs = self.model.predict(X=X_test, y=y_test)
             self.save_preds(preds)
             self.save_targs(targs)
+            if self.dl_dir.exists():  # make sure to do before archiving!
+                rmtree(self.dl_dir)
             self.archive()
             sleep(5)  # dunno, maybe this prevents sudden stops?
             with open(self.ckpt_file, "w+") as fp:
