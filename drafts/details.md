@@ -124,10 +124,10 @@ categorical, and define perturbation methods based on the cardinality.
 
 These perturbations are all designed to be "small" in various intuitive ways,
 and define. For all descriptions below, training data is $\mathbf{X} \in
-\mathbb{R}^{\text{N} \times \text{F}}$, with $\text{N}$ samples, and $\text{F}$
+\mathbb{R}^{N \times F}$, with $N$ samples, and $F$
 features, and $f$ is the perturbation function, which may be either $f:
-\mathbb{R}^{\text{N} \times \text{F}} \mapsto \mathbb{R}^{\text{N} \times
-\text{F}}$ if it requires the full data, or simply $f: \mathbb{R} \mapsto
+\mathbb{R}^{N \times F} \mapsto \mathbb{R}^{N \times
+F}$ if it requires the full data, or simply $f: \mathbb{R} \mapsto
 \mathbb{R}$ if it operates on feature values only.
 
 **Significant-digit**: Rewriting each feature sample $x \in \mathbb{R}$ in
@@ -142,7 +142,7 @@ when looking at rounded tables of data, and that perturbations at a level that
 should be mostly invisible to humans (e.g.at the 3rd or 4th significant digit)
 should NOT have dramatic impacts on classifier behavior.
 
-**Nearest-Neighbor**: This basically perturbs each sample $\symbfit{x} \in \mathbb{R}^{}$n_features within
+**Nearest-Neighbor**: This perturbs each sample $\mathbf{x} \in \mathbb{R}^{N \times F}$ n_features within
 its own Voronoi cell, i.e. if x_nn is the nearest neighbour to x, and B(a, r)
 is the multidimensional ball of radius r centred at a, then neighbor-based
 perturbation moves x to a random location in B(x, c·||x - x_nn||), where c in
