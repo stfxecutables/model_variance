@@ -9,7 +9,7 @@ make for what is worth running, compute-wise.
 I examine variance in classifier *performance* and performance *consistency*
 (collectively, "model / classifier variance") due to "small" perturbations that
 can occur in various aspects of the typical tune-train-evaluate analysis
-pipeline. This is done by implementing a number of training perturbation schemes.
+pipeline. This is done by implementing a number of *training perturbation schemes*
 which may operate on the training data values, training hyperparameter (hparam)
 values, or which simply impact which training samples are selected.
 So for example, an hparam perturbation scheme randomly alters the training hparams
@@ -31,14 +31,16 @@ various Pairwise Prediction Similarity Metrics (PPSMs) like the EC, or any other
 pairwise distance / similarity metrics (e.g. Cohen's Kappa).
 
 We also perform multiple repeats so that we can get a distribution on the various
-metrics above. Each repeat has a different test set.
+metrics above. Each repeat has a different test set, and each repeat and run uses
+a different, independently-seeded random number generator, so we expect variance
+as well from repeat to repeat.
 
 
 # Data
 
-I use most of the 40 tabular datasets used in https://arxiv.org/abs/2106.11189.
+I use most of the 39 tabular datasets used in https://arxiv.org/abs/2106.11189.
 I exclude two datasets (Fashion MNIST, and DevnagariScript) which are in fact
-image datasets, for 38 datasets total:
+image datasets, and for 37 datasets total:
 
 | name                                   |   n_sample |   n_feat |   n_majority_cls |   n_minority_cls |   n_cls |
 |:---------------------------------------|-----------:|---------:|-----------------:|-----------------:|--------:|
@@ -68,9 +70,7 @@ image datasets, for 38 datasets total:
 | volkert                                |      58310 |      181 |            12806 |             1361 |      10 |
 | helena                                 |      65196 |       28 |             4005 |              111 |     100 |
 | connect-4                              |      67557 |       43 |            44473 |             6449 |       3 |
-| Fashion-MNIST                          |      70000 |      785 |             7000 |             7000 |      10 |
 | jannis                                 |      83733 |       55 |            38522 |             1687 |       4 |
-| Devnagari-Script                       |      92000 |     1025 |             2000 |             2000 |      46 |
 | numerai28.6                            |      96320 |       22 |            48658 |            47662 |       2 |
 | higgs                                  |      98050 |       29 |            51827 |            46223 |       2 |
 | aloi                                   |     108000 |      129 |              108 |              108 |    1000 |
@@ -106,30 +106,32 @@ transformer](https://scikit-learn.org/stable/modules/generated/sklearn.kernel_ap
 but this departs heavily from the usual SVM, and introduces significant tuning
 and interpretational complexity, so is not used in this study.
 
-# Sources of Variance
+# Sources of Variance and Training Perturbation Schemes
 
-A "source of variance"
-These are sources of model variance that are either present or absent in various
-combinations across model fits.
+A "source of (model) variance" is anything in the training procedure that might
+impact the resulting predictions. I explicitly manipulate three main sources of
+variance in this study: hyperparameters, data (predictor) noise, and training
+sample distribution / size.  
 
 ## Data Perturbation
 
-I develop a number of methods to perturb predictor feature values.
-I classify predictor features as either continuous or categorical, and define
-perturbation methods based on the cardinality.
+I develop a number of methods to perturb predictor values and simulate
+"small" predictor noise. I classify predictor features as either continuous or
+categorical, and define perturbation methods based on the cardinality.
+
 
 ### Continous Data Perturbation
 
 These are all designed to be "small" in various intuitive ways.
 
-* Significant-digit-based: Rewriting each feature sample x in R in scientific
-  notation, e.g. x = 1.2345e-N, perturbation at the zeroth digit moves x to x +
-  e, e ~ Uniform(-1e-N, 1e-N). Perturbation at the first digit moves x to x +
-  e, e ~ Uniform(-0.1e-N, 0.1e-N). The idea is that this is a perturbation that
-  is "visible" to humans when looking at rounded tables of data, and that
-  perturbations at a level that should be mostly invisible to humans (e.g.at
-  the 4th or 5th significant digit) should NOT have dramatic impacts on
-  classifier behaviours.
+* Significant-digit-based: Rewriting each feature sample $x \in \mathbb{R}$ in
+  scientific notation, e.g. x = 1.2345e-N, perturbation at the zeroth digit
+  moves x to x + e, e ~ Uniform(-1e-N, 1e-N). Perturbation at the first digit
+  moves x to x + e, e ~ Uniform(-0.1e-N, 0.1e-N). The idea is that this is a
+  perturbation that is "visible" to humans when looking at rounded tables of
+  data, and that perturbations at a level that should be mostly invisible to
+  humans (e.g.at the 4th or 5th significant digit) should NOT have dramatic
+  impacts on classifier behaviours.
 
 * Neighbor-based: This basically perturbs each sample x in R^n_features within
   its own Voronoi cell, i.e. if x_nn is the nearest neighbour to x, and B(a, r)
