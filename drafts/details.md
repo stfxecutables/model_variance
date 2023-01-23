@@ -133,50 +133,62 @@ feature values only.
 **Significant-digit**: Rewriting each feature sample $x \in \mathbb{R}$ in
 scientific notation, e.g. $x =$ `1.2345eN` for some integer `N`, then define
 *perturbation at the zeroth digit* to be
-$f(x) = x + e, \; e \sim U($`-1eN`, `1eN`$)$. *Perturbation of the first
-digit* is similar but takes $e \sim U($`-0.1eN`, `0.1eN`$)$, and perturbation
-to the third digit is $e \sim U($`-0.01eN`, `0.01eN`$)$, and so on.
+$f(x) = x + e, \; e \sim \text{Unif}($`-1eN`, `1eN`$)$. *Perturbation of the first
+digit* is similar but takes $e \sim \text{Unif}($`-0.1eN`, `0.1eN`$)$, and perturbation
+to the third digit is $e \sim \text{Unif}($`-0.01eN`, `0.01eN`$)$, and so on.
 
 The idea is that this is a perturbation that is "visible" to humans
 when looking at rounded tables of data, and that perturbations at a level that
 should be mostly invisible to humans (e.g.at the 3rd or 4th significant digit)
 should NOT have dramatic impacts on classifier behavior.
 
-**Nearest-Neighbor**: This perturbs each sample $\mathbf{x} \in \mathbb{R}^F$
+**Nearest-Neighbor**: This perturbs each sample $\symbfit{x} \in \mathbb{R}^F$
 to within its Voronoi cell, as defined by $\mathbf{X}$.
 That is, if $\mathbf{x}_{\text{nn}}$ is the nearest neighbour to $\symbfit{x}$,
-and B(a, r)
-is the multidimensional ball of radius r centred at a, then neighbor-based
-perturbation moves x to a random location in B(x, c·||x - x_nn||), where c in
-{0.25, 0.5, 1.0}. There is precedence for this in e.g.
+and $B(\symbfit{a}, r)$ is the multidimensional ball of radius $r$ centred at
+$\symbfit{a}$, then neighbor-based perturbation moves $\symbfit{x}$ to a
+random location in $B(x, \; c\cdot \lVert \symbfit{x} - \symbfit{x}_{\text{nn}} \rVert)$,
+where $c \in \{0.25, 0.5, 1.0\}$. There is precedence for this in e.g.
 https://arxiv.org/pdf/1905.01019.pdf, and the basic reasoning is quite sound.
 E.g. at "half" neighbour perturbation (c=0.5) the perturbed value's nearest
 neighbour does not change, so a KNN classifier with K=1 would not change its
 predictions under this kind of perturbation.
 
-* Relative: This moves each feature sample x in R to x + e, e ~ Uniform(x -
-  p·x, x + p·x), for p in {0.1, 0.2}.
+**Relative**: For each feature sample $x \in \mathbb{R}$, define
+$f(x) = x + e$, where $e \sim \text{Unif}\big(x (1 - p),\;x  (1 + p)\big)$, for
+$p \in \{0.1, 0.2, \dots\}$.
 
-* Percentile: Each feature has a distribution of values, and lower percentile p
-  for p < 0.5. This perturbation moves each feature sample x in R to clamp(x +
-      e, x_min, x_max), where e ~ Uniform(x - p/2, x + p/2), for p in {0.1,
-      0.2}.
+**Percentile**: Each feature has a distribution of values, and lower percentile $p$
+for $p < 0.5$.  For each feature sample $x \in \mathbb{R}$, define
+$f(x) = \text{clamp}(x + e, x_{\min}, x_{\max})$, where $e \sim \text{Unif}\big(x - p / 2,\; x + p/2\big)$,
+where $x_{\min}$ and $x_{\max}$ are the largest observed values for the feature, and where
+$p \in \{0.1, 0.2, \dots\}$.
+
 
 ### Categorical Data Perturbation
 
-* sample-level: A proportion p is chosen, and p * n_samples samples are chosen
-  to be potentially perturbed. If there are c categorical feature, then with
-  probability 1/c, for each sample, each label is set to a random label in
-  that feature. I.e. we expect, on average, for each sampele, to change only
-  one column's label to a random label value.
+**Sample-level**: A proportion $p$ is chosen, and $\lceil p N\rceil$ samples are chosen
+to be potentially perturbed. If there are $c$ categorical feature, then with
+probability $\frac{1}{c}$, for each sample, each label is set to a random label in
+that feature. I.e. we expect, on average, for each sample chosen for perturbation, that only
+one of that sample's categorical features gets a random (possible the same) label.
+This simulates something like data entry error / noise.
 
-* label-level: Let X_cat be the (n_samples, n_categorical_features) matrix of
-  categorical predictors. For small probability p, Define idx =
-  np.random.uniform(0, 1, X_cat.shape) < p.  Then the values where idx is True
-  are replaced with a random label from the available labels for that feature.
-  That is, this is "label noise" but in the predictors, apparently also more
-  correctly called "attribute noise"
-  (https://link.springer.com/article/10.1007/s10462-004-0751-8).
+**Label-level**: Let $X_c$ be the $N \times c$ matrix of
+categorical predictors. For small probability $p$. Define `idx =
+np.random.uniform(0, 1, X_c.shape) < p`. Then the values where idx is True
+are replaced with a random label from the available labels for that feature.
+That is, this is "label noise" but in the predictors, apparently also more
+correctly called ["attribute noise"](https://link.springer.com/article/10.1007/s10462-004-0751-8), and the mixing with a uniform has some resemblance to label smoothing in deep learning.
+
+
+**Note**: Early experiments show that sample-level perturbation is an extremely
+weak source of variance even at $p = 0.2$ (does not seem to impact performance
+distributions at all).
+
+By contrast, label-level perturbation at even $p=0.1$ has obvious performance impacts.
+However, this is a systemic and aggressive perturbation, so more likely appropriate values
+for this are $p \le 0.1$.
 
 ## Train Downsampling
 
