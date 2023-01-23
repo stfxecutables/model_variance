@@ -199,9 +199,9 @@ def get_describes_df(
 
 if __name__ == "__main__":
 
-    # results = Results.from_tar_gz(ROOT / "hperturb.tar", save_test=True)
+    results = Results.from_tar_gz(ROOT / "hperturb.tar", save_test=True)
     results = Results.from_test_cached()
-    # sys.exit()
+    sys.exit()
 
     # dfs, ecs = ErrorConsistency(results).compute(show_progress=True)
     # df = ErrorConsistency(results, local_norm=False).compute()

@@ -74,6 +74,7 @@ def parse_tar_gz(
     all_preds: list[ndarray] = []
     all_targs: list[ndarray] = []
     read_fails: int = 0
+    missings: int = 0
 
     with open(tarpath, "rb") as fp:
         gz_archive: TarFile
@@ -93,9 +94,13 @@ def parse_tar_gz(
                             fileobj=inner_archive, mode="r"
                         ) as inner_contents:
                             fnames: list[str] = inner_contents.getnames()
-                            evname = list(
+                            evnames = list(
                                 filter(lambda f: "evaluator.json" in f, fnames)
-                            )[0]
+                            )
+                            if len(evnames) == 0:
+                                missings += 1
+                                continue
+                            evname = evnames[0]
                             hpnames = list(
                                 filter(lambda f: "hparam" in f and ".json" in f, fnames)
                             )
@@ -132,5 +137,6 @@ def parse_tar_gz(
     df["continuous_perturb"].fillna(value="None", inplace=True)
     df["hparam_perturb"].fillna(value="None", inplace=True)
 
+    print(f"{missings} archives were missing key data.")
 
     return df, all_hps, all_preds, all_targs, read_fails

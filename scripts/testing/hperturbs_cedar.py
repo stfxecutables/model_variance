@@ -113,6 +113,7 @@ def evaluate(args: dict[str, Any]) -> None:
 if __name__ == "__main__":
     N_JOBS = 10
     grid = create_grid()
+    sys.exit()
     aid = int(os.environ.get("SLURM_ARRAY_TASK_ID"))
     grid = grid[aid::N_JOBS]
     idx = int(os.environ.get("GRID_IDX"))
