@@ -99,6 +99,11 @@ class ErrorConsistency:
         self.computed: DataFrame | None = None
 
     def compute(self, show_progress: bool = False) -> DataFrame:
+        def ne(pred: ndarray, targ: ndarray) -> ndarray:
+            if pred.ndim == 2:  # softmax values
+                return np.argmax(pred, axis=1) != targ
+            return pred != targ
+
         if self.computed is not None:
             return self.computed
 
@@ -113,7 +118,7 @@ class ErrorConsistency:
             lengths.append(len(df))
             idx = df.index.to_list()
             row = df.iloc[0].to_frame().T
-            errors = np.array([preds[i] != targs[i] for i in idx])
+            errors = np.array([ne(preds[i], targs[i]) for i in idx])
             k = len(errors)
             N = k * (k - 1) / 2
             # don't use numpy.repeat, destroys dtypes
@@ -199,20 +204,19 @@ def get_describes_df(
 
 if __name__ == "__main__":
 
-    results = Results.from_tar_gz(ROOT / "hperturb.tar", save_test=True)
+    # results = Results.from_tar_gz(ROOT / "hperturb.tar", save_test=True)
     results = Results.from_test_cached()
-    sys.exit()
+    # sys.exit()
 
-    # dfs, ecs = ErrorConsistency(results).compute(show_progress=True)
-    # df = ErrorConsistency(results, local_norm=False).compute()
-    # out = ROOT / "repeat_ecs_global_norm.parquet"
-    # df.to_parquet(out)
-    # print(f"Saved ECs to {out}")
+    df = ErrorConsistency(results, local_norm=False).compute()
+    out = ROOT / "repeat_ecs_global_norm.parquet"
+    df.to_parquet(out)
+    print(f"Saved ECs to {out}")
 
-    # df = ErrorConsistency(results, local_norm=True, empty_unions="0").compute()
-    # out = ROOT / "repeat_ecs_local_norm_0.parquet"
-    # df.to_parquet(out)
-    # print(f"Saved ECs to {out}")
+    df = ErrorConsistency(results, local_norm=True, empty_unions="0").compute()
+    out = ROOT / "repeat_ecs_local_norm_0.parquet"
+    df.to_parquet(out)
+    print(f"Saved ECs to {out}")
 
     acc = Accuracy(results)
     accs = acc.compute(show_progress=True)
