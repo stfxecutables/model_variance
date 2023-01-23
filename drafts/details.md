@@ -4,6 +4,36 @@ make for what is worth running, compute-wise.
 
 # Paper Approach
 
+# Overview
+
+I examine variance in classifier *performance* and performance *consistency*
+(collectively, "model / classifier variance") due to "small" perturbations that
+can occur in various aspects of the typical tune-train-evaluate analysis
+pipeline. This is done by implementing a number of training perturbation schemes.
+which may operate on the training data values, training hyperparameter (hparam)
+values, or which simply impact which training samples are selected.
+So for example, an hparam perturbation scheme randomly alters the training hparams
+in some way.
+
+The primary unit of analysis in this study is the **repeat**. A repeat is a
+collection of 10 **runs** wherein each run shares the same *test set*, but where
+training is perturbed by a combination of
+perturbation schemes. For example, if we have 2 hparam perturbation schemes, 3
+data perturbation schemes, and 4 downsampling schemes, then there are (2 +
+1)·(3 + 1)·(4 + 1) = 60 total possible combinations (we also always test "no
+perturbation" for each category of perturbation scheme, hence the +1).
+
+While the combination of perturbation schemes is fixed for each repeat, each run's training
+is unique due to the random training perturbations (the exception being when all perturbations
+are none, in which a deterministic classifier will have identical fits). This means
+**each repeat yields a collection of 10 predictions** which can than be summarized using
+various Pairwise Prediction Similarity Metrics (PPSMs) like the EC, or any other
+pairwise distance / similarity metrics (e.g. Cohen's Kappa).
+
+We also perform multiple repeats so that we can get a distribution on the various
+metrics above. Each repeat has a different test set.
+
+
 # Data
 
 I use most of the 40 tabular datasets used in https://arxiv.org/abs/2106.11189.
@@ -70,15 +100,15 @@ will be exorbitant), and that, at least on the smaller or moderate-sized
 datasets, the SGD variants had about the same holdout performance anyway (often
 actually slightly better).
 
-A radial-basis SVM unfortunately cannot be easily
-git via SGD^[It is technically possible by using kernel approximation, e.g.
-via the [Nystroem
-transformer](https://scikit-learn.org/stable/modules/generated/sklearn.kernel_approximation.Nystroem.html), but this departs
-far enough from the usual SVM
-] and so is not tested here.
+A radial-basis SVM unfortunately cannot be easily git via SGD. It is
+technically possible by using kernel approximation, e.g. via the [Nystroem
+transformer](https://scikit-learn.org/stable/modules/generated/sklearn.kernel_approximation.Nystroem.html),
+but this departs heavily from the usual SVM, and introduces significant tuning
+and interpretational complexity, so is not used in this study.
 
 # Sources of Variance
 
+A "source of variance"
 These are sources of model variance that are either present or absent in various
 combinations across model fits.
 

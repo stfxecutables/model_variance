@@ -363,6 +363,7 @@ class Dataset:
                         c: Series = cats[column]
                         dtype: CategoricalDtype = c.dtype  # type: ignore
                         categories = dtype.categories.to_numpy()
+                        # random labels
                         new = rng.choice(categories, size=len(c), replace=True)
                         rands[column] = new
                     idx = rng.uniform(0, 1, size=rands.shape) < perturbation_prob

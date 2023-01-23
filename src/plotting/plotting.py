@@ -3,7 +3,7 @@ from __future__ import annotations
 # fmt: off
 import sys  # isort:skip
 from pathlib import Path  # isort: skip
-ROOT = Path(__file__).resolve().parent.parent  # isort: skip
+ROOT = Path(__file__).resolve().parent.parent.parent  # isort: skip
 sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
@@ -629,10 +629,9 @@ if __name__ == "__main__":
     # plot_ec_sds(els, local_norm=True, kind=KIND, show=SHOW)
 
     KIND = "bigviolin"
-    # plot_acc_dists(accs, show=SHOW, kind=KIND)
+    plot_acc_dists(accs, show=SHOW, kind=KIND)
     KIND = "bigbar"
     # plot_acc_ranges(accs, show=SHOW, kind=KIND)
-    plot_acc_bar(accs, show=SHOW)
     # plot_ec_dists(ecs, local_norm=False, kind=KIND, show=SHOW)
     # plot_ec_dists(els, local_norm=True, kind=KIND, show=SHOW)
 
