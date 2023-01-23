@@ -131,19 +131,21 @@ the full data, or simply $f: \mathbb{R} \mapsto \mathbb{R}$ if it operates on
 feature values only.
 
 **Significant-digit**: Rewriting each feature sample $x \in \mathbb{R}$ in
-scientific notation, e.g. $x =$ `1.2345e-N` for some `N`, then define
-*perturbation at the zeroth digit* to be $f(x) = x + e, \; e \sim U($`-1e-N`,
-`1e-N`$)$. *Perturbation of the first digit* is similar but takes $e \sim U($`-0.1e-N`,
-`0.1e-N`$)$, and perturbation to the third digit is $e \sim U($`-0.01e-N`,
-`0.01e-N`$)$, and so on.
+scientific notation, e.g. $x =$ `1.2345eN` for some integer `N`, then define
+*perturbation at the zeroth digit* to be
+$f(x) = x + e, \; e \sim U($`-1eN`, `1eN`$)$. *Perturbation of the first
+digit* is similar but takes $e \sim U($`-0.1eN`, `0.1eN`$)$, and perturbation
+to the third digit is $e \sim U($`-0.01eN`, `0.01eN`$)$, and so on.
 
 The idea is that this is a perturbation that is "visible" to humans
 when looking at rounded tables of data, and that perturbations at a level that
 should be mostly invisible to humans (e.g.at the 3rd or 4th significant digit)
 should NOT have dramatic impacts on classifier behavior.
 
-**Nearest-Neighbor**: This perturbs each sample $\mathbf{x} \in \mathbb{R}^{N \times F}$ n_features within
-its own Voronoi cell, i.e. if x_nn is the nearest neighbour to x, and B(a, r)
+**Nearest-Neighbor**: This perturbs each sample $\mathbf{x} \in \mathbb{R}^F$
+to within its Voronoi cell, as defined by $\mathbf{X}$.
+That is, if $\mathbf{x}_{\text{nn}}$ is the nearest neighbour to $\symbfit{x}$,
+and B(a, r)
 is the multidimensional ball of radius r centred at a, then neighbor-based
 perturbation moves x to a random location in B(x, c·||x - x_nn||), where c in
 {0.25, 0.5, 1.0}. There is precedence for this in e.g.
