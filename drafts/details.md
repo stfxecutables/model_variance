@@ -111,7 +111,7 @@ and interpretational complexity, so is not used in this study.
 A "source of (model) variance" is anything in the training procedure that might
 impact the resulting predictions. I explicitly manipulate three main sources of
 variance in this study: hyperparameters, data (predictor) noise, and training
-sample distribution / size.  
+sample distribution / size.
 
 ## Data Perturbation
 
@@ -123,26 +123,34 @@ categorical, and define perturbation methods based on the cardinality.
 ### Continous Data Perturbation
 
 These perturbations are all designed to be "small" in various intuitive ways,
-and define, for training data $\mathbf{X} \in \mathbb{R}^{\texttt{n\_samples} \times \texttt{n\_feat}}$ an $f: $ 
+and define. For all descriptions below, training data is $\mathbf{X} \in
+\mathbb{R}^{\text{N} \times \text{F}}$, with $\text{N}$ samples, and $\text{F}$
+features, and $f$ is the perturbation function, which may be either $f:
+\mathbb{R}^{\text{N} \times \text{F}} \mapsto \mathbb{R}^{\text{N} \times
+\text{F}}$ if it requires the full data, or simply $f: \mathbb{R} \mapsto
+\mathbb{R}$ if it operates on feature values only.
 
-* Significant-digit-based: Rewriting each feature sample $x \in \mathbb{R}$ in
-  scientific notation, e.g. $x =$ `1.2345e-N` for some `N`, then define
-  *perturbation at the zeroth digit* to be x to x + e, e ~ Uniform(-1e-N,
-  1e-N). Perturbation at the first digit moves x to x + e, e ~ Uniform(-0.1e-N,
-  0.1e-N). The idea is that this is a perturbation that is "visible" to humans
-  when looking at rounded tables of data, and that perturbations at a level
-  that should be mostly invisible to humans (e.g.at the 4th or 5th significant
-  digit) should NOT have dramatic impacts on classifier behaviours.
+**Significant-digit**: Rewriting each feature sample $x \in \mathbb{R}$ in
+scientific notation, e.g. $x =$ `1.2345e-N` for some `N`, then define
+*perturbation at the zeroth digit* to be $f(x) = x + e, \; e \sim U($`-1e-N`,
+`1e-N`$)$. *Perturbation of the first digit* is similar but takes $e \sim U($`-0.1e-N`,
+`0.1e-N`$)$, and perturbation to the third digit is $e \sim U($`-0.01e-N`,
+`0.01e-N`$)$, and so on.
 
-* Neighbor-based: This basically perturbs each sample x in R^n_features within
-  its own Voronoi cell, i.e. if x_nn is the nearest neighbour to x, and B(a, r)
-  is the multidimensional ball of radius r centred at a, then neighbor-based
-  perturbation moves x to a random location in B(x, c·||x - x_nn||), where c in
-  {0.25, 0.5, 1.0}. There is precedence for this in e.g.
-  https://arxiv.org/pdf/1905.01019.pdf, and the basic reasoning is quite sound.
-  E.g. at "half" neighbour perturbation (c=0.5) the perturbed value's nearest
-  neighbour does not change, so a KNN classifier with K=1 would not change its
-  predictions under this kind of perturbation.
+The idea is that this is a perturbation that is "visible" to humans
+when looking at rounded tables of data, and that perturbations at a level that
+should be mostly invisible to humans (e.g.at the 3rd or 4th significant digit)
+should NOT have dramatic impacts on classifier behavior.
+
+**Nearest-Neighbor**: This basically perturbs each sample $\symbfit{x} \in \mathbb{R}^{}$n_features within
+its own Voronoi cell, i.e. if x_nn is the nearest neighbour to x, and B(a, r)
+is the multidimensional ball of radius r centred at a, then neighbor-based
+perturbation moves x to a random location in B(x, c·||x - x_nn||), where c in
+{0.25, 0.5, 1.0}. There is precedence for this in e.g.
+https://arxiv.org/pdf/1905.01019.pdf, and the basic reasoning is quite sound.
+E.g. at "half" neighbour perturbation (c=0.5) the perturbed value's nearest
+neighbour does not change, so a KNN classifier with K=1 would not change its
+predictions under this kind of perturbation.
 
 * Relative: This moves each feature sample x in R to x + e, e ~ Uniform(x -
   p·x, x + p·x), for p in {0.1, 0.2}.
