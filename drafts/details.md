@@ -123,7 +123,7 @@ categorical, and define perturbation methods based on the cardinality.
 ### Continous Data Perturbation
 
 These perturbations are all designed to be "small" in various intuitive ways,
-and define, for training data $\mathbf{X} \in \mathbb{R}^{\texttt{n_samples} \times \texttt{n_feat}}$ an $f: $ 
+and define, for training data $\mathbf{X} \in \mathbb{R}^{\texttt{n\_samples} \times \texttt{n\_feat}}$ an $f: $ 
 
 * Significant-digit-based: Rewriting each feature sample $x \in \mathbb{R}$ in
   scientific notation, e.g. $x =$ `1.2345e-N` for some `N`, then define
