@@ -122,16 +122,17 @@ categorical, and define perturbation methods based on the cardinality.
 
 ### Continous Data Perturbation
 
-These are all designed to be "small" in various intuitive ways.
+These perturbations are all designed to be "small" in various intuitive ways,
+and define, for training data $\mathbf{X} \in \mathbb{R}^{\texttt{n_samples} \times \texttt{n_feat}}$ an $f: $ 
 
 * Significant-digit-based: Rewriting each feature sample $x \in \mathbb{R}$ in
-  scientific notation, e.g. x = 1.2345e-N, perturbation at the zeroth digit
-  moves x to x + e, e ~ Uniform(-1e-N, 1e-N). Perturbation at the first digit
-  moves x to x + e, e ~ Uniform(-0.1e-N, 0.1e-N). The idea is that this is a
-  perturbation that is "visible" to humans when looking at rounded tables of
-  data, and that perturbations at a level that should be mostly invisible to
-  humans (e.g.at the 4th or 5th significant digit) should NOT have dramatic
-  impacts on classifier behaviours.
+  scientific notation, e.g. $x =$ `1.2345e-N` for some `N`, then define
+  *perturbation at the zeroth digit* to be x to x + e, e ~ Uniform(-1e-N,
+  1e-N). Perturbation at the first digit moves x to x + e, e ~ Uniform(-0.1e-N,
+  0.1e-N). The idea is that this is a perturbation that is "visible" to humans
+  when looking at rounded tables of data, and that perturbations at a level
+  that should be mostly invisible to humans (e.g.at the 4th or 5th significant
+  digit) should NOT have dramatic impacts on classifier behaviours.
 
 * Neighbor-based: This basically perturbs each sample x in R^n_features within
   its own Voronoi cell, i.e. if x_nn is the nearest neighbour to x, and B(a, r)
