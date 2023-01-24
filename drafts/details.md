@@ -144,8 +144,7 @@ sample distribution / size.
 
 Train downsampling by $p$ percent uses only $p$ percent of the available
 training samples $\mathbf{X}$. For reasons related to stratification, compute
-costs, and sample sizes, I limit $p$ to values in
-$\{25\%, 50\%, 75\%, 100\%\}$.
+costs, and sample sizes, I limit $p$ to values in $\{25, 50, 75, 100\}$.
 
 ## Data Perturbation
 
