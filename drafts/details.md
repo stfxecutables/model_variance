@@ -553,17 +553,9 @@ scaled in the same way.
 
 ## Hparam Perturbation: Error Consistency
 
-<div style="">
-<div style="float: left; width: 50%">
-
-![](./ec/violin/anneal_ecs_global_norm_violin.png)
-</div>
-
-<div style="float: right; width: 50%">
-
-![](./ec/violin/anneal_ec_accs_global_norm_violin.png)
-</div>
-</div>
+|Global $\text{EC}$ | Global $\text{EC}_{\text{acc}}$ |
+|:-----------------:|:-------------------------------:|
+|![](./ec/violin/anneal_ecs_global_norm_violin.png) | ![](./ec/violin/anneal_ec_accs_global_norm_violin.png) |
 
 ![](./ec/violin/vehicle_ecs_global_norm_violin.png)
 ![](./ec/violin/vehicle_ec_accs_global_norm_violin.png)
