@@ -32,7 +32,7 @@ from src.enumerables import (
     HparamPerturbation,
 )
 from src.hparams.hparams import Hparams
-from src.metrics.functional import RunComputer, _accuracy, _default, _ec
+from src.metrics.functional import RunComputer, _accuracy, _default, _ec, _ec_acc
 from src.results import Results
 
 """We need to distinguish between metrics that rely on the computation of
@@ -97,6 +97,8 @@ class ErrorConsistency:
         self.empty_unions: Literal["nan", "0", "1"] = empty_unions
         # self.computed: tuple[list[DataFrame], list[ndarray]] | None = None
         self.computed: DataFrame | None = None
+        self.computer = _ec
+        self.name = "ec"
 
     def compute(self, show_progress: bool = False) -> DataFrame:
         def ne(pred: ndarray, targ: ndarray) -> ndarray:
@@ -129,7 +131,7 @@ class ErrorConsistency:
         ecs: list[ndarray] = []
         for errors in tqdm(all_errors, desc="Computing ECs", disable=not show_progress):
             ecs.append(
-                _ec(
+                self.computer(
                     y_errs=errors,
                     empty_unions=self.empty_unions,
                     local_norm=self.local_norm,
@@ -138,12 +140,24 @@ class ErrorConsistency:
 
         supplemented = []
         for df, ec in zip(rep_dfs, ecs):
-            df["ec"] = ec
+            df[self.name] = ec
             supplemented.append(df)
 
         mega_df = pd.concat(supplemented, axis=0, ignore_index=True)
         self.computed = mega_df
         return mega_df
+
+
+class ECAcc(ErrorConsistency):
+    def __init__(
+        self,
+        results: Results,
+        local_norm: bool = False,
+        empty_unions: Literal["nan", "0", "1"] = "nan",
+    ) -> None:
+        super().__init__(results, local_norm, empty_unions)
+        self.computer = _ec_acc
+        self.name = "ec_acc"
 
 
 class PairwiseRepeatMetric(RunMetric):
@@ -207,6 +221,16 @@ if __name__ == "__main__":
     # results = Results.from_tar_gz(ROOT / "hperturb.tar", save_test=True)
     results = Results.from_test_cached()
     # sys.exit()
+    df = ECAcc(results, local_norm=False).compute()
+    out = ROOT / "repeat_ec_accs_global_norm.parquet"
+    df.to_parquet(out)
+    print(f"Saved EC_accs to {out}")
+
+    df = ECAcc(results, local_norm=True, empty_unions="0").compute()
+    out = ROOT / "repeat_ec_accs_local_norm0.parquet"
+    df.to_parquet(out)
+    print(f"Saved EC_accs to {out}")
+    sys.exit()
 
     df = ErrorConsistency(results, local_norm=False).compute()
     out = ROOT / "repeat_ecs_global_norm.parquet"

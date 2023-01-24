@@ -81,9 +81,13 @@ METRIC_BIGNAMES = {
     "acc": "Accuracy",
     "acc_range": "Accuracy Ranges",
     "ec": "Error Consistencies",
+    "ec_acc": "Error Consistency (acc)",
     "ec_range": "Error Consistency Ranges",
     "ec_mean": "Repeat Mean Error Consistencies",
     "ec_sd": "Repeat Error Consistency SDs",
+    "ec_acc_range": "Error Consistency (acc) Ranges",
+    "ec_acc_mean": "Repeat Mean Error Consistencies (acc)",
+    "ec_acc_sd": "Repeat Error Consistency (acc) SDs",
 }
 
 
@@ -225,8 +229,10 @@ def violin_grid(
             ),
             **args,
         }
+    data = df[df.dataset_name.isin([dsname])]
+    mn, mx = np.percentile(data[metric], [5, 95])
     sbn.catplot(
-        data=df[df.dataset_name.isin([dsname])],
+        data=data,
         # col="classifier",
         # x=metric,
         # y=metric,
@@ -247,15 +253,22 @@ def violin_grid(
     tex = "" if title_extra == "" else f" ({title_extra})"
     fig.suptitle(f"{metric_bigname} Distributions: data={dsname}{tex}", fontsize=10)
     # fig.set_size_inches(w=16, h=12)
+    for ax in fig.axes:
+        if final_args["x"] == metric:
+            ax.set_xlim(0, min(mx * 2, 1))
+        else:
+            ax.set_ylim(0, min(mx * 2, 1))
     if metric == "ec_range":
         fig.set_size_inches(h=8, w=8)
     elif metric == "ec_mean":
         fig.set_size_inches(h=8, w=6)
-        if "global" in label:
-            for ax in fig.axes:
-                ax.set_xlim(0, 0.10)
+        # if "global" in label:
+        #     for ax in fig.axes:
+        #         ax.set_xlim(0, 0.10)
         sbn.move_legend(fig, (0.025, 0.8))
-
+    elif metric in ["ec_acc", "ec"]:
+        fig.set_size_inches(h=8, w=6)
+        sbn.move_legend(fig, "upper left")
     else:
         fig.set_size_inches(h=8, w=14)
         sbn.move_legend(fig, "upper left")
@@ -268,7 +281,9 @@ def violin_grid(
         plt.close()
         return
 
-    out = PLOTS / f"{dsname}_{metric}s_{label}_violin.png"
+    outdir = PLOTS / f"{metric}/violin"
+    outdir.mkdir(exist_ok=True, parents=True)
+    out = outdir / f"{dsname}_{metric}s_{label}_violin.png"
     fig.savefig(out, dpi=150)
     plt.close()
     print(f"Saved plot to {out}")
@@ -344,7 +359,9 @@ def big_violin_grid(
         plt.close()
         return
 
-    out = PLOTS / f"{dsname}_{metric}s_{label}_bigviolin.png"
+    outdir = PLOTS / f"{metric}/big-violin/"
+    outdir.mkdir(exist_ok=True, parents=True)
+    out = outdir / f"{dsname}_{metric}s_{label}_bigviolin.png"
     fig.savefig(out, dpi=300)
     plt.close()
     print(f"Saved plot to {out}")
@@ -399,7 +416,9 @@ def big_bar_grid(
         plt.close()
         return
 
-    out = PLOTS / f"{dsname}_{metric}s_{label}_bigbar.png"
+    outdir = PLOTS / f"{metric}/big-bar/"
+    outdir.mkdir(exist_ok=True, parents=True)
+    out = outdir / f"{dsname}_{metric}s_{label}_bigbar.png"
     fig.savefig(out, dpi=150)
     plt.close()
     print(f"Saved plot to {out}")
@@ -454,7 +473,9 @@ def strip_grid(
         plt.close()
         return
 
-    out = PLOTS / f"{dsname}_{metric}s_{label}_strip.png"
+    outdir = PLOTS / f"{metric}/strip/"
+    outdir.mkdir(exist_ok=True, parents=True)
+    out = outdir / f"{dsname}_{metric}s_{label}_strip.png"
     fig.savefig(out, dpi=150)
     plt.close()
     print(f"Saved plot to {out}")
@@ -563,9 +584,13 @@ def plot_acc_ranges(df: DataFrame, kind: str = "violin", show: bool = False) -> 
 
 
 def plot_ec_dists(
-    df: DataFrame, kind: str = "violin", local_norm: bool = False, show: bool = False
+    df: DataFrame,
+    metric: Literal["ec", "ec_acc"],
+    kind: str = "violin",
+    local_norm: bool = False,
+    show: bool = False,
 ) -> None:
-    df = cleanup(df, metric="ec", pairwise=False)
+    df = cleanup(df, metric=metric, pairwise=False)
     df = plot_rename(df)
     sbn.set_style("whitegrid")
     sbn.set_palette("pastel")
@@ -577,7 +602,7 @@ def plot_ec_dists(
             df,
             dsname=dsname,
             kind=kind,
-            metric="ec",
+            metric=metric,
             label=label,
             title_extra=extra,
             show=show,
@@ -585,14 +610,18 @@ def plot_ec_dists(
 
 
 def plot_ec_means(
-    df: DataFrame, kind: str = "violin", local_norm: bool = False, show: bool = False
+    df: DataFrame,
+    metric: Literal["ec", "ec_acc"] = "ec",
+    kind: str = "violin",
+    local_norm: bool = False,
+    show: bool = False,
 ) -> None:
-    df = cleanup(df, metric="ec", pairwise=True)
+    df = cleanup(df, metric=metric, pairwise=True)
     df = df.reset_index().drop(
         columns=["count", "std", "min", "25%", "50%", "75%", "max"]
     )
     df = plot_rename(df)
-    df.rename(columns={"mean": "ec_mean"}, inplace=True)
+    df.rename(columns={"mean": f"{metric}_mean"}, inplace=True)
     sbn.set_style("whitegrid")
     sbn.set_palette("pastel")
     label = "local_norm_0" if local_norm else "global_norm"
@@ -603,7 +632,7 @@ def plot_ec_means(
             df,
             dsname=dsname,
             kind=kind,
-            metric="ec_mean",
+            metric=f"{metric}_mean",
             label=label,
             title_extra=extra,
             show=show,
@@ -611,14 +640,18 @@ def plot_ec_means(
 
 
 def plot_ec_ranges(
-    df: DataFrame, kind: str = "violin", local_norm: bool = False, show: bool = False
+    df: DataFrame,
+    metric: Literal["ec", "ec_acc"] = "ec",
+    kind: str = "violin",
+    local_norm: bool = False,
+    show: bool = False,
 ) -> None:
     df = (
-        cleanup(df, metric="ec", pairwise=True)
+        cleanup(df, metric=metric, pairwise=True)
         .reset_index()
         .drop(columns=["count", "std", "25%", "50%", "75%"])
     )
-    df["ec_range"] = df["max"] - df["min"]
+    df[f"{metric}_range"] = df["max"] - df["min"]
     df = df.drop(columns=["min", "max"])
     df = plot_rename(df)
     label = "local_norm_0" if local_norm else "global_norm"
@@ -631,7 +664,7 @@ def plot_ec_ranges(
             df,
             dsname=dsname,
             kind=kind,
-            metric="ec_range",
+            metric=f"{metric}_range",
             label=label,
             title_extra=extra,
             show=show,
@@ -672,6 +705,8 @@ if __name__ == "__main__":
     OUT = ROOT / "prelim_accs.parquet"
     EC_GLOBAL_OUT = ROOT / "repeat_ecs_global_norm.parquet"
     EC_LOCAL_OUT = ROOT / "repeat_ecs_local_norm_0.parquet"
+    EC_ACC_GLOBAL_OUT = ROOT / "repeat_ec_accs_global_norm.parquet"
+    EC_ACC_LOCAL_OUT = ROOT / "repeat_ec_accs_local_norm0.parquet"
 
     KIND = "violin"
     SHOW = False
@@ -680,13 +715,23 @@ if __name__ == "__main__":
     accs = pd.read_parquet(OUT)
     ecs = pd.read_parquet(EC_GLOBAL_OUT)
     els = pd.read_parquet(EC_LOCAL_OUT)
+    eas = pd.read_parquet(EC_ACC_GLOBAL_OUT)
+    eal = pd.read_parquet(EC_ACC_LOCAL_OUT)
 
     # plot_acc_dists(accs, show=SHOW, kind=KIND)
     # plot_acc_ranges(accs, show=SHOW, kind=KIND)
     # plot_ec_ranges(ecs, show=SHOW, kind=KIND)
-    # plot_ec_dists(ecs, local_norm=False, kind=KIND, show=SHOW)
-    plot_ec_means(ecs, local_norm=False, kind=KIND, show=SHOW)
-    plot_ec_means(els, local_norm=True, kind=KIND, show=SHOW)
+
+    plot_ec_dists(ecs, metric="ec", local_norm=False, kind=KIND, show=SHOW)
+    plot_ec_means(ecs, metric="ec", local_norm=False, kind=KIND, show=SHOW)
+    plot_ec_dists(els, metric="ec", local_norm=True, kind=KIND, show=SHOW)
+    plot_ec_means(els, metric="ec", local_norm=True, kind=KIND, show=SHOW)
+
+    plot_ec_dists(eas, metric="ec_acc", local_norm=False, kind=KIND, show=SHOW)
+    plot_ec_means(eas, metric="ec_acc", local_norm=False, kind=KIND, show=SHOW)
+    plot_ec_dists(eal, metric="ec_acc", local_norm=True, kind=KIND, show=SHOW)
+    plot_ec_means(eal, metric="ec_acc", local_norm=True, kind=KIND, show=SHOW)
+
     # plot_ec_sds(ecs, local_norm=False, kind=KIND, show=SHOW)
 
     # plot_ec_dists(els, local_norm=True, kind=KIND, show=SHOW)

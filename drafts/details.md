@@ -508,7 +508,7 @@ is the same across all error set pairings). Division by the test set size
 allows comparing ECs across data, and the interpretation is clear and
 immediate: the mean global EC is the number (or proportion) of samples on which
 a random pairing of classification runs can be expected to disagree on. I.e. a
-means global EC of 0.2 means that we expect two classifier predictions to disagree on
+mean global EC of 0.2 means that we expect two classifier predictions to disagree on
 about 20% of test samples. Presumably, with enough repetitions, we expect the mean
 EC to converge to 1 minus the mean accuracy.
 
@@ -529,14 +529,14 @@ That is, if we have boolean error sets $\{e_i\}$, and accuracies $\{a_i\}$, defi
 accuracy-normalized EC to be:
 
 
-$$\text{EC}_{\text{acc}, ij} = \sqrt[3]{a_i \cdot a_j \cdot \text{EC}_{\text{local}, ij}} $$
+$$\text{EC}_{\text{acc}, ij} = \sqrt[3]{a_i \cdot a_j \cdot \text{EC}_{\text{local}, ij}} \quad \text{or} \quad \sqrt{ \tilde{a} \cdot \text{EC}_{\text{local}, ij}} \quad  \text{ for } \tilde{a} = \sqrt{a_i  a_j} $$
 
 where
 
 $$\text{EC}_{\text{local}, ij} =  \frac{\lvert e_i \cap e_j \rvert}{\lvert e_i \cup e_j \rvert} $$
 
 The geometric mean ensures that a local EC of zero is still zero, and still results in values in
-$[0, 1]$.
+$[0, 1]$, whether to use $\sqrt[3]{}$ or not is mostly interpretability.
 
 This **accuracy-normalized EC also has the pleasant property that a classifier
 with nearly-zero accuracy will also have nearly-zero EC**, whereas _both_ the global
@@ -545,10 +545,28 @@ and local EC treat extremely inaccurate classifiers as highly consistent.
 In general, we only care to look at the EC when accuracy has already reached
 some acceptable value, so the $\text{EC}_\text{acc}$ is likely a better tool
 for something like model selection. The only disadvantage is that it loses the
-clear interpretability of the global EC.
+clear interpretability of the global EC. However, the global EC could also be
+scaled in the same way.
+
+
 
 
 ## Hparam Perturbation: Error Consistency
+
+<div style="">
+<div style="float: left; width: 50%">
+
+![](./ec/violin/anneal_ecs_global_norm_violin.png)
+</div>
+
+<div style="float: right; width: 50%">
+
+![](./ec/violin/anneal_ec_accs_global_norm_violin.png)
+</div>
+</div>
+
+![](./ec/violin/vehicle_ecs_global_norm_violin.png)
+![](./ec/violin/vehicle_ec_accs_global_norm_violin.png)
 
 
 
@@ -571,6 +589,7 @@ between repeats, and simply pool all runs, we can get an overhead picture
 ## No Perturbations
 
 
+```
 ====================================================================================
 Accuracies
 
@@ -611,5 +630,6 @@ vehicle      lr-sgd           450.0  0.993  0.018  0.938  0.938  1.000    1.0  1
              svm-sgd          450.0  0.978  0.048  0.750  0.867  1.000    1.0  1.0
              xgb              450.0  0.900  0.300  0.000  0.000  1.000    1.0  1.0
 ====================================================================================
+```
 
 https://github.com/stfxecutables/model_variance/blob/master/PLANNING.md
