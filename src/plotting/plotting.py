@@ -81,6 +81,7 @@ METRIC_BIGNAMES = {
     "acc": "Accuracy",
     "acc_range": "Accuracy Ranges",
     "ec": "Error Consistencies",
+    "ec_range": "Error Consistency Ranges",
     "ec_mean": "Repeat Mean Error Consistencies",
     "ec_sd": "Repeat Error Consistency SDs",
 }
@@ -206,38 +207,62 @@ def violin_grid(
         args = {**dict(row="train_size", row_order=["50%", "75%", "100%"]), **hargs}
     else:
         args = hargs
+    if metric == "acc_range":
+        final_args = {
+            **dict(
+                y=metric,
+                x="hparam_perturb",
+                order=HP_ORDER,
+            ),
+            **args,
+        }
+    else:
+        final_args = {
+            **dict(
+                x=metric,
+                y="continuous_perturb",
+                order=CONT_PERTURB_ORDER,
+            ),
+            **args,
+        }
     sbn.catplot(
         data=df[df.dataset_name.isin([dsname])],
         # col="classifier",
         # x=metric,
+        # y=metric,
         # y="continuous_perturb",
-        y=metric,
-        x="continuous_perturb",
-        order=CONT_PERTURB_ORDER,
+        # order=CONT_PERTURB_ORDER,
+        # x="hparam_perturb",
+        # order=HP_ORDER,
         # violin kwargs
         kind="violin",
-        # bw="scott",
         bw=0.3,
         scale="area",
         cut=0.1,
-        # bw="silverman",
         linewidth=0.5,
-        #
-        # box args
-        # linewidth=0.5,
-        # fliersize=0.5,
-        **args,
+        **final_args,
     )
     fig = plt.gcf()
     metric_bigname = METRIC_BIGNAMES[metric]
     tex = "" if title_extra == "" else f" ({title_extra})"
-    fig.suptitle(f"{metric_bigname} Distributions: data={dsname}{tex}")
-    fig.tight_layout()
+    fig.suptitle(f"{metric_bigname} Distributions: data={dsname}{tex}", fontsize=10)
     # fig.set_size_inches(w=16, h=12)
-    fig.set_size_inches(w=16, h=6)
-    sbn.move_legend(fig, (0.89, 0.82))
+    if metric == "ec_range":
+        fig.set_size_inches(h=8, w=8)
+    elif metric == "ec_mean":
+        fig.set_size_inches(h=8, w=6)
+        if "global" in label:
+            for ax in fig.axes:
+                ax.set_xlim(0, 0.10)
+        sbn.move_legend(fig, (0.025, 0.8))
+
+    else:
+        fig.set_size_inches(h=8, w=14)
+        sbn.move_legend(fig, "upper left")
+    # sbn.move_legend(fig, (0.89, 0.82))
     sbn.despine(fig, left=True, bottom=True)
-    fig.subplots_adjust(top=0.92, left=0.1, bottom=0.075, right=0.9, hspace=0.2)
+    fig.tight_layout()
+    # fig.subplots_adjust(top=0.92, left=0.2, bottom=0.075, right=0.9, hspace=0.2)
     if show:
         plt.show()
         plt.close()
@@ -280,7 +305,8 @@ def big_violin_grid(
         kind="violin",
         # bw="scott",
         bw=0.3,
-        scale="area",
+        # scale="area",
+        # scale="width",
         cut=0.1,
         # bw="silverman",
         linewidth=0.5,
@@ -294,23 +320,32 @@ def big_violin_grid(
     metric_bigname = METRIC_BIGNAMES[metric]
     tex = "" if title_extra == "" else f" ({title_extra})"
     fig.suptitle(f"{metric_bigname} Distributions: data={dsname}{tex}")
-    fig.tight_layout()
     # fig.set_size_inches(w=16, h=12)
-    fig.set_size_inches(w=16, h=16)
+    fig.set_size_inches(w=10, h=18)
     # sbn.move_legend(fig, (0.89, 0.82))
     sbn.despine(fig, left=True, bottom=True)
     clean_titles(grid, text="continuous_perturb = ")
     clean_titles(grid, text="hparam_perturb = ", split_at="|")
     make_row_labels(grid, col_order=HP_ORDER, row_order=CONT_PERTURB_ORDER)
+    if "global" in label:  # global EC is small with long tail
+        # set ylim to 0.15
+        for ax in fig.axes:
+            ax.set_ylim(0, 0.10)
+    if metric == "acc":
+        for ax in fig.axes:
+            ax.set_ylim(0.85, 1.0)
 
-    fig.subplots_adjust(top=0.92, left=0.1, bottom=0.075, right=0.9, hspace=0.2)
+    fig.tight_layout()
+    fig.subplots_adjust(top=0.95)
+
+    # fig.subplots_adjust(top=0.92, left=0.1, bottom=0.075, right=0.9, hspace=0.2)
     if show:
         plt.show()
         plt.close()
         return
 
     out = PLOTS / f"{dsname}_{metric}s_{label}_bigviolin.png"
-    fig.savefig(out, dpi=150)
+    fig.savefig(out, dpi=300)
     plt.close()
     print(f"Saved plot to {out}")
 
@@ -575,6 +610,34 @@ def plot_ec_means(
         )
 
 
+def plot_ec_ranges(
+    df: DataFrame, kind: str = "violin", local_norm: bool = False, show: bool = False
+) -> None:
+    df = (
+        cleanup(df, metric="ec", pairwise=True)
+        .reset_index()
+        .drop(columns=["count", "std", "25%", "50%", "75%"])
+    )
+    df["ec_range"] = df["max"] - df["min"]
+    df = df.drop(columns=["min", "max"])
+    df = plot_rename(df)
+    label = "local_norm_0" if local_norm else "global_norm"
+    extra = "Divide by Error Set Union" if local_norm else "Divide by Test Set Size"
+
+    sbn.set_style("whitegrid")
+    sbn.set_palette("pastel")
+    for dsname in df.dataset_name.unique():
+        plot_grid(
+            df,
+            dsname=dsname,
+            kind=kind,
+            metric="ec_range",
+            label=label,
+            title_extra=extra,
+            show=show,
+        )
+
+
 def plot_ec_sds(
     df: DataFrame, kind: str = "violin", local_norm: bool = False, show: bool = False
 ) -> None:
@@ -620,16 +683,21 @@ if __name__ == "__main__":
 
     # plot_acc_dists(accs, show=SHOW, kind=KIND)
     # plot_acc_ranges(accs, show=SHOW, kind=KIND)
+    # plot_ec_ranges(ecs, show=SHOW, kind=KIND)
     # plot_ec_dists(ecs, local_norm=False, kind=KIND, show=SHOW)
-    # plot_ec_means(ecs, local_norm=False, kind=KIND, show=SHOW)
+    plot_ec_means(ecs, local_norm=False, kind=KIND, show=SHOW)
+    plot_ec_means(els, local_norm=True, kind=KIND, show=SHOW)
     # plot_ec_sds(ecs, local_norm=False, kind=KIND, show=SHOW)
 
     # plot_ec_dists(els, local_norm=True, kind=KIND, show=SHOW)
     # plot_ec_means(els, local_norm=True, kind=KIND, show=SHOW)
     # plot_ec_sds(els, local_norm=True, kind=KIND, show=SHOW)
+    # plot_acc_dists(accs, kind="bigviolin", show=SHOW)
+    # plot_ec_dists(ecs, local_norm=False, kind="bigviolin", show=SHOW)
+    # plot_ec_dists(els, local_norm=True, kind="bigviolin", show=SHOW)
 
-    KIND = "bigviolin"
-    plot_acc_dists(accs, show=SHOW, kind=KIND)
+    KIND = "violin"
+    # plot_acc_dists(accs, show=SHOW, kind=KIND)
     KIND = "bigbar"
     # plot_acc_ranges(accs, show=SHOW, kind=KIND)
     # plot_ec_dists(ecs, local_norm=False, kind=KIND, show=SHOW)

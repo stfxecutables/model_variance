@@ -19,7 +19,14 @@ make for what is worth running, compute-wise.
   - [Tuned Evaluations](#tuned-evaluations)
 - [Runtime Considerations](#runtime-considerations)
 - [Preliminary Results](#preliminary-results)
-  - [No Perturbations and Ignoring Repeats](#no-perturbations-and-ignoring-repeats)
+- [Hparam Perturbation](#hparam-perturbation)
+  - [Hparam Perturbation: Gross Accuracies](#hparam-perturbation-gross-accuracies)
+  - [Hparam Perturbation: Repeat Accuracy Ranges](#hparam-perturbation-repeat-accuracy-ranges)
+  - [Hparam Perturbation: Gross Error Consistencies](#hparam-perturbation-gross-error-consistencies)
+    - [Problems with the Local EC](#problems-with-the-local-ec)
+  - [Hparam Perturbation: Error Consistency](#hparam-perturbation-error-consistency)
+  - [Pooled / Gross Results (Ignoring Repeats)](#pooled--gross-results-ignoring-repeats)
+  - [No Perturbations](#no-perturbations)
 
 
 # Paper Approach
@@ -371,21 +378,149 @@ But we can indeed test a very large number of combinations.
 For preliminary tests, I chose the two fastest fitting datasets (vehicle,
 anneal, which both fit in like 5 seconds) and do 10 repeats and 10 runs with a
 much wider variety of perturbation schemes than would be used in a final
-investigation.
+investigation. Ultimately this ended up in 44 800 model fits, which took about
+3 hours on Niagara, plus about 40 minutes on Cedar for the MLPs.
 
+I did not tune models, and just used hparam defaults.
 I did some earlier tests as well which are not presented here, but
 which basically show that training data downsampling has a much larger impact
 on accuracies and error consistencies than the data and hparam perturbation
-methods I chose.
+methods I chose. However, this was expected / unsurprising, and the focus of
+these preliminary tests was to iron out bugs and determine which hparam and
+data perturbation methods are worth including in a final presentation.
+
+
+# Hparam Perturbation
+
+## Hparam Perturbation: Gross Accuracies
+
+Impact on accuracy distributions depends on the perturbation scheme (see
+figures directly below), but perturbation at the zeroth significant digit has
+the most dramatic / obvious effect. In general, he stronger the hparam perturbation
+(larger $p$), the wider the global accuracy distributions.
+
+![Accuracy distributions on Anneal data](anneal_accs__bigviolin.png).
+![Accuracy distributions on Vehicle data](vehicle_accs__bigviolin.png).
+
+**Gross accuracy distributions**: Each row shows a different data perturbation
+scheme, and each column shows a different hparam perturbation scheme. A subplot
+title of "None" indicates no perturbation, so the upper left subplot is no perturbation
+of any kind.
+
+Also, gross accuracy distributions differ more dependind on the hparam perturbation method
+than on the data perturbation method (i.e. scanning the eyes horizontally across the above
+grids results in more variation than vertical scans). You can also see this in the below
+figures which lump together (ignore) hparam perturbation choices
+
+![Accuracy distributions ignoring hparam perturbation](anneal_accs__violin.png)
+![Accuracy distributions ignoring hparam perturbation](vehicle_accs__violin.png)
+
+**Gross accuracy distributions ignoring hparam perturbation**: Each column
+shows a different hparam perturbation scheme. A subplot title of "None"
+indicates no perturbation, so the upper subplot is no perturbation of any
+kind.
+
+## Hparam Perturbation: Repeat Accuracy Ranges
+
+The gross summaries hide *a lot*.
+
+![Repeat Accuracy range distributions](anneal_acc_ranges__violin.png)
+![Repeat Accuracy range distributions](vehicle_acc_ranges__violin.png)
+
+**Distribution of accuracy ranges across repeats**: Each column
+shows a different hparam perturbation scheme. "None"
+indicates no perturbation, so the left-most subplot is no perturbation of any
+kind. Each repeat and combination of perturbation schemes produces a set of
+accuracies, which has one range (max - min). This shows the distributions
+of those ranges across the 10 repeats times number of perturbation scheme
+combinations. For example, this plot suggest that the MLP and XGB are actually
+"most consistent" both overall, and subject to hparam perturbations.
+
+## Hparam Perturbation: Gross Error Consistencies
+
+I examine two ways to calculate the EC here. The "local" EC is the original
+definition, where we divide by the size of the error set union. I call this the
+"local" EC because the purpose of the division by the union here is to
+normalize values to be in $[0, 1]$, and the size of the union depends on the
+particular ("local") error set pairing. That is, the local EC is the IOU of the
+prediction errors of a pair.
+
+
+### Problems with the Local EC
+
+EC is a good idea, and normalizing it to be in $[0, 1]$ is also a good idea. However,
+normalization via the local union introduces some fatal flaws when:
+
+- error sets are small (i.e. datasets are small, and/or classifers are extremely accurate)
+- when a classifier is inconsistent only on a very small set of samples
+
+Namely, if a classifier makes essentially random errors on a set of samples of size at most
+$n$, then *regardless of the sample size $N$*, the possible local EC values are
+$\{0, 1\n, 2\n, \dots, \frac{n-1}{n}, 1\}$. Thus if a classifier being fit on
+e.g. millions or billions of samples is only misclassifying 3 samples (but is
+doing so effectively randomly), EC values are going to be in e.g. $\{0, 1/3,
+2/3, 1\}$.
+
+It is trivial to prove that such a sequence does not converge, e.g. it is
+pathological like a Cauchy random variable, and one cannot compute the mean or
+variance. That is, since $\sum \frac{1}{n}$ diverges, then by the squeeze theorem,
+if we have $s_n \in \{0, \frac{1}{k}, \frac{2}{k}, \dots, \frac{k-1}{k}\}$ for
+some fixed natural number $k$, then:
+
+$$
+\sum
+
+$$
+
+
+ and the average EC will be some  meaningless average of these values
+almost anywhere in $[0, 1]$, and the distribution of EC values will appear
+quite flat over these values. I'm not sure the average of such a set even
+converges probabilistically, and it may be pathological like the Cauchy
+distribution.
+
+In addition, the above considerations make the local EC numerical values
+entirely uniterpretable. Say you got an EC (or mean EC across pairings) of
+0.69: what conclusion can you draw, based on that number alone? Nothing at all.
+This could be because errors are on a tiny subset of samples, but, on average,
+the
+
+By contrast, if you simply divide by the number of test samples, all problems
+go away and interpretability is immediate.
 
 
 
 
-## No Perturbations and Ignoring Repeats
+
+
+ ., due to the division by local union. That is, if you have N
+predictions
+
+the have a distribution for which a classical variance cannot be defined (e.g.
+like the Cauchy distribution).
+
+
+## Hparam Perturbation: Error Consistency
+
+
+
+
+Impact on EC  Hparam perturbation at the zeroth digit
+has an obvious and dramatic effect on accuracy and EC distributions. Other
+perturbations don't have obvious effect on gross accuracy distributions, but
+
+
+Visually but only perturbation at the zeroth significant
+digit generally resulted in obvious visible changes to the metric distributions.
+
+
+
+## Pooled / Gross Results (Ignoring Repeats)
 
 If we ignore the fact that runs within a repeat should be more similar than runs
-between repeats, and simply pool all runs
+between repeats, and simply pool all runs, we can get an overhead picture
 
+## No Perturbations
 
 
 ====================================================================================

@@ -189,13 +189,13 @@ if __name__ == "__main__":
     #     "dataset_name", "classifier", "continuous_perturb",
     #     "categorical_perturb", "hparam_perturb",
     #     "train_downsample", "categorical_perturb_level", "acc",
-    # OUT = ROOT / "prelim_accs.parquet"
-    # EC_GLOBAL_OUT = ROOT / "repeat_ecs_global_norm.parquet"
-    # EC_LOCAL_OUT = ROOT / "repeat_ecs_local_norm_0.parquet"
+    OUT = ROOT / "prelim_accs.parquet"
+    EC_GLOBAL_OUT = ROOT / "repeat_ecs_global_norm.parquet"
+    EC_LOCAL_OUT = ROOT / "repeat_ecs_local_norm_0.parquet"
 
-    # accs = pd.read_parquet(OUT)
-    # ecs = pd.read_parquet(EC_GLOBAL_OUT)
-    # els = pd.read_parquet(EC_LOCAL_OUT)
+    accs = pd.read_parquet(OUT)
+    ecs = pd.read_parquet(EC_GLOBAL_OUT)
+    els = pd.read_parquet(EC_LOCAL_OUT)
 
     # print_acc_correlations()
     print_gross_descriptions()
