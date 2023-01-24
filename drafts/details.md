@@ -464,13 +464,13 @@ doing so effectively randomly), EC values are going to be in e.g. $\{0, 1/3,
 It is trivial to prove that such a sequence does not converge, e.g. it is
 pathological like a Cauchy random variable, and one cannot compute the mean or
 variance. That is, since $\sum \frac{1}{n}$ diverges, then by the squeeze theorem,
-if we have $s_n \in \{0, \frac{1}{k}, \frac{2}{k}, \dots, \frac{k-1}{k}\}$ for
+if we have $e_i \in \{0, \frac{1}{k}, \frac{2}{k}, \dots, \frac{k-1}{k}, 1\} \le 1$, then
+
+$$
+s_n = \sum_n^{\infty} \frac{e_n}{n}
+$$
+
 some fixed natural number $k$, then:
-
-$$
-\sum
-
-$$
 
 
  and the average EC will be some  meaningless average of these values
