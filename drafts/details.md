@@ -23,7 +23,9 @@ make for what is worth running, compute-wise.
   - [Hparam Perturbation: Gross Accuracies](#hparam-perturbation-gross-accuracies)
   - [Hparam Perturbation: Repeat Accuracy Ranges](#hparam-perturbation-repeat-accuracy-ranges)
   - [Hparam Perturbation: Gross Error Consistencies](#hparam-perturbation-gross-error-consistencies)
-    - [Problems with the Local EC](#problems-with-the-local-ec)
+    - [Serious Problems with the Local EC](#serious-problems-with-the-local-ec)
+    - [The Global EC](#the-global-ec)
+    - [Other EC Normalizations](#other-ec-normalizations)
   - [Hparam Perturbation: Error Consistency](#hparam-perturbation-error-consistency)
   - [Pooled / Gross Results (Ignoring Repeats)](#pooled--gross-results-ignoring-repeats)
   - [No Perturbations](#no-perturbations)
@@ -193,7 +195,7 @@ $p \in \{0.1, 0.2, \dots\}$.
 
 **Percentile**: Each feature has a distribution of *absolute* values, and lower percentile $p$
 for $p < 0.5$ for those absolute values.  For each feature sample $x \in \mathbb{R}$, define
-$f(x) = \text{clamp}(x + e, x_{\min}, x_{\max})$, where $e \sim \text{Unif}\big(x - p / 2,\; x + p/2\big)$,
+$f(x) = \text{clamp}(x + e, x_{\min}, x_{\max})$, where $e \sim \text{Unif}\big(x - p / 2, x + p/2\big)$,
 where $x_{\min}$ and $x_{\max}$ are the largest observed values for the feature, and where
 $p \in \{0.1, 0.2, \dots\}$. We use a percentile on the absolute values to avoid overly-large
 perturbations due to extreme negative or extreme positive values.
@@ -240,7 +242,7 @@ When a param is logarithmic, perturbations are done instead in
 $\log_{10}$-space, and then converted back. E.g. if we have tuned the model and
 found some good logarithmic parameter $\theta \in \mathbb{R}$, and are
 perturbing relatively by $p = 0.1$, then, the pertubed value is $\theta + 10^e$, where
-$e \sim \text{Unif}\big((1-p)\log_{10}\theta,\; (1 + p)\log_{10}\theta\big)$.
+$e \sim \text{Unif}\big((1-p)\log_{10}\theta, (1 + p)\log_{10}\theta\big)$.
 
 Ordinals are treated as continuous, but with rounding, as needed, to ensure
 values stay within the original ordinal levels. Categorical hparams are
@@ -367,9 +369,9 @@ job possible is 32 cores, so 31-core days is just 1 day on such a node.
 One minute is in most cases a *MASSIVE* over-estimate, so this is all very
 doable, with a couple exception datasets. Also the MLP needs GPUs, so has to be
 done on e.g. Cedar. Thankfully the GPU memory needed is low, so I was able to
-run e.g. 10 jobs in parallel on once GPU there without little trouble.
+run e.g. 10 jobs in parallel on one GPU there with little trouble.
 
-But we can indeed test a very large number of combinations.
+So we can indeed test a very large number of combinations.
 
 # Preliminary Results
 
@@ -395,7 +397,7 @@ data perturbation methods are worth including in a final presentation.
 
 Impact on accuracy distributions depends on the perturbation scheme (see
 figures directly below), but perturbation at the zeroth significant digit has
-the most dramatic / obvious effect. In general, he stronger the hparam perturbation
+the most dramatic / obvious effect. In general, the stronger the hparam perturbation
 (larger $p$), the wider the global accuracy distributions.
 
 ![Accuracy distributions on Anneal data](anneal_accs__bigviolin.png).
@@ -406,7 +408,7 @@ scheme, and each column shows a different hparam perturbation scheme. A subplot
 title of "None" indicates no perturbation, so the upper left subplot is no perturbation
 of any kind.
 
-Also, gross accuracy distributions differ more dependind on the hparam perturbation method
+Also, gross accuracy distributions differ more depending on the hparam perturbation method
 than on the data perturbation method (i.e. scanning the eyes horizontally across the above
 grids results in more variation than vertical scans). You can also see this in the below
 figures which lump together (ignore) hparam perturbation choices
@@ -417,11 +419,13 @@ figures which lump together (ignore) hparam perturbation choices
 **Gross accuracy distributions ignoring hparam perturbation**: Each column
 shows a different hparam perturbation scheme. A subplot title of "None"
 indicates no perturbation, so the upper subplot is no perturbation of any
-kind.
+kind. Only data perturbation at the zeroth significant digit results in
+obvious differences (from no perturbation) to the bulk of the accuracy
+distributions.
 
 ## Hparam Perturbation: Repeat Accuracy Ranges
 
-The gross summaries hide *a lot*.
+By ignoring within-repetition patterns, the gross summaries hide *a lot*.
 
 ![Repeat Accuracy range distributions](anneal_acc_ranges__violin.png)
 ![Repeat Accuracy range distributions](vehicle_acc_ranges__violin.png)
@@ -445,47 +449,96 @@ particular ("local") error set pairing. That is, the local EC is the IOU of the
 prediction errors of a pair.
 
 
-### Problems with the Local EC
+### Serious Problems with the Local EC
 
-EC is a good idea, and normalizing it to be in $[0, 1]$ is also a good idea. However,
-normalization via the local union introduces some fatal flaws when:
+EC is a good idea, and normalizing it to be in $[0, 1]$ is also a good idea.
+However, normalization via the local union results in the mean local EC (i.e.
+the mean EC across all unique error set pairings) becoming mostly
+uninterpretable, especially when error sets can be small.
 
-- error sets are small (i.e. datasets are small, and/or classifers are extremely accurate)
-- when a classifier is inconsistent only on a very small set of samples
+The reason for this is that the local EC can take on only rational values
+within $[0, 1]$. I.e. possible local EC values are:
 
-Namely, if a classifier makes essentially random errors on a set of samples of size at most
-$n$, then *regardless of the sample size $N$*, the possible local EC values are
-$\{0, 1\n, 2\n, \dots, \frac{n-1}{n}, 1\}$. Thus if a classifier being fit on
-e.g. millions or billions of samples is only misclassifying 3 samples (but is
-doing so effectively randomly), EC values are going to be in e.g. $\{0, 1/3,
-2/3, 1\}$.
+$$S = \{0, \frac{1}{2}, \frac{1}{3}, \frac{2}{3}, \dots, \frac{k-1}{k}, 1\} = \{s_0, s_1, \dots, s_n\}$$
 
-It is trivial to prove that such a sequence does not converge, e.g. it is
-pathological like a Cauchy random variable, and one cannot compute the mean or
-variance. That is, since $\sum \frac{1}{n}$ diverges, then by the squeeze theorem,
-if we have $e_i \in \{0, \frac{1}{k}, \frac{2}{k}, \dots, \frac{k-1}{k}, 1\} \le 1$, then
+where $k \le N$ for a dataset of $N$ samples, and where $k$ describes something
+like the largest possible number of samples that can be mis-predicted. If we consider
+the discrete random variable $\mathbf{S}$ which can take on the values in $S$, then
+each value $s_i \in S$ has probability $p_i$, and the expected value of $\mathbf{S}$
+is
 
-$$
-s_n = \sum_n^{\infty} \frac{e_n}{n}
-$$
+$$\mathbb{E}(\mathbf{S}) = \frac{1}{n} \sum_i^n p_n s_n$$
 
-some fixed natural number $k$, then:
+**This is the clearest _correct_ interpretation of the local EC mean I have been
+able to come up with**.
+
+However, this means that one knows essentially
+nothing when examining a mean EC value. That is, a mean local EC of ~0.33 could
+result from a bunch of values close to 333/1000, or a bunch of values close to
+1/3, or some other strange mixture of values. This is true independently of the
+number of samples. I.e. a nearly-perfect classifier being evaluated on tens of
+thousands of samples, and making errors only on 1-3 samples, could have a mean
+EC of 0.33.
+
+The problem can technically be worse, since identical local EC distributions
+could result from very different error profiles. E.g. we can imagine one classifier
+where ECs have the values (or values close to)
+
+$$\{\frac{k_1}{2k_1}, \frac{k_2}{2k_2}, \frac{k_3}{2k_3}, \dots\}, \text{ for various } k_i < k_{i+1} \in \mathbb{Z}$$
+
+and another in which EC values are only like the first term. These classifiers
+will appear to have identical EC distributions (a single spike at 0.5), but we
+surely want to say that the first classifier is far more inconsistent in its
+error behavior, as it makes errors on much more samples, and in much more
+different ways.
+
+This means any summary statistic using the local ECs alone will not be
+interpretable nor allow comparisons of ECs from one dataset or classifier to
+another, and the local EC can be viewed / interpreted only if you look at the
+full distribution of values, but that, even then, dramatically different error
+behaviours can still be invisible. This makes the local EC in my opinion a
+flawed metric.
+
+### The Global EC
+
+All these problems go away if we just stop dividing by the error set union, and
+do division by the test set size (i.e. we normalize by a "global" property that
+is the same across all error set pairings). Division by the test set size
+allows comparing ECs across data, and the interpretation is clear and
+immediate: the mean global EC is the number (or proportion) of samples on which
+a random pairing of classification runs can be expected to disagree on. I.e. a
+means global EC of 0.2 means that we expect two classifier predictions to disagree on
+about 20% of test samples.
+
+In fact, the mean EC in this case ends up being equal to 1 minus the expected accuracy.
+Letting $\langle \cdot \rangle_t$ denote the mean with respect to index $t$, and for
+predictions $\hat{\symbfit{y}} = \{\hat{y_i}\}$ and true values $\symbfit{y} = \{y_i\}$:
+
+$$\begin{align*}
+\text{acc} &= \langle y_i = \hat{y_i}  \rangle_i \\
+&= 1 - \langle y_i \ne \hat{y_i}  \rangle_i \\
+&= 1 - \langle e_i \rangle_i \text{ for error set } \symbfit{e} = \{e_i\}\\
+\end{align*}$$
+
+But the global EC is
+
+$$\begin{align*}
+\text{EC}_{ij} &= \frac{1}{n} (e_i \ne e_j ) \\
+\text{EC}_{ij} &= \langle y_i = \hat{y_i}  \rangle_i \\
+&= 1 - \langle y_i \ne \hat{y_i}  \rangle_i \\
+&= 1 - \langle \text{err}_i \rangle_i \text{ for error set } \text{err}_i\\
+\end{align*}$$
 
 
- and the average EC will be some  meaningless average of these values
-almost anywhere in $[0, 1]$, and the distribution of EC values will appear
-quite flat over these values. I'm not sure the average of such a set even
-converges probabilistically, and it may be pathological like the Cauchy
-distribution.
+In fact, the mean global ec
 
-In addition, the above considerations make the local EC numerical values
-entirely uniterpretable. Say you got an EC (or mean EC across pairings) of
-0.69: what conclusion can you draw, based on that number alone? Nothing at all.
-This could be because errors are on a tiny subset of samples, but, on average,
-the
+### Other EC Normalizations
 
-By contrast, if you simply divide by the number of test samples, all problems
-go away and interpretability is immediate.
+Some other alternatives which ay fix the bad behaviour
+
+
+
+
 
 
 
