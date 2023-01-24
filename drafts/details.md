@@ -113,6 +113,13 @@ impact the resulting predictions. I explicitly manipulate three main sources of
 variance in this study: hyperparameters, data (predictor) noise, and training
 sample distribution / size.
 
+## Train Downsampling
+
+Train downsampling by $p$ percent uses only $p$ percent of the available
+training samples $\mathbf{X}$. For reasons related to stratification, compute
+costs, and sample sizes, I limit $p$ to values in
+$\{25\%, 50\%, 75\%, 100\%\}$.
+
 ## Data Perturbation
 
 I develop a number of methods to perturb predictor values and simulate
@@ -158,11 +165,12 @@ predictions under this kind of perturbation.
 $f(x) = x + e$, where $e \sim \text{Unif}\big(x (1 - p),\;x  (1 + p)\big)$, for
 $p \in \{0.1, 0.2, \dots\}$.
 
-**Percentile**: Each feature has a distribution of values, and lower percentile $p$
-for $p < 0.5$.  For each feature sample $x \in \mathbb{R}$, define
+**Percentile**: Each feature has a distribution of *absolute* values, and lower percentile $p$
+for $p < 0.5$ for those absolute values.  For each feature sample $x \in \mathbb{R}$, define
 $f(x) = \text{clamp}(x + e, x_{\min}, x_{\max})$, where $e \sim \text{Unif}\big(x - p / 2,\; x + p/2\big)$,
 where $x_{\min}$ and $x_{\max}$ are the largest observed values for the feature, and where
-$p \in \{0.1, 0.2, \dots\}$.
+$p \in \{0.1, 0.2, \dots\}$. We use a percentile on the absolute values to avoid overly-large
+perturbations due to extreme negative or extreme positive values.
 
 
 ### Categorical Data Perturbation
@@ -184,19 +192,71 @@ correctly called ["attribute noise"](https://link.springer.com/article/10.1007/s
 
 **Note**: Early experiments show that sample-level perturbation is an extremely
 weak source of variance even at $p = 0.2$ (does not seem to impact performance
-distributions at all).
+distributions at all).  By contrast, label-level perturbation at even $p=0.1$ has obvious performance impacts.
+However, label-level perturbation is systemic and aggressive, so more likely appropriate values
+for this are $p \le 0.1$, then
 
-By contrast, label-level perturbation at even $p=0.1$ has obvious performance impacts.
-However, this is a systemic and aggressive perturbation, so more likely appropriate values
-for this are $p \le 0.1$.
 
-## Train Downsampling
 
-After setting aside a test set, (X_train, y_train) pairs remain. Train downsampling
-by p percent uses only p percent of these pairs. I investigate p in {25, 50, 75}.
 
-## Hyperparameter (hparam) Perturbation
+## Hyperparameter (Hparam) Perturbation
 
+Hyperparameters can be categorized based on their cardinality: they are either continuous,
+ordinal, or categorical. They are also either logarithmic or not. For the most part,
+hyperparameters can be perturbed in the same ways that the data (i.e. predictors $\mathbf{X}$)
+are perturbed, and so we define *significant digit* and *relative* hparam perturbation
+of continous and ordinal hparams as above. However, since we must specify viable ranges for
+hparams, and don't have to worry about outliers, we can just use proportions of the
+full hparam range instead of percentiles, and so all this *absolute* perturbation.
+
+
+When a param is logarithmic, perturbations are done instead in
+$\log_{10}$-space, and then converted back. E.g. if we have tuned the model and
+found some good logarithmic parameter $\theta \in \mathbb{R}$, and are
+perturbing relatively by $p = 0.1$, then, the pertubed value is $\theta + 10^e$, where
+$e \sim \text{Unif}\big((1-p)\log_{10}\theta,\; (1 + p)\log_{10}\theta\big)$.
+
+Ordinals are treated as continuous, but with rounding, as needed, to ensure
+values stay within the original ordinal levels. Categorical hparams are
+perturbed independently with probability $p$.
+
+**Note**: Currently I forget to scale the perturbation probability for categoricals
+to be proportional to the number of categorical hparams and runs. The categorical perturbation
+prob is set to be in $\{0.1, 0.2\}$. With only 10 runs per repeat, this means a categorical
+hparam will remain at the default or tuned value on most or even all runs, and so is
+generally unperturbed within a repeat. I think this is why I am currently seeing only a
+limited impact of hparam perturbation.
+
+
+# Evaluation Procedure
+
+Time permitting, I will examine each combination of model, classifier, and training perturbation schemes
+in two scenarios:
+
+## "Out-of-the-Box" Evaluations
+
+Scikit-Learn, XGBoost, and PyTorch provide a number of default values for most hyperparameters.
+Using these hparams is equivalent to using an "untuned" model, and we evaluate models using
+defaults as a first step. In general, we should expect good PPSMs with default values or
+perturbations thereof, because otherwise the defaults would not be good defaults that work
+in a variety of situations.
+
+**Note**: In fact, early testing to estimate runtimes used *completely random* hyperparameters, and
+in most cases most models still performed reasonably well most of the time.
+
+
+## Tuned Evaluations
+
+I plan to use random search to tune each model-classifier-dataset combination
+$4 \times 4 \times 37 = 592$ tunings. The hparams found by these tunings will then be
+used for ALL subsequent repeats, runs, and combinations of perturbation scheme.
+
+Arguably, we want to know how e.g. data perturbation and downsampling impact tuning too,
+but then this gets inordinately expensive.
+
+# Runtime Considerations
+
+# Results
 
 
 
