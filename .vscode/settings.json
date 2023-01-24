@@ -1,0 +1,15 @@
+{
+  "markdown.extension.toc.omittedFromToc": {
+  "drafts/details.md": [
+    "# Index",
+    "# Contents",
+    "# Table of Contents"
+  ]
+  },
+  "workbench.colorTheme": "Spacegray Eighties Dark",
+  "python.testing.pytestArgs": [
+    "test"
+  ],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true
+}
