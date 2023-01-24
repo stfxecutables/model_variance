@@ -553,9 +553,24 @@ scaled in the same way.
 
 ## Hparam Perturbation: Error Consistency
 
-|Global $\text{EC}$ | Global $\text{EC}_{\text{acc}}$ |
-|:-----------------:|:-------------------------------:|
-|![](./ec/violin/anneal_ecs_global_norm_violin.png) | ![](./ec/violin/anneal_ec_accs_global_norm_violin.png) |
+<p float="left">
+
+<img src="./ec/violin/anneal_ecs_global_norm_violin.png" width="40%">
+<img src="./ec_acc/violin/anneal_ec_accs_global_norm_violin.png" width="40%">
+
+</p>
+
+| Global EC | Global EC$_{\text{acc}}$ |
+|-----------|--------------------------|
+|![](./ec/violin/anneal_ecs_global_norm_violin.png) | ![](./ec_acc/violin/anneal_ec_accs_global_norm_violin.png) |
+
+
+<img src="./ec/violin/anneal_ecs_global_norm_violin.png" width="40%">
+<img src="./ec_acc/violin/anneal_ec_accs_global_norm_violin.png" width="40%">
+
+</p>
+
+![](./ec/violin/anneal_ecs_global_norm_violin.png) | ![](./ec/violin/anneal_ec_accs_global_norm_violin.png)
 
 ![](./ec/violin/vehicle_ecs_global_norm_violin.png)
 ![](./ec/violin/vehicle_ec_accs_global_norm_violin.png)
