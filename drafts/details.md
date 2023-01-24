@@ -26,6 +26,7 @@ make for what is worth running, compute-wise.
     - [Serious Problems with the Local EC](#serious-problems-with-the-local-ec)
     - [The Global EC](#the-global-ec)
     - [Other EC Normalizations](#other-ec-normalizations)
+      - [Accuracy-Normalized EC](#accuracy-normalized-ec)
   - [Hparam Perturbation: Error Consistency](#hparam-perturbation-error-consistency)
   - [Pooled / Gross Results (Ignoring Repeats)](#pooled--gross-results-ignoring-repeats)
   - [No Perturbations](#no-perturbations)
@@ -508,48 +509,43 @@ allows comparing ECs across data, and the interpretation is clear and
 immediate: the mean global EC is the number (or proportion) of samples on which
 a random pairing of classification runs can be expected to disagree on. I.e. a
 means global EC of 0.2 means that we expect two classifier predictions to disagree on
-about 20% of test samples.
-
-In fact, the mean EC in this case ends up being equal to 1 minus the expected accuracy.
-Letting $\langle \cdot \rangle_t$ denote the mean with respect to index $t$, and for
-predictions $\hat{\symbfit{y}} = \{\hat{y_i}\}$ and true values $\symbfit{y} = \{y_i\}$:
-
-$$\begin{align*}
-\text{acc} &= \langle y_i = \hat{y_i}  \rangle_i \\
-&= 1 - \langle y_i \ne \hat{y_i}  \rangle_i \\
-&= 1 - \langle e_i \rangle_i \text{ for error set } \symbfit{e} = \{e_i\}\\
-\end{align*}$$
-
-But the global EC is
-
-$$\begin{align*}
-\text{EC}_{ij} &= \frac{1}{n} (e_i \ne e_j ) \\
-\text{EC}_{ij} &= \langle y_i = \hat{y_i}  \rangle_i \\
-&= 1 - \langle y_i \ne \hat{y_i}  \rangle_i \\
-&= 1 - \langle \text{err}_i \rangle_i \text{ for error set } \text{err}_i\\
-\end{align*}$$
+about 20% of test samples. Presumably, with enough repetitions, we expect the mean
+EC to converge to 1 minus the mean accuracy.
 
 
-In fact, the mean global ec
 
 ### Other EC Normalizations
 
-Some other alternatives which ay fix the bad behaviour
+Some other alternatives which may fix the bad behaviour of the local EC are to
+divide instead by the size of the largest observed error set union, by the size
+of the union of *all* error sets. However, this still leaves these ECs essentially
+incomparable among different runs or datasets, and we still cannot interpret the meaning
+of a value like 0.2 without knowing the size of the normalizing set.
+
+#### Accuracy-Normalized EC
+
+Another possibility for correcting the local EC is to combine it with the accuracy via geometric mean.
+That is, if we have boolean error sets $\{e_i\}$, and accuracies $\{a_i\}$, define the
+accuracy-normalized EC to be:
 
 
+$$\text{EC}_{\text{acc}, ij} = \sqrt[3]{a_i \cdot a_j \cdot \text{EC}_{\text{local}, ij}} $$
 
+where
 
+$$\text{EC}_{\text{local}, ij} =  \frac{\lvert e_i \cap e_j \rvert}{\lvert e_i \cup e_j \rvert} $$
 
+The geometric mean ensures that a local EC of zero is still zero, and still results in values in
+$[0, 1]$.
 
+This **accuracy-normalized EC also has the pleasant property that a classifier
+with nearly-zero accuracy will also have nearly-zero EC**, whereas _both_ the global
+and local EC treat extremely inaccurate classifiers as highly consistent.
 
-
-
-
- ., due to the division by local union. That is, if you have N
-predictions
-
-the have a distribution for which a classical variance cannot be defined (e.g.
-like the Cauchy distribution).
+In general, we only care to look at the EC when accuracy has already reached
+some acceptable value, so the $\text{EC}_\text{acc}$ is likely a better tool
+for something like model selection. The only disadvantage is that it loses the
+clear interpretability of the global EC.
 
 
 ## Hparam Perturbation: Error Consistency
