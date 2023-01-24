@@ -176,8 +176,8 @@ should be mostly invisible to humans (e.g.at the 3rd or 4th significant digit)
 should NOT have dramatic impacts on classifier behavior.
 
 **Nearest-Neighbor**: This perturbs each sample $\symbfit{x} \in \mathbb{R}^F$
-to within its Voronoi cell, as defined by $\mathbf{X}$.
-That is, if $\mathbf{x}_{\text{nn}}$ is the nearest neighbour to $\symbfit{x}$,
+to within its Voronoi cell, as defined by $\mathbf{X}$. That is, if
+$\mathbf{x}_{\text{nn}}$ is the nearest neighbour to $\symbfit{x}$,
 and $B(\symbfit{a}, r)$ is the multidimensional ball of radius $r$ centred at
 $\symbfit{a}$, then neighbor-based perturbation moves $\symbfit{x}$ to a
 random location in $B(x, \; c\cdot \lVert \symbfit{x} - \symbfit{x}_{\text{nn}} \rVert)$,
