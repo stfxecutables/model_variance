@@ -560,7 +560,7 @@ scaled in the same way.
 
 </p>
 
-| Global EC | Global EC$_{\text{acc}}$ |
+| Global EC | Global EC$\_{\text{acc}}$ |
 |-----------|--------------------------|
 |![](./ec/violin/anneal_ecs_global_norm_violin.png) | ![](./ec_acc/violin/anneal_ec_accs_global_norm_violin.png) |
 
