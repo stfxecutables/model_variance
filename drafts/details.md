@@ -2,6 +2,26 @@ I've been working on what I call the "model variance" paper quite extensively fo
 the past weeks, and have preliminary results, and then some final decisions to
 make for what is worth running, compute-wise.
 
+
+# Contents
+- [Paper Approach](#paper-approach)
+- [Overview](#overview)
+- [Data](#data)
+- [Classifiers](#classifiers)
+- [Sources of Variance and Training Perturbation Schemes](#sources-of-variance-and-training-perturbation-schemes)
+  - [Train Downsampling](#train-downsampling)
+  - [Data Perturbation](#data-perturbation)
+    - [Continous Data Perturbation](#continous-data-perturbation)
+    - [Categorical Data Perturbation](#categorical-data-perturbation)
+  - [Hyperparameter (Hparam) Perturbation](#hyperparameter-hparam-perturbation)
+- [Evaluation Procedure](#evaluation-procedure)
+  - ["Out-of-the-Box" Evaluations](#out-of-the-box-evaluations)
+  - [Tuned Evaluations](#tuned-evaluations)
+- [Runtime Considerations](#runtime-considerations)
+- [Preliminary Results](#preliminary-results)
+  - [No Perturbations and Ignoring Repeats](#no-perturbations-and-ignoring-repeats)
+
+
 # Paper Approach
 
 # Overview
@@ -345,29 +365,27 @@ run e.g. 10 jobs in parallel on once GPU there without little trouble.
 
 But we can indeed test a very large number of combinations.
 
-# Results
+# Preliminary Results
+
+
+For preliminary tests, I chose the two fastest fitting datasets (vehicle,
+anneal, which both fit in like 5 seconds) and do 10 repeats and 10 runs with a
+much wider variety of perturbation schemes than would be used in a final
+investigation.
+
+I did some earlier tests as well which are not presented here, but
+which basically show that training data downsampling has a much larger impact
+on accuracies and error consistencies than the data and hparam perturbation
+methods I chose.
 
 
 
-I've got all of the setup done and preliminary results for the model variance /
-error consistency thing we discussed with Pascal Tyrrell.
 
-There's a lot to describe, but the main thing is that models are fit subject to
-a number of sources of variance (e.g. hyperparamter perturbation, data
-perturbation, data downsampling) and then evaluated across *runs* and *repeats*.
+## No Perturbations and Ignoring Repeats
 
-Within a *repeat*, I do 10 fits / runs and get the predictions on a test set
-X_test shared across these runs. Because X_test is shared, this allows
-computing an EC, or any other Pairwise Prediction Similarity Metric (PPSM). I
-also do many repeats (10) where this process is repeated, but with a different
-shared X_test (chosen
+If we ignore the fact that runs within a repeat should be more similar than runs
+between repeats, and simply pool all runs
 
-This allows very rich summary of the PPSMs. For example, if our PPSM
-of interest is the EC mean across the 45 unique error-set pairings, then we
-get 10 such EC means, and so can talk about the distribution of this metric,
-rather than just getting a single value for it. Because predictions are saved,
-then
-it is also trivial to compare the EC
 
 
 ====================================================================================
