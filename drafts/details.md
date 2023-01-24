@@ -180,7 +180,7 @@ to within its Voronoi cell, as defined by $\mathbf{X}$. That is, if $\symbfit{x}
 the nearest neighbour to $\symbfit{x}$, and $B(\symbfit{a}, r)$ is the
 multidimensional ball of radius $r$ centred at $\symbfit{a}$, then
 neighbor-based perturbation moves $\symbfit{x}$ to a
-random location in $B(x, \; c\cdot \lVert \symbfit{x} - \symbfit{x}_{\text{nn}} \rVert)$,
+random location in $B(x,  c\cdot \lVert \symbfit{x} - \symbfit{x}_{\text{nn}} \rVert)$,
 where $c \in \{0.25, 0.5, 1.0\}$. There is precedence for this in e.g.
 https://arxiv.org/pdf/1905.01019.pdf, and the basic reasoning is quite sound.
 E.g. at "half" neighbour perturbation (c=0.5) the perturbed value's nearest
@@ -188,7 +188,7 @@ neighbour does not change, so a KNN classifier with K=1 would not change its
 predictions under this kind of perturbation.
 
 **Relative**: For each feature sample $x \in \mathbb{R}$, define
-$f(x) = x + e$, where $e \sim \text{Unif}\big(x (1 - p),\;x  (1 + p)\big)$, for
+$f(x) = x + e$, where $e \sim \text{Unif}\big(x (1 - p),x  (1 + p)\big)$, for
 $p \in \{0.1, 0.2, \dots\}$.
 
 **Percentile**: Each feature has a distribution of *absolute* values, and lower percentile $p$
