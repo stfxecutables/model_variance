@@ -256,6 +256,95 @@ but then this gets inordinately expensive.
 
 # Runtime Considerations
 
+Assuming:
+
+* 2 - 4 data perturbation schemes
+* 1 - 2 categorical data perturbation methods (label vs. sample)
+* 2 - 4 hparam perturbation schemes
+* 3 - 4 downsampling sizes (e.g. [25%, 50%, 75%, 100%])
+* 4 classifiers
+* 37 datasets
+* 5 - 10 runs
+* 5 - 10 repeats
+
+This is 44 400 model fits at minimum, and 1 894 400 total model fits at maximum (!).
+I have actually fit and analyzed that many models before, but the runtimes were faster.
+
+If we limit to:
+
+* 3 data perturbation schemes
+* 2 categorical data perturbation method
+* 2 hparam perturbation schemes
+* 3 downsampling sizes (e.g. [50%, 75%, 100%])
+* 4 classifiers
+* 37 datasets
+* 10 runs
+* 10 repeats
+
+this is 532 800 model fits. This is worth keeping in mind.
+
+Across datasets, median SINGLE-CORE runtime is 5s, except for MLP, which is more like 45s.
+95th percentile of max times is about 2min to 10minutes. Only lr-sgd and svm-sgd
+get up to 30-60minutes for the Aloi and Dionis datasets. E.g. dropping Aloi and
+Dionis, we get:
+
+| classifier | 50%    | 75%    | 95%    | 97.5%  | 99%    | max    |
+|:-----------|:-------|:-------|:-------|:-------|:-------|:-------|
+| lr-sgd     | 4.6 s  | 10.0 s | 42.3 s | 61.3 s | 2.0 m  | 2.7 m  |
+| mlp        | 38.0 s | 62.8 s | 3.6 m  | 4.0 m  | 4.4 m  | 4.8 m  |
+| svm-sgd    | 2.8 s  | 7.6 s  | 25.1 s | 45.7 s | 53.8 s | 59.3 s |
+| xgb        | 4.9 s  | 6.0 s  | 59.3 s | 78.8 s | 83.9 s | 87.2 s |
+
+I.e. all worst-case runtimes are about 1-5 minutes, and only two datasets are
+problems for two classifiers:
+
+```
+All max runtime distributions
+                       mean     50%     75%     95%   97.5%     99%     max
+classifier runtime
+lr-sgd     Fast      <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m
+           Mid       <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m
+           Slow      <1.0 m  <1.0 m  <1.0 m   2.2 m   2.4 m   2.6 m   2.7 m
+           VerySlow  45.2 m  45.2 m  51.3 m  56.2 m  56.8 m  57.1 m  57.4 m
+
+mlp        Fast      <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m
+           Mid        1.7 m   1.1 m   1.7 m   4.2 m   4.5 m   4.6 m   4.8 m
+           Slow      <1.0 m  <1.0 m  <1.0 m   1.1 m   1.1 m   1.1 m   1.1 m
+           VerySlow   3.0 m   3.0 m   3.9 m   4.6 m   4.7 m   4.8 m   4.8 m
+
+svm-sgd    Fast      <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m
+           Mid       <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m
+           Slow      <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m
+           VerySlow  32.0 m  32.0 m  32.9 m  33.6 m  33.7 m  33.7 m  33.7 m
+
+xgb        Fast      <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m
+           Mid       <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m  <1.0 m
+           Slow      <1.0 m  <1.0 m   1.1 m   1.4 m   1.4 m   1.4 m   1.5 m
+           VerySlow   5.2 m   5.2 m   5.8 m   6.3 m   6.4 m   6.4 m   6.5 m
+```
+
+So ignoring the annoying Aloi and Dionis datasets for a moment, then at 1-5 minutes
+per fit, we have:
+
+```
+   44 400 * 1min =     740hr =   31 core days
+  532 800 * 1min =    8880hr =  370 core days
+  532 800 * 5min =  5*8880hr = 1850 core days
+1 894 400 * 5min = ~158000hr =    too much
+
+```
+
+With 80 cores on Niagara, **30.8 core days is in fact just under 10hrs on a single job on one node**,
+and of course you can submit and run on multiple nodes in parallel. On cedar, the largest whole-node
+job possible is 32 cores, so 31-core days is just 1 day on such a node.
+
+One minute is in most cases a *MASSIVE* over-estimate, so this is all very
+doable, with a couple exception datasets. Also the MLP needs GPUs, so has to be
+done on e.g. Cedar. Thankfully the GPU memory needed is low, so I was able to
+run e.g. 10 jobs in parallel on once GPU there without little trouble.
+
+But we can indeed test a very large number of combinations.
+
 # Results
 
 
