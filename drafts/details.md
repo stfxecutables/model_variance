@@ -554,8 +554,8 @@ By ignoring within-repetition patterns, the gross summaries hide some interestin
 **Above: Distribution of accuracy ranges across repeats**: Each column shows a
 different hparam perturbation scheme. "None" indicates no perturbation, so the
 left-most subplot is no perturbation of any kind. Each repeat and combination
-of perturbation schemes produces a set of accuracies, which has one range (max
-- min). This shows the distributions of those ranges across the 10 repeats
+of perturbation schemes produces a set of accuracies, which has one range
+(max - min). This shows the distributions of those ranges across the 10 repeats
 times number of perturbation scheme combinations. For example, this plot
 suggest that the MLP and XGB are actually "most consistent" both overall, and
 subject to hparam perturbations, when "consistency" is defined as "smaller
@@ -569,7 +569,10 @@ repeat accuracy ranges".
 ### Data Perturbation
 
 As usual, significant digit perturbation has the most effect, but otherwise,
-differences in the gross EC distributions are subtle.
+differences in the gross EC distributions are subtle. For a paper, we should
+include data perturbation at the zeroth digit, but also another method below
+with greater strength (e.g. relative perturbation at 50%).
+
 
 | Global $\text{EC}$ | Global $\text{EC}_{\text{acc}}$ |
 |-----------|--------------------------|
@@ -577,8 +580,12 @@ differences in the gross EC distributions are subtle.
 |![](./plots/ec/violin/vehicle_ecs_global_norm_violin.png) | ![](./plots/ec_acc/violin/vehicle_ec_accs_global_norm_violin.png) |
 
 
-**Global EC Distributions by data perturbation**: Left: Global EC. Right: Global
-EC adjusted with accuracy.
+**Above: Global EC Distributions by data perturbation**: Left: Global EC. Right: Global
+EC adjusted with accuracy. Note the apparent paradoxical result that hparam perturbation
+can in fact *increase* global EC, even when that EC is accuracy-adjusted. This is, however,
+a gross summary that ignores within-repeat effects, and so may be misleading.
+
+---
 
 
 | Local $\text{EC}$ | Local $\text{EC}_{\text{acc}}$ |
@@ -586,11 +593,11 @@ EC adjusted with accuracy.
 |![](./plots/ec/violin/anneal_ecs_local_norm_0_violin.png) | ![](./plots/ec_acc/violin/anneal_ec_accs_local_norm_0_violin.png) |
 |![](./plots/ec/violin/vehicle_ecs_local_norm_0_violin.png) | ![](./plots/ec_acc/violin/vehicle_ec_accs_local_norm_0_violin.png) |
 
-**Local EC Distributions by data perturbation**: Left: Local EC. Right: Local
+**Above: Local EC Distributions by data perturbation**: Left: Local EC. Right: Local
 EC adjusted with accuracy. Note how often local EC distributions are quite
 pathological (e.g. very flat) so that the mean and range of the distribution
 do not provide much useful information about the distribution. Not also
-accuracy-adjusted local EC distributions are better-behaved and easier to
+accuracy-adjusted local EC distributions are a bit better-behaved and easier to
 describe.
 
 ### Repeat EC Means
@@ -598,7 +605,8 @@ describe.
 Since there are 10 repeats, and 10 runs per repeat, each repeat yields 45 pairs
 of ECs. The mean of these 45 EC pairs is a single value, the "EC Mean", and the
 10 of them gives us a distribution on the EC mean. These distributions are depicted
-in the figures below.
+in the figures below, and have a number advantages over the gross summaries above,
+in that they consider within-repeat correlations and effects.
 
 | Global $\text{EC}$: Anneal | Global $\text{EC}_{\text{acc}}$: Anneal |
 |-----------|--------------------------|
@@ -609,8 +617,15 @@ in the figures below.
 |![](./plots/ec_mean/violin/vehicle_ec_means_global_norm_violin.png) | ![](./plots/ec_acc_mean/violin/vehicle_ec_acc_means_global_norm_violin.png) |
 
 
-**Distributions of Global EC Means Across Repeats, by data perturbation**: Left: Global EC. Right: Global
-EC adjusted with accuracy.
+**Above: Distributions of Global EC Means Across Repeats, by data perturbation**:
+Left: Global EC. Right: Global EC adjusted with accuracy. Adjustment helps
+narrow the distributions, but does not change the relationships between
+classifiers. Note also that, compared to the gross distributions above,
+there is far less overlap. **E.g. at the gross level (ignoring repeat effects),
+ECs overlap significantly. But in these figures, the global EC distributions
+are nearly perfectly separable**.
+
+---
 
 
 | Local $\text{EC}$: Anneal | Local $\text{EC}_{\text{acc}}$: Anneal |
