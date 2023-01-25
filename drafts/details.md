@@ -32,8 +32,6 @@ make for what is worth running, compute-wise.
     - [Data Perturbation](#data-perturbation-1)
     - [Repeat EC Means](#repeat-ec-means)
     - [Repeat EC Ranges](#repeat-ec-ranges)
-  - [Pooled / Gross Results (Ignoring Repeats)](#pooled--gross-results-ignoring-repeats)
-  - [No Perturbations](#no-perturbations)
 
 
 # Paper Approach
@@ -649,58 +647,3 @@ typically take on most values in $[0, 1]$. Accuracy adjustment does *not* save
 the local EC here.
 
 
-
-
-
-## Pooled / Gross Results (Ignoring Repeats)
-
-If we ignore the fact that runs within a repeat should be more similar than runs
-between repeats, and simply pool all runs, we can get an overhead picture
-
-## No Perturbations
-
-
-```
-====================================================================================
-Accuracies
-
-                              count   mean    std    min   2.5%    50%  97.5%    max
-dataset_name classifier_kind
-anneal       lr-sgd           100.0  0.941  0.015  0.920  0.920  0.938  0.982  0.982
-             mlp              100.0  0.956  0.013  0.929  0.933  0.956  0.982  0.991
-             svm-sgd          100.0  0.984  0.007  0.973  0.973  0.982  0.996  0.996
-             xgb              100.0  0.996  0.006  0.982  0.982  0.998  1.000  1.000
-vehicle      lr-sgd           100.0  0.919  0.010  0.901  0.901  0.920  0.939  0.939
-             mlp              100.0  0.980  0.009  0.958  0.958  0.981  0.995  0.995
-             svm-sgd          100.0  0.942  0.013  0.920  0.920  0.943  0.958  0.967
-             xgb              100.0  0.986  0.010  0.962  0.962  0.988  1.000  1.000
-====================================================================================
-ECs (Error Set Intersection Divided by Test Size)
-
-                              count   mean    std    min   2.5%    50%  97.5%    max
-dataset_name classifier_kind
-anneal       lr-sgd           450.0  0.057  0.016  0.018  0.018  0.062  0.076  0.080
-             mlp              450.0  0.033  0.010  0.004  0.004  0.036  0.049  0.058
-             svm-sgd          450.0  0.015  0.007  0.004  0.004  0.018  0.027  0.027
-             xgb              450.0  0.004  0.006  0.000  0.000  0.002  0.018  0.018
-vehicle      lr-sgd           450.0  0.081  0.010  0.061  0.061  0.080  0.094  0.099
-             mlp              450.0  0.016  0.008  0.005  0.005  0.014  0.033  0.038
-             svm-sgd          450.0  0.057  0.012  0.033  0.038  0.054  0.080  0.080
-             xgb              450.0  0.014  0.010  0.000  0.000  0.012  0.038  0.038
-====================================================================================
-ECs (Error Set Intersection Divided by Error Set Union)
-
-                              count   mean    std    min   2.5%    50%  97.5%  max
-dataset_name classifier_kind
-anneal       lr-sgd           450.0  0.919  0.103  0.500  0.571  0.933    1.0  1.0
-             mlp              450.0  0.605  0.160  0.125  0.174  0.600    0.9  1.0
-             svm-sgd          450.0  0.979  0.066  0.750  0.750  1.000    1.0  1.0
-             xgb              450.0  0.500  0.501  0.000  0.000  0.500    1.0  1.0
-vehicle      lr-sgd           450.0  0.993  0.018  0.938  0.938  1.000    1.0  1.0
-             mlp              450.0  0.633  0.225  0.143  0.200  0.667    1.0  1.0
-             svm-sgd          450.0  0.978  0.048  0.750  0.867  1.000    1.0  1.0
-             xgb              450.0  0.900  0.300  0.000  0.000  1.000    1.0  1.0
-====================================================================================
-```
-
-https://github.com/stfxecutables/model_variance/blob/master/PLANNING.md
