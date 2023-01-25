@@ -10,7 +10,7 @@ make for what is worth running, compute-wise. -->
 - [Sources of Variance and Training Perturbation Schemes](#sources-of-variance-and-training-perturbation-schemes)
   - [Train Downsampling](#train-downsampling)
   - [Data Perturbation](#data-perturbation)
-    - [Continous Data Perturbation](#continous-data-perturbation)
+    - [Continuous Data Perturbation](#continuous-data-perturbation)
     - [Categorical Data Perturbation](#categorical-data-perturbation)
   - [Hyperparameter (Hparam) Perturbation](#hyperparameter-hparam-perturbation)
 - [Evaluation Procedure](#evaluation-procedure)
@@ -36,13 +36,13 @@ make for what is worth running, compute-wise. -->
 
 I examine variance in classifier *performance* (e.g. accuracy) and performance
 *consistency* (e.g. metrics describing the similarity of model
-predictions)—collectively, "model / classifier variance"—due to "small"
+predictions)—collectively, "model / classifier variance"—due to
 perturbations that can occur in various aspects of the typical
 tune-train-evaluate analysis pipeline. This is done by implementing a number of
 *training perturbation schemes* which may operate on the training data values,
 training hyperparameter (hparam) values, or which simply impact which training
-samples are selected. So for example, an hparam perturbation scheme randomly
-alters the training hparams in some way.
+samples are selected. So for example, an "hparam perturbation scheme" randomly
+alters the training hparams in some way to observe the resulting model variance.
 
 The primary unit of analysis in this study is the **repeat**. A repeat is a
 collection of 10 **runs** wherein each run shares the same *test set*, but where
@@ -69,7 +69,7 @@ as well from repeat to repeat.
 
 I use most of the 39 tabular datasets used in https://arxiv.org/abs/2106.11189.
 I exclude two datasets (Fashion MNIST, and DevnagariScript) which are in fact
-image datasets, and for 37 datasets total:
+image datasets, not tabular, for 37 datasets total ([skip past to next section](#classifiers)):
 
 | name                                   |   n_sample |   n_feat |   n_majority_cls |   n_minority_cls |   n_cls |
 |:---------------------------------------|-----------:|---------:|-----------------:|-----------------:|--------:|
@@ -118,8 +118,9 @@ I fit as classifiers: Logistic Regression (LR), linear Support Vector Machine
 (SVM), XGBoost (XGB), and a modern-ish middle-sized neural network with
 dropout, batch-norm, and etc (essentially the one in [this
 paper](https://arxiv.org/pdf/1705.03098.pdf)). This network is just "MLP" in
-figures here and in code, and is implemented in PyTorch and requires a GPU to
-train efficiently.
+figures here and [in
+code](https://github.com/stfxecutables/model_variance/blob/master/src/models/torch_base.py#L213-L238),
+and is implemented in PyTorch and requires a GPU to train efficiently.
 
 The LR and SVM models have to be fit via SGD (technically,
 [SGDClassifier](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.SGDClassifier.html)),
@@ -146,25 +147,28 @@ sample distribution / size.
 
 Train downsampling by $p$ percent uses only $p$ percent of the available
 training samples $\mathbf{X}$. For reasons related to stratification, compute
-costs, and sample sizes, I limit $p$ to values in $\{25, 50, 75, 100\}$.
+costs, and sample sizes, I limit $p$ to values in $\{25, 50, 75, 100\}$. That
+is, we do no $k$-fold, and instead focus on Monte-Carlo-style validation. This
+is primarily due to compute costs.
 
-Although you won't see any figures depicting this below, early tests showed
-this to be the largest source of variance in model performance and performance
-consistency metrics.
+Although you won't see any figures depicting the effects of train downsampling
+below, early tests showed *train downsampling to be the largest source of
+variance in model performance and performance consistency metrics*.
 
 ## Data Perturbation
 
 I develop a number of methods to perturb predictor values and simulate
 "small" predictor noise. I classify predictor features as either continuous or
-categorical, and define perturbation methods based on the cardinality.
+categorical, and define perturbation methods based on the feature cardinality.
 
 
-### Continous Data Perturbation
+### Continuous Data Perturbation
 
 These perturbations are all designed to be "small" in various intuitive ways.
-The early results perhaps show I was a bit too clever in making these small,
-as they definitely don't have dramatic effects on metrics, and likely need to
-be increased slightly (by a factor of 2 or so) for a final investigation.
+The early results perhaps show I was a bit too clever in making these small, as
+they definitely don't have dramatic effects on metrics, and likely need to be
+increased slightly (by a factor of 2 or so) for a final investigation.
+Nevertheless...
 
 For all descriptions below, training data is
 $\mathbf{X} \in \mathbb{R}^{N \times F}$, with $N$ samples, and $F$
@@ -173,7 +177,7 @@ $f: \mathbb{R}^{N \times F} \mapsto \mathbb{R}^{N \times F}$ if it requires
 the full data, or simply $f: \mathbb{R} \mapsto \mathbb{R}$ if it operates on
 feature values only.
 
-**Significant-digit**: Rewriting each feature sample $x \in \mathbb{R}$ in
+**Significant-digit**: Rewrite each feature sample $x \in \mathbb{R}$ in
 scientific notation, e.g. $x =$ `1.2345eN` for some integer `N`, then define
 *perturbation at the zeroth digit* to be
 $f(x) = x + e, \quad e \sim \text{Unif}($`-1eN`, `1eN`$)$. *Perturbation of the first
