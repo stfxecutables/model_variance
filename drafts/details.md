@@ -120,9 +120,9 @@ image datasets, and for 37 datasets total:
 I fit as classifiers: Logistic Regression (LR), linear Support Vector Machine
 (SVM), XGBoost (XGB), and a modern-ish middle-sized neural network with
 dropout, batch-norm, and etc (essentially the one in [this
-paper](https://arxiv.org/pdf/1705.03098.pdf)). This network is just "MLP" here
-and in code, and is implemented in PyTorch and requires a GPU to train
-efficiently.
+paper](https://arxiv.org/pdf/1705.03098.pdf)). This network is just "MLP" in
+figures here and in code, and is implemented in PyTorch and requires a GPU to
+train efficiently.
 
 The LR and SVM models have to be fit via SGD (technically,
 [SGDClassifier](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.SGDClassifier.html)),
@@ -132,7 +132,7 @@ will be exorbitant), and that, at least on the smaller or moderate-sized
 datasets, the SGD variants had about the same holdout performance anyway (often
 actually slightly better).
 
-A radial-basis SVM unfortunately cannot be easily git via SGD. It is
+A radial-basis SVM unfortunately cannot be easily fit via SGD. It is
 technically possible by using kernel approximation, e.g. via the [Nystroem
 transformer](https://scikit-learn.org/stable/modules/generated/sklearn.kernel_approximation.Nystroem.html),
 but this departs heavily from the usual SVM, and introduces significant tuning
@@ -151,6 +151,10 @@ Train downsampling by $p$ percent uses only $p$ percent of the available
 training samples $\mathbf{X}$. For reasons related to stratification, compute
 costs, and sample sizes, I limit $p$ to values in $\{25, 50, 75, 100\}$.
 
+Although you won't see any figures depicting this below, early tests showed
+this to be the largest source of variance in model performance and performance
+consistency metrics.
+
 ## Data Perturbation
 
 I develop a number of methods to perturb predictor values and simulate
@@ -160,8 +164,8 @@ categorical, and define perturbation methods based on the cardinality.
 
 ### Continous Data Perturbation
 
-These perturbations are all designed to be "small" in various intuitive ways,
-and define. For all descriptions below, training data is
+These perturbations are all designed to be "small" in various intuitive ways.
+ For all descriptions below, training data is
 $\mathbf{X} \in \mathbb{R}^{N \times F}$, with $N$ samples, and $F$
 features, and $f$ is the perturbation function, which may be either
 $f: \mathbb{R}^{N \times F} \mapsto \mathbb{R}^{N \times F}$ if it requires
@@ -171,7 +175,7 @@ feature values only.
 **Significant-digit**: Rewriting each feature sample $x \in \mathbb{R}$ in
 scientific notation, e.g. $x =$ `1.2345eN` for some integer `N`, then define
 *perturbation at the zeroth digit* to be
-$f(x) = x + e, \; e \sim \text{Unif}($`-1eN`, `1eN`$)$. *Perturbation of the first
+$f(x) = x + e, \quad e \sim \text{Unif}($`-1eN`, `1eN`$)$. *Perturbation of the first
 digit* is similar but takes $e \sim \text{Unif}($`-0.1eN`, `0.1eN`$)$, and perturbation
 to the third digit is $e \sim \text{Unif}($`-0.01eN`, `0.01eN`$)$, and so on.
 
