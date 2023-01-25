@@ -528,14 +528,16 @@ choosing stronger perturbations.
 **Above: Gross accuracy distributions**: Each row shows a different data perturbation
 scheme, and each column shows a different hparam perturbation scheme. A subplot
 title of "None" indicates no perturbation, so the upper left subplot is no perturbation
-of any kind.
+of any kind.  Gross accuracy distributions differ more depending on the hparam perturbation method
+than on the data perturbation method (i.e. scanning the eyes horizontally across the above
+grids results in more variation than vertical scans).
 
 ---
 
-Also, gross accuracy distributions differ more depending on the hparam perturbation method
-than on the data perturbation method (i.e. scanning the eyes horizontally across the above
-grids results in more variation than vertical scans). You can also see this in the below
-figures which lump together (ignore) hparam perturbation choices
+You can see a similar pattern (irrelevance of data perturbation relative to
+hparam perturbation) in the below figures which lump together (ignore) hparam
+perturbation choices:
+
 
 |Anneal | Vehicle|
 |--|--|
@@ -550,7 +552,13 @@ distributions.
 
 ### Repeat Accuracy Ranges
 
-By ignoring within-repetition patterns, the gross summaries hide some interesting relationships:
+By ignoring within-repetition patterns, the gross summaries hide some
+interesting relationships. Since there are 10 repeats, and 10 runs per repeat,
+each repeat yields 10 accuracies. The range of these 10 accuracies pairs is a
+single value, the "Accuracy Range", and the 10 values gives us a distribution
+on the accuracy ranges. These distributions are depicted in the figures below,
+and have a number advantages over the gross summaries above, in that they
+consider within-repeat correlations and effects.
 
 ![Repeat Accuracy range distributions](anneal_acc_ranges__violin.png)
 ![Repeat Accuracy range distributions](vehicle_acc_ranges__violin.png)
@@ -565,7 +573,9 @@ suggest that the MLP and XGB are actually "most consistent" both overall, and
 subject to hparam perturbations, when "consistency" is defined as "smaller
 repeat accuracy ranges".
 
-
+It is also curious that while SVM and LR come out on top later in terms of
+EC metrics, the MLP and XGBoost classifiers here seem to have much more stable
+accuracies.
 
 
 ## Error Consistency Effects
