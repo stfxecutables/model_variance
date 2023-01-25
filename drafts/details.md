@@ -305,7 +305,7 @@ Assuming:
 * 5 - 10 runs
 * 5 - 10 repeats
 
-This is 44 400 model fits at minimum, and 1 894 400 total model fits at maximum (!).
+This is 44 400 model fits at minimum, and 1 894 400 total model fits at maximum (**!**).
 I have actually fit and analyzed that many models before, but the runtimes were faster.
 
 If we limit to:
@@ -382,7 +382,7 @@ doable, with a couple exception datasets. Also the MLP needs GPUs, so has to be
 done on e.g. Cedar. Thankfully the GPU memory needed is low, so I was able to
 run e.g. 10 jobs in parallel on one GPU there with little trouble.
 
-So we can indeed test a very large number of combinations.
+So it is not unreasonable to test a carefully-chosen full grid of perturbation schemes.
 
 # Serious Problems with the Local EC
 
@@ -404,16 +404,15 @@ is
 
 $$\mathbb{E}(\mathbf{S}) = \frac{1}{n} \sum_i^n p_n s_n$$
 
-**This is the clearest _correct_ interpretation of the local EC mean I have been
-able to come up with**.
-
-However, this means that one knows essentially
-nothing when examining a mean EC value. That is, a mean local EC of ~0.33 could
-result from a bunch of values close to 333/1000, or a bunch of values close to
-1/3, or some other strange mixture of values. This is true independently of the
-number of samples. I.e. a nearly-perfect classifier being evaluated on tens of
-thousands of samples, and making errors only on 1-3 samples, could have a mean
-EC of 0.33.
+**This is the clearest _correct_ interpretation of the local EC mean I have
+been able to come up with**.  However, this means that one knows essentially
+nothing when examining a mean EC value (the mean of a distribution tells you
+little about the nature of that distribution). That is, a mean local EC of
+~0.33 could result from a bunch of values close to 333/1000, or a bunch of
+values close to 1/3, or some other strange mixture of values. This is true
+independently of the number of samples. I.e. a nearly-perfect classifier being
+evaluated on tens of thousands of samples, and making errors only on 1-3
+samples, could have a mean EC of 0.33.
 
 The problem can technically be worse, since identical local EC distributions
 could result from very different error profiles. E.g. we can imagine one classifier
