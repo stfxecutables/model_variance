@@ -28,7 +28,7 @@ make for what is worth running, compute-wise.
     - [Gross Accuracies](#gross-accuracies)
     - [Repeat Accuracy Ranges](#repeat-accuracy-ranges)
   - [Error Consistency Effects](#error-consistency-effects)
-    - [Data Perturbation](#data-perturbation-1)
+    - [Data Perturbation: Gross Effects Ignoring Repeats](#data-perturbation-gross-effects-ignoring-repeats)
     - [Repeat EC Means](#repeat-ec-means)
     - [Repeat EC Ranges](#repeat-ec-ranges)
 
@@ -566,7 +566,7 @@ repeat accuracy ranges".
 
 ## Error Consistency Effects
 
-### Data Perturbation
+### Data Perturbation: Gross Effects Ignoring Repeats
 
 As usual, significant digit perturbation has the most effect, but otherwise,
 differences in the gross EC distributions are subtle. For a paper, we should
@@ -636,16 +636,22 @@ are nearly perfectly separable**.
 |-----------|--------------------------|
 |![](./plots/ec_mean/violin/vehicle_ec_means_local_norm_0_violin.png) | ![](./plots/ec_acc_mean/violin/vehicle_ec_acc_means_local_norm_0_violin.png) |
 
-**Distributions of Global EC Means Across Repeats, by data perturbation**: Left: Local EC. Right: Local
-EC adjusted with accuracy. Note the extremely large spread of the local EC means, especially relative to
-the global EC means. Accuracy adjustment helps reduce this spread only a little.
+**Above: Distributions of Local EC Means Across Repeats, by data
+perturbation**: Left: Local EC. Right: Local EC adjusted with accuracy. Note
+the extremely large (unacceptable?) spread of the local EC means, especially
+relative to the global EC means. Accuracy adjustment helps reduce this spread
+only a little. Thankfully, patterns in the local EC repeat means are still
+broadly similar to those of the global EC repeat means. **Note also that for
+the MLP and XGBoost on the vehicle dataset, adjustment frequently changes which
+classifier appears to be more consistent** - this is not a problem for the
+global EC.
 
 ### Repeat EC Ranges
 
 Since there are 10 repeats, and 10 runs per repeat, each repeat yields 45 pairs
 of ECs. The range (max - min) of these 45 EC pairs is a single value, the "EC
-Range", and the 10 of them gives us a distribution on the EC ranges. These
-distributions are depicted in the figures below.
+Range", and the 10 of them gives us a distribution on the EC ranges
+(variances). These distributions are depicted in the figures below.
 
 
 | Global $\text{EC}$ | Global $\text{EC}_{\text{acc}}$ |
@@ -654,8 +660,13 @@ distributions are depicted in the figures below.
 |![](./plots/ec_range/violin/vehicle_ecs_global_norm_violin.png) | ![](./plots/ec_acc_range/violin/vehicle_ec_accs_global_norm_violin.png) |
 
 
-**Distribution of Global EC Ranges by data perturbation**: Left: Global EC. Right: Global
-EC adjusted with accuracy.
+**Above: Distribution of Global EC Ranges by data perturbation**: Left: Global
+EC. Right: Global EC adjusted with accuracy. Of perhaps note is that the MLP
+ECs have a much lower EC range *range*: i.e. the MLPs are more consistent in their
+error consistency... Also of note is that accuracy adjustment generally increases the
+apparent separation of the range distributions.
+
+---
 
 
 | Local $\text{EC}$ | Local $\text{EC}_{\text{acc}}$ |
