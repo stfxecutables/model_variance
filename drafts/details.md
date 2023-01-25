@@ -1,10 +1,9 @@
-I've been working on what I call the "model variance" paper quite extensively for
+<!-- I've been working on what I call the "model variance" paper quite extensively for
 the past weeks, and have preliminary results, and then some final decisions to
-make for what is worth running, compute-wise.
+make for what is worth running, compute-wise. -->
 
 
 # Contents
-- [Paper Approach](#paper-approach)
 - [Overview](#overview)
 - [Data](#data)
 - [Classifiers](#classifiers)
@@ -33,18 +32,17 @@ make for what is worth running, compute-wise.
     - [Repeat EC Ranges](#repeat-ec-ranges)
 
 
-# Paper Approach
-
 # Overview
 
-I examine variance in classifier *performance* and performance *consistency*
-(collectively, "model / classifier variance") due to "small" perturbations that
-can occur in various aspects of the typical tune-train-evaluate analysis
-pipeline. This is done by implementing a number of *training perturbation schemes*
-which may operate on the training data values, training hyperparameter (hparam)
-values, or which simply impact which training samples are selected.
-So for example, an hparam perturbation scheme randomly alters the training hparams
-in some way.
+I examine variance in classifier *performance* (e.g. accuracy) and performance
+*consistency* (e.g. metrics describing the similarity of model
+predictions)—collectively, "model / classifier variance"—due to "small"
+perturbations that can occur in various aspects of the typical
+tune-train-evaluate analysis pipeline. This is done by implementing a number of
+*training perturbation schemes* which may operate on the training data values,
+training hyperparameter (hparam) values, or which simply impact which training
+samples are selected. So for example, an hparam perturbation scheme randomly
+alters the training hparams in some way.
 
 The primary unit of analysis in this study is the **repeat**. A repeat is a
 collection of 10 **runs** wherein each run shares the same *test set*, but where
@@ -674,11 +672,11 @@ apparent separation of the range distributions.
 |![](./plots/ec_range/violin/anneal_ec_ranges_local_norm_0_violin.png) | ![](./plots/ec_acc_range/violin/anneal_ec_acc_ranges_local_norm_0_violin.png) |
 |![](./plots/ec_range/violin/vehicle_ecs_local_norm_0_violin.png) | ![](./plots/ec_acc_range/violin/vehicle_ec_rangs_local_norm_0_violin.png) |
 
-**Distribution of Local EC Ranges by data perturbation**: Left: Local EC.
+**Above: Distribution of Local EC Ranges by data perturbation**: Left: Local EC.
 Right: Local EC adjusted with accuracy. Note how often local EC ranges
 are bimodal, with the largest mode often near 1.0, and the smallest at a similar
 extremely large value (e.g. 0.6). That is, within a repeat, the local EC will
 typically take on most values in $[0, 1]$. Accuracy adjustment does *not* save
-the local EC here.
+the local EC here, and I find the plots hard to interpret due to the bimodality.
 
 
