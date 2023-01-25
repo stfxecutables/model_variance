@@ -215,25 +215,26 @@ perturbations due to extreme negative or extreme positive values.
 ### Categorical Data Perturbation
 
 **Sample-level**: A proportion $p$ is chosen, and $\lceil p N\rceil$ samples are chosen
-to be potentially perturbed. If there are $c$ categorical feature, then with
+to be potentially perturbed. If there are $c$ categorical features, then with
 probability $\frac{1}{c}$, for each sample, each label is set to a random label in
 that feature. I.e. we expect, on average, for each sample chosen for perturbation, that only
-one of that sample's categorical features gets a random (possible the same) label.
-This simulates something like data entry error / noise.
+one of that sample's categorical features gets a random (possibly the same) label.
+This simulates something like data entry error / noise on proportion $p$ of samples.
 
-**Label-level**: Let $X_c$ be the $N \times c$ matrix of
-categorical predictors. For small probability $p$. Define `idx =
-np.random.uniform(0, 1, X_c.shape) < p`. Then the values where idx is True
-are replaced with a random label from the available labels for that feature.
-That is, this is "label noise" but in the predictors, apparently also more
-correctly called ["attribute noise"](https://link.springer.com/article/10.1007/s10462-004-0751-8), and the mixing with a uniform has some resemblance to label smoothing in deep learning.
+**Label-level**: Let $X_c$ be the $N \times c$ matrix of categorical
+predictors. For small probability $p$. Define `idx = np.random.uniform(0, 1,
+X_c.shape) < p`. Then the values where `idx` is True are replaced with a random
+label from the available labels for that feature. That is, this is "label
+noise" but in the predictors, apparently also more correctly called ["attribute
+noise"](https://link.springer.com/article/10.1007/s10462-004-0751-8). This
+mixing with a uniform has some resemblance to label smoothing in deep learning.
 
 
 **Note**: Early experiments show that sample-level perturbation is an extremely
 weak source of variance even at $p = 0.2$ (does not seem to impact performance
 distributions at all).  By contrast, label-level perturbation at even $p=0.1$ has obvious performance impacts.
 However, label-level perturbation is systemic and aggressive, so more likely appropriate values
-for this are $p \le 0.1$, then
+for this are $p \le 0.1$.
 
 
 
@@ -288,7 +289,9 @@ in most cases most models still performed reasonably well most of the time.
 
 I plan to use random search to tune each model-classifier-dataset combination
 $4 \times 4 \times 37 = 592$ tunings. The hparams found by these tunings will then be
-used for ALL subsequent repeats, runs, and combinations of perturbation scheme.
+used for ALL subsequent repeats, runs, and combinations of perturbation scheme. Assuming
+somewhere between 100-200 random hparam evaluations per model, this is highly affordable
+on the clusters (see [below](#runtime-considerations)).
 
 Arguably, we want to know how e.g. data perturbation and downsampling impact tuning too,
 but then this gets inordinately expensive.
