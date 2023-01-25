@@ -258,18 +258,7 @@ def violin_grid(
             ax.set_xlim(0, min(mx * 2, 1))
         else:
             ax.set_ylim(0, min(mx * 2, 1))
-    if metric in ["ec_range", "ec_acc_range"]:
-        fig.set_size_inches(h=8, w=6)
-    elif metric == "ec_mean":
-        fig.set_size_inches(h=8, w=6)
-        # if "global" in label:
-        #     for ax in fig.axes:
-        #         ax.set_xlim(0, 0.10)
-        sbn.move_legend(fig, (0.025, 0.8))
-    elif metric in ["ec_acc", "ec"]:
-        fig.set_size_inches(h=8, w=6)
-    else:
-        fig.set_size_inches(h=8, w=14)
+    fig.set_size_inches(h=8, w=6)
     # sbn.move_legend(fig, (0.89, 0.82))
     sbn.move_legend(fig, (0.02, 0.80))
     sbn.despine(fig, left=True, bottom=True)
@@ -722,19 +711,21 @@ if __name__ == "__main__":
     # plot_ec_ranges(ecs, show=SHOW, kind=KIND)
 
     # plot_ec_dists(ecs, metric="ec", local_norm=False, kind=KIND, show=SHOW)
-    # plot_ec_means(ecs, metric="ec", local_norm=False, kind=KIND, show=SHOW)
     # plot_ec_dists(els, metric="ec", local_norm=True, kind=KIND, show=SHOW)
-    # plot_ec_means(els, metric="ec", local_norm=True, kind=KIND, show=SHOW)
-
     # plot_ec_dists(eas, metric="ec_acc", local_norm=False, kind=KIND, show=SHOW)
-    # plot_ec_means(eas, metric="ec_acc", local_norm=False, kind=KIND, show=SHOW)
     # plot_ec_dists(eal, metric="ec_acc", local_norm=True, kind=KIND, show=SHOW)
-    # plot_ec_means(eal, metric="ec_acc", local_norm=True, kind=KIND, show=SHOW)
+
+    plot_ec_means(els, metric="ec", local_norm=True, kind=KIND, show=SHOW)
+    plot_ec_means(ecs, metric="ec", local_norm=False, kind=KIND, show=SHOW)
+    plot_ec_means(eas, metric="ec_acc", local_norm=False, kind=KIND, show=SHOW)
+    plot_ec_means(eal, metric="ec_acc", local_norm=True, kind=KIND, show=SHOW)
 
     plot_ec_ranges(ecs, metric="ec", local_norm=False, show=SHOW, kind=KIND)
     plot_ec_ranges(els, metric="ec", local_norm=True, show=SHOW, kind=KIND)
     plot_ec_ranges(eas, metric="ec_acc", local_norm=False, show=SHOW, kind=KIND)
     plot_ec_ranges(eal, metric="ec_acc", local_norm=True, show=SHOW, kind=KIND)
+
+
 
     # plot_ec_sds(ecs, local_norm=False, kind=KIND, show=SHOW)
 

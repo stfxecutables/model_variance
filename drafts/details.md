@@ -18,19 +18,20 @@ make for what is worth running, compute-wise.
   - ["Out-of-the-Box" Evaluations](#out-of-the-box-evaluations)
   - [Tuned Evaluations](#tuned-evaluations)
 - [Runtime Considerations](#runtime-considerations)
+- [Serious Problems with the Local EC](#serious-problems-with-the-local-ec)
+  - [The Global EC](#the-global-ec)
+  - [Other EC Normalizations](#other-ec-normalizations)
+    - [Accuracy-Normalized EC](#accuracy-normalized-ec)
 - [Preliminary Results](#preliminary-results)
-- [Hparam Perturbation](#hparam-perturbation)
-  - [Hparam Perturbation: Gross Accuracies](#hparam-perturbation-gross-accuracies)
-  - [Hparam Perturbation: Repeat Accuracy Ranges](#hparam-perturbation-repeat-accuracy-ranges)
-  - [Hparam Perturbation: Gross Error Consistencies](#hparam-perturbation-gross-error-consistencies)
-    - [Serious Problems with the Local EC](#serious-problems-with-the-local-ec)
-    - [The Global EC](#the-global-ec)
-    - [Other EC Normalizations](#other-ec-normalizations)
-      - [Accuracy-Normalized EC](#accuracy-normalized-ec)
-- [Gross Error Consistency Effects](#gross-error-consistency-effects)
-  - [Data Perturbation](#data-perturbation-1)
-  - [Repeat EC Means](#repeat-ec-means)
-  - [Repeat EC Ranges](#repeat-ec-ranges)
+  - [Hparam Perturbation](#hparam-perturbation)
+  - [Accuracy Effects](#accuracy-effects)
+    - [Gross Accuracies](#gross-accuracies)
+    - [Repeat Accuracy Ranges](#repeat-accuracy-ranges)
+    - [Hparam Perturbation: Gross Error Consistencies](#hparam-perturbation-gross-error-consistencies)
+  - [Error Consistency Effects](#error-consistency-effects)
+    - [Data Perturbation](#data-perturbation-1)
+    - [Repeat EC Means](#repeat-ec-means)
+    - [Repeat EC Ranges](#repeat-ec-ranges)
   - [Pooled / Gross Results (Ignoring Repeats)](#pooled--gross-results-ignoring-repeats)
   - [No Perturbations](#no-perturbations)
 
@@ -377,84 +378,7 @@ run e.g. 10 jobs in parallel on one GPU there with little trouble.
 
 So we can indeed test a very large number of combinations.
 
-# Preliminary Results
-
-
-For preliminary tests, I chose the two fastest fitting datasets (vehicle,
-anneal, which both fit in like 5 seconds) and do 10 repeats and 10 runs with a
-much wider variety of perturbation schemes than would be used in a final
-investigation. Ultimately this ended up in 44 800 model fits, which took about
-3 hours on Niagara, plus about 40 minutes on Cedar for the MLPs.
-
-I did not tune models, and just used hparam defaults.
-I did some earlier tests as well which are not presented here, but
-which basically show that training data downsampling has a much larger impact
-on accuracies and error consistencies than the data and hparam perturbation
-methods I chose. However, this was expected / unsurprising, and the focus of
-these preliminary tests was to iron out bugs and determine which hparam and
-data perturbation methods are worth including in a final presentation.
-
-
-# Hparam Perturbation
-
-## Hparam Perturbation: Gross Accuracies
-
-Impact on accuracy distributions depends on the perturbation scheme (see
-figures directly below), but perturbation at the zeroth significant digit has
-the most dramatic / obvious effect. In general, the stronger the hparam perturbation
-(larger $p$), the wider the global accuracy distributions.
-
-![Accuracy distributions on Anneal data](anneal_accs__bigviolin.png).
-![Accuracy distributions on Vehicle data](vehicle_accs__bigviolin.png).
-
-**Gross accuracy distributions**: Each row shows a different data perturbation
-scheme, and each column shows a different hparam perturbation scheme. A subplot
-title of "None" indicates no perturbation, so the upper left subplot is no perturbation
-of any kind.
-
-Also, gross accuracy distributions differ more depending on the hparam perturbation method
-than on the data perturbation method (i.e. scanning the eyes horizontally across the above
-grids results in more variation than vertical scans). You can also see this in the below
-figures which lump together (ignore) hparam perturbation choices
-
-|Anneal | Vehicle|
-|--|--|
-|![Accuracy distributions ignoring hparam perturbation](anneal_accs__violin.png)| ![Accuracy distributions ignoring hparam perturbation](vehicle_accs__violin.png)|
-
-**Gross accuracy distributions ignoring hparam perturbation**: Each column
-shows a different hparam perturbation scheme. A subplot title of "None"
-indicates no perturbation, so the upper subplot is no perturbation of any
-kind. Only data perturbation at the zeroth significant digit results in
-obvious differences (from no perturbation) to the bulk of the accuracy
-distributions.
-
-## Hparam Perturbation: Repeat Accuracy Ranges
-
-By ignoring within-repetition patterns, the gross summaries hide *a lot*.
-
-![Repeat Accuracy range distributions](anneal_acc_ranges__violin.png)
-![Repeat Accuracy range distributions](vehicle_acc_ranges__violin.png)
-
-**Distribution of accuracy ranges across repeats**: Each column
-shows a different hparam perturbation scheme. "None"
-indicates no perturbation, so the left-most subplot is no perturbation of any
-kind. Each repeat and combination of perturbation schemes produces a set of
-accuracies, which has one range (max - min). This shows the distributions
-of those ranges across the 10 repeats times number of perturbation scheme
-combinations. For example, this plot suggest that the MLP and XGB are actually
-"most consistent" both overall, and subject to hparam perturbations.
-
-## Hparam Perturbation: Gross Error Consistencies
-
-I examine two ways to calculate the EC here. The "local" EC is the original
-definition, where we divide by the size of the error set union. I call this the
-"local" EC because the purpose of the division by the union here is to
-normalize values to be in $[0, 1]$, and the size of the union depends on the
-particular ("local") error set pairing. That is, the local EC is the IOU of the
-prediction errors of a pair.
-
-
-### Serious Problems with the Local EC
+# Serious Problems with the Local EC
 
 EC is a good idea, and normalizing it to be in $[0, 1]$ is also a good idea.
 However, normalization via the local union results in the mean local EC (i.e.
@@ -504,7 +428,7 @@ full distribution of values, but that, even then, dramatically different error
 behaviours can still be invisible. This makes the local EC in my opinion a
 flawed metric.
 
-### The Global EC
+## The Global EC
 
 All these problems go away if we just stop dividing by the error set union, and
 do division by the test set size (i.e. we normalize by a "global" property that
@@ -518,7 +442,7 @@ EC to converge to 1 minus the mean accuracy.
 
 
 
-### Other EC Normalizations
+## Other EC Normalizations
 
 Some other alternatives which may fix the bad behaviour of the local EC are to
 divide instead by the size of the largest observed error set union, by the size
@@ -526,7 +450,7 @@ of the union of *all* error sets. However, this still leaves these ECs essential
 incomparable among different runs or datasets, and we still cannot interpret the meaning
 of a value like 0.2 without knowing the size of the normalizing set.
 
-#### Accuracy-Normalized EC
+### Accuracy-Normalized EC
 
 Another possibility for correcting the local EC is to combine it with the accuracy via geometric mean.
 That is, if we have boolean error sets $\{e_i\}$, and accuracies $\{a_i\}$, define the
@@ -552,11 +476,90 @@ for something like model selection. The only disadvantage is that it loses the
 clear interpretability of the global EC. However, the global EC could also be
 scaled in the same way.
 
+# Preliminary Results
 
 
-# Gross Error Consistency Effects
+For preliminary tests, I chose the two fastest fitting datasets (vehicle,
+anneal, which both fit in like 5 seconds) and do 10 repeats and 10 runs with a
+much wider variety of perturbation schemes than would be used in a final
+investigation. Ultimately this ended up in 44 800 model fits, which took about
+3 hours on Niagara, plus about 40 minutes on Cedar for the MLPs.
 
-## Data Perturbation
+I did not tune models, and just used hparam defaults.
+I did some earlier tests as well which are not presented here, but
+which basically show that training data downsampling has a much larger impact
+on accuracies and error consistencies than the data and hparam perturbation
+methods I chose. However, this was expected / unsurprising, and the focus of
+these preliminary tests was to iron out bugs and determine which hparam and
+data perturbation methods are worth including in a final presentation.
+
+
+## Hparam Perturbation
+
+## Accuracy Effects
+
+### Gross Accuracies
+
+Impact on accuracy distributions depends on the perturbation scheme (see
+figures directly below), but perturbation at the zeroth significant digit has
+the most dramatic / obvious effect. In general, the stronger the hparam perturbation
+(larger $p$), the wider the global accuracy distributions.
+
+![Accuracy distributions on Anneal data](anneal_accs__bigviolin.png).
+![Accuracy distributions on Vehicle data](vehicle_accs__bigviolin.png).
+
+**Gross accuracy distributions**: Each row shows a different data perturbation
+scheme, and each column shows a different hparam perturbation scheme. A subplot
+title of "None" indicates no perturbation, so the upper left subplot is no perturbation
+of any kind.
+
+Also, gross accuracy distributions differ more depending on the hparam perturbation method
+than on the data perturbation method (i.e. scanning the eyes horizontally across the above
+grids results in more variation than vertical scans). You can also see this in the below
+figures which lump together (ignore) hparam perturbation choices
+
+|Anneal | Vehicle|
+|--|--|
+|![Accuracy distributions ignoring hparam perturbation](anneal_accs__violin.png)| ![Accuracy distributions ignoring hparam perturbation](vehicle_accs__violin.png)|
+
+**Gross accuracy distributions ignoring hparam perturbation**: Each column
+shows a different hparam perturbation scheme. A subplot title of "None"
+indicates no perturbation, so the upper subplot is no perturbation of any
+kind. Only data perturbation at the zeroth significant digit results in
+obvious differences (from no perturbation) to the bulk of the accuracy
+distributions.
+
+### Repeat Accuracy Ranges
+
+By ignoring within-repetition patterns, the gross summaries hide *a lot*.
+
+![Repeat Accuracy range distributions](anneal_acc_ranges__violin.png)
+![Repeat Accuracy range distributions](vehicle_acc_ranges__violin.png)
+
+**Distribution of accuracy ranges across repeats**: Each column
+shows a different hparam perturbation scheme. "None"
+indicates no perturbation, so the left-most subplot is no perturbation of any
+kind. Each repeat and combination of perturbation schemes produces a set of
+accuracies, which has one range (max - min). This shows the distributions
+of those ranges across the 10 repeats times number of perturbation scheme
+combinations. For example, this plot suggest that the MLP and XGB are actually
+"most consistent" both overall, and subject to hparam perturbations.
+
+### Hparam Perturbation: Gross Error Consistencies
+
+I examine two ways to calculate the EC here. The "local" EC is the original
+definition, where we divide by the size of the error set union. I call this the
+"local" EC because the purpose of the division by the union here is to
+normalize values to be in $[0, 1]$, and the size of the union depends on the
+particular ("local") error set pairing. That is, the local EC is the IOU of the
+prediction errors of a pair.
+
+
+
+
+## Error Consistency Effects
+
+### Data Perturbation
 
 As usual, significant digit perturbation has the most effect, but otherwise,
 differences in the gross EC distributions are subtle.
@@ -583,7 +586,7 @@ do not provide much useful information about the distribution. Not also
 accuracy-adjusted local EC distributions are better-behaved and easier to
 describe.
 
-## Repeat EC Means
+### Repeat EC Means
 
 | Global $\text{EC}$: Anneal | Global $\text{EC}_{\text{acc}}$: Anneal |
 |-----------|--------------------------|
@@ -610,7 +613,7 @@ EC adjusted with accuracy.
 EC adjusted with accuracy. Note the extremely large spread of the local EC means, especially relative to
 the global EC means. Accuracy adjustment helps reduce this spread only a little.
 
-## Repeat EC Ranges
+### Repeat EC Ranges
 
 
 As usual, significant digit perturbation has the most effect, but otherwise,
