@@ -438,6 +438,10 @@ full distribution of values, but that, even then, dramatically different error
 behaviours can still be invisible. This makes the local EC in my opinion a
 flawed metric.
 
+I think the subsequent plots also show that the local EC distributions tend to
+be quite pathological (even flatter than Cauchy distributions, and support tends
+to be almost all of $[0  1]$).
+
 ## The Global EC
 
 All these problems go away if we just stop dividing by the error set union, and
@@ -476,7 +480,7 @@ $$\text{EC}_{\text{local}, ij} =  \frac{\lvert e_i \cap e_j \rvert}{\lvert e_i \
 The geometric mean ensures that a local EC of zero is still zero, and still results in values in
 $[0, 1]$, whether to use $\sqrt[3]{}$ or not is mostly interpretability.
 
-This **accuracy-normalized EC also has the pleasant property that a classifier
+This **accuracy-normalized EC also has the nice property that a classifier
 with nearly-zero accuracy will also have nearly-zero EC**, whereas _both_ the global
 and local EC treat extremely inaccurate classifiers as highly consistent.
 
@@ -484,7 +488,7 @@ In general, we only care to look at the EC when accuracy has already reached
 some acceptable value, so the $\text{EC}_\text{acc}$ is likely a better tool
 for something like model selection. The only disadvantage is that it loses the
 clear interpretability of the global EC. However, the global EC could also be
-scaled in the same way.
+scaled in the same way. I examine all of these below.
 
 # Preliminary Results
 
@@ -518,10 +522,12 @@ the most dramatic / obvious effect. In general, the stronger the hparam perturba
 ![Accuracy distributions on Anneal data](anneal_accs__bigviolin.png).
 ![Accuracy distributions on Vehicle data](vehicle_accs__bigviolin.png).
 
-**Gross accuracy distributions**: Each row shows a different data perturbation
+**Above: Gross accuracy distributions**: Each row shows a different data perturbation
 scheme, and each column shows a different hparam perturbation scheme. A subplot
 title of "None" indicates no perturbation, so the upper left subplot is no perturbation
 of any kind.
+
+---
 
 Also, gross accuracy distributions differ more depending on the hparam perturbation method
 than on the data perturbation method (i.e. scanning the eyes horizontally across the above
