@@ -435,7 +435,7 @@ flawed metric.
 
 I think the subsequent plots also show that the local EC distributions tend to
 be quite pathological (even flatter than Cauchy distributions, and support tends
-to be almost all of $[0  1]$).
+to be most of $[0, 1]$).
 
 ## The Global EC
 
@@ -447,7 +447,8 @@ immediate: the mean global EC is the number (or proportion) of samples on which
 a random pairing of classification runs can be expected to disagree on. I.e. a
 mean global EC of 0.2 means that we expect two classifier predictions to disagree on
 about 20% of test samples. Presumably, with enough repetitions, we expect the mean
-EC to converge to 1 minus the mean accuracy.
+EC to converge to 1 minus the mean accuracy. I have in fact observed this convergence
+in other experiments.
 
 
 
@@ -457,7 +458,8 @@ Some other alternatives which may fix the bad behaviour of the local EC are to
 divide instead by the size of the largest observed error set union, by the size
 of the union of *all* error sets. However, this still leaves these ECs essentially
 incomparable among different runs or datasets, and we still cannot interpret the meaning
-of a value like 0.2 without knowing the size of the normalizing set.
+of a value like 0.2 without knowing the size of the normalizing set, so I do not
+consider it further.
 
 ### Accuracy-Normalized EC
 
@@ -472,8 +474,11 @@ where
 
 $$\text{EC}_{\text{local}, ij} =  \frac{\lvert e_i \cap e_j \rvert}{\lvert e_i \cup e_j \rvert} $$
 
-The geometric mean ensures that a local EC of zero is still zero, and still results in values in
-$[0, 1]$, whether to use $\sqrt[3]{}$ or not is mostly interpretability.
+The geometric mean ensures that a local EC of zero is still zero, and still
+results in values in $[0, 1]$, whether to use $\sqrt[3]{}$ or not is mostly
+interpretability, but feel the latter is simpler, and following results
+use this formulation.
+
 
 This **accuracy-normalized EC also has the nice property that a classifier
 with nearly-zero accuracy will also have nearly-zero EC**, whereas _both_ the global
