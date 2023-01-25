@@ -325,7 +325,7 @@ If we limit to:
 
 this is 532 800 model fits. This is worth keeping in mind.
 
-Across datasets, median SINGLE-CORE runtime is 5s, except for MLP, which is more like 45s.
+**Across datasets, median SINGLE-CORE runtime is 5s, except for MLP, which is more like 45s**.
 95th percentile of max times is about 2min to 10minutes. Only lr-sgd and svm-sgd
 get up to 30-60minutes for the Aloi and Dionis datasets. E.g. dropping Aloi and
 Dionis, we get:
@@ -337,8 +337,9 @@ Dionis, we get:
 | svm-sgd    | 2.8 s  | 7.6 s  | 25.1 s | 45.7 s | 53.8 s | 59.3 s |
 | xgb        | 4.9 s  | 6.0 s  | 59.3 s | 78.8 s | 83.9 s | 87.2 s |
 
-I.e. all worst-case runtimes are about 1-5 minutes, and only two datasets are
-problems for two classifiers:
+I.e. **all worst-case runtimes are about 1-5 minutes** and the **vast majority
+are under 1 minute**. Only two datasets are problems for two classifiers
+("VerySlow" below):
 
 ```
 All max runtime distributions
