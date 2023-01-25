@@ -557,7 +557,7 @@ interesting relationships. Since there are 10 repeats, and 10 runs per repeat,
 each repeat yields 10 accuracies. The range of these 10 accuracies pairs is a
 single value, the "Accuracy Range", and the 10 values gives us a distribution
 on the accuracy ranges. These distributions are depicted in the figures below,
-and have a number advantages over the gross summaries above, in that they
+and have a number of advantages over the gross summaries above, in that they
 consider within-repeat correlations and effects.
 
 ![Repeat Accuracy range distributions](anneal_acc_ranges__violin.png)
@@ -619,7 +619,7 @@ describe.
 Since there are 10 repeats, and 10 runs per repeat, each repeat yields 45 pairs
 of ECs. The mean of these 45 EC pairs is a single value, the "EC Mean", and the
 10 of them gives us a distribution on the EC mean. These distributions are depicted
-in the figures below, and have a number advantages over the gross summaries above,
+in the figures below, and have a number of advantages over the gross summaries above,
 in that they consider within-repeat correlations and effects.
 
 | Global $\text{EC}$: Anneal | Global $\text{EC}_{\text{acc}}$: Anneal |
@@ -636,7 +636,7 @@ Left: Global EC. Right: Global EC adjusted with accuracy. Adjustment helps
 narrow the distributions, but does not change the relationships between
 classifiers. Note also that, compared to the gross distributions above,
 there is far less overlap. **E.g. at the gross level (ignoring repeat effects),
-ECs overlap significantly. But in these figures, the global EC distributions
+ECs overlap significantly. But in these repeat-level figures, the global EC distributions
 are nearly perfectly separable**.
 
 ---
@@ -678,7 +678,9 @@ Range", and the 10 of them gives us a distribution on the EC ranges
 EC. Right: Global EC adjusted with accuracy. Of perhaps note is that the MLP
 ECs have a much lower EC range *range*: i.e. the MLPs are more consistent in their
 error consistency... Also of note is that accuracy adjustment generally increases the
-apparent separation of the range distributions.
+apparent separation of the range distributions (the means / bulks of the
+$\text{EC}_{\text{acc}}$ ranges are more separable than the means / bulks of the
+$\text{EC}$ ranges.
 
 ---
 
@@ -693,6 +695,6 @@ Right: Local EC adjusted with accuracy. Note how often local EC ranges
 are bimodal, with the largest mode often near 1.0, and the smallest at a similar
 extremely large value (e.g. 0.6). That is, within a repeat, the local EC will
 typically take on most values in $[0, 1]$. Accuracy adjustment does *not* save
-the local EC here, and I find the plots hard to interpret due to the bimodality.
+the local EC here, and I find the plots extremely hard to interpret due to the bimodality.
 
 
