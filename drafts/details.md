@@ -27,7 +27,6 @@ make for what is worth running, compute-wise.
   - [Accuracy Effects](#accuracy-effects)
     - [Gross Accuracies](#gross-accuracies)
     - [Repeat Accuracy Ranges](#repeat-accuracy-ranges)
-    - [Hparam Perturbation: Gross Error Consistencies](#hparam-perturbation-gross-error-consistencies)
   - [Error Consistency Effects](#error-consistency-effects)
     - [Data Perturbation](#data-perturbation-1)
     - [Repeat EC Means](#repeat-ec-means)
@@ -538,7 +537,7 @@ figures which lump together (ignore) hparam perturbation choices
 |--|--|
 |![Accuracy distributions ignoring hparam perturbation](anneal_accs__violin.png)| ![Accuracy distributions ignoring hparam perturbation](vehicle_accs__violin.png)|
 
-**Gross accuracy distributions ignoring hparam perturbation**: Each column
+**Above: Gross accuracy distributions ignoring hparam perturbation**: Each column
 shows a different hparam perturbation scheme. A subplot title of "None"
 indicates no perturbation, so the upper subplot is no perturbation of any
 kind. Only data perturbation at the zeroth significant digit results in
@@ -547,28 +546,20 @@ distributions.
 
 ### Repeat Accuracy Ranges
 
-By ignoring within-repetition patterns, the gross summaries hide *a lot*.
+By ignoring within-repetition patterns, the gross summaries hide some interesting relationships:
 
 ![Repeat Accuracy range distributions](anneal_acc_ranges__violin.png)
 ![Repeat Accuracy range distributions](vehicle_acc_ranges__violin.png)
 
-**Distribution of accuracy ranges across repeats**: Each column
-shows a different hparam perturbation scheme. "None"
-indicates no perturbation, so the left-most subplot is no perturbation of any
-kind. Each repeat and combination of perturbation schemes produces a set of
-accuracies, which has one range (max - min). This shows the distributions
-of those ranges across the 10 repeats times number of perturbation scheme
-combinations. For example, this plot suggest that the MLP and XGB are actually
-"most consistent" both overall, and subject to hparam perturbations.
-
-### Hparam Perturbation: Gross Error Consistencies
-
-I examine two ways to calculate the EC here. The "local" EC is the original
-definition, where we divide by the size of the error set union. I call this the
-"local" EC because the purpose of the division by the union here is to
-normalize values to be in $[0, 1]$, and the size of the union depends on the
-particular ("local") error set pairing. That is, the local EC is the IOU of the
-prediction errors of a pair.
+**Above: Distribution of accuracy ranges across repeats**: Each column shows a
+different hparam perturbation scheme. "None" indicates no perturbation, so the
+left-most subplot is no perturbation of any kind. Each repeat and combination
+of perturbation schemes produces a set of accuracies, which has one range (max
+- min). This shows the distributions of those ranges across the 10 repeats
+times number of perturbation scheme combinations. For example, this plot
+suggest that the MLP and XGB are actually "most consistent" both overall, and
+subject to hparam perturbations, when "consistency" is defined as "smaller
+repeat accuracy ranges".
 
 
 
