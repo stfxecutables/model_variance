@@ -165,7 +165,11 @@ categorical, and define perturbation methods based on the cardinality.
 ### Continous Data Perturbation
 
 These perturbations are all designed to be "small" in various intuitive ways.
- For all descriptions below, training data is
+The early results perhaps show I was a bit too clever in making these small,
+as they definitely don't have dramatic effects on metrics, and likely need to
+be increased slightly (by a factor of 2 or so) for a final investigation.
+
+For all descriptions below, training data is
 $\mathbf{X} \in \mathbb{R}^{N \times F}$, with $N$ samples, and $F$
 features, and $f$ is the perturbation function, which may be either
 $f: \mathbb{R}^{N \times F} \mapsto \mathbb{R}^{N \times F}$ if it requires
@@ -181,7 +185,7 @@ to the third digit is $e \sim \text{Unif}($`-0.01eN`, `0.01eN`$)$, and so on.
 
 The idea is that this is a perturbation that is "visible" to humans
 when looking at rounded tables of data, and that perturbations at a level that
-should be mostly invisible to humans (e.g.at the 3rd or 4th significant digit)
+should be mostly invisible to humans (e.g. at the 3rd or 4th significant digit)
 should NOT have dramatic impacts on classifier behavior.
 
 **Nearest-Neighbor**: This perturbs each sample $\symbfit{x} \in \mathbb{R}^F$
