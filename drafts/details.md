@@ -14,8 +14,6 @@ make for what is worth running, compute-wise. -->
     - [Categorical Data Perturbation](#categorical-data-perturbation)
   - [Hyperparameter (Hparam) Perturbation](#hyperparameter-hparam-perturbation)
 - [Evaluation Procedure](#evaluation-procedure)
-  - ["Out-of-the-Box" Evaluations](#out-of-the-box-evaluations)
-  - [Tuned Evaluations](#tuned-evaluations)
 - [Runtime Considerations](#runtime-considerations)
 - [Serious Problems with the Local EC](#serious-problems-with-the-local-ec)
   - [The Global EC](#the-global-ec)
@@ -274,28 +272,25 @@ limited impact of hparam perturbation.
 Time permitting, I will examine each combination of model, classifier, and training perturbation schemes
 in two scenarios:
 
-## "Out-of-the-Box" Evaluations
-
-Scikit-Learn, XGBoost, and PyTorch provide a number of default values for most hyperparameters.
-Using these hparams is equivalent to using an "untuned" model, and we evaluate models using
-defaults as a first step. In general, we should expect good PPSMs with default values or
-perturbations thereof, because otherwise the defaults would not be good defaults that work
-in a variety of situations.
-
-**Note**: In fact, early testing to estimate runtimes used *completely random* hyperparameters, and
-in most cases most models still performed reasonably well most of the time.
+**"Out-of-the-Box" Evaluations**: Scikit-Learn, XGBoost, and PyTorch provide a
+number of default values for most hyperparameters. Using these hparams is
+equivalent to using an "untuned" model, and we evaluate models using defaults
+as a first step. In general, we should expect good PPSMs with default values or
+perturbations thereof, because otherwise the defaults would not be good
+defaults that work in a variety of situations. (Aside: In fact, early testing
+to estimate runtimes used *completely random* hyperparameters, and in most
+cases, most models still performed reasonably well most of the time.)
 
 
-## Tuned Evaluations
+**Tuned Evaluations**: I plan to use random search to tune each
+model-classifier-dataset combination $4 \times 4 \times 37 = 592$ tunings. The
+hparams found by these tunings will then be used for ALL subsequent repeats,
+runs, and combinations of perturbation scheme. Assuming somewhere between
+100-200 random hparam evaluations per model, this is highly affordable on the
+clusters (see [below](#runtime-considerations)).
 
-I plan to use random search to tune each model-classifier-dataset combination
-$4 \times 4 \times 37 = 592$ tunings. The hparams found by these tunings will then be
-used for ALL subsequent repeats, runs, and combinations of perturbation scheme. Assuming
-somewhere between 100-200 random hparam evaluations per model, this is highly affordable
-on the clusters (see [below](#runtime-considerations)).
-
-Arguably, we want to know how e.g. data perturbation and downsampling impact tuning too,
-but then this gets inordinately expensive.
+Arguably, we also  want to know how e.g. data perturbation and downsampling
+impact tuning too, but then this gets inordinately expensive.
 
 # Runtime Considerations
 
