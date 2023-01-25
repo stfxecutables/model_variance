@@ -417,8 +417,9 @@ than on the data perturbation method (i.e. scanning the eyes horizontally across
 grids results in more variation than vertical scans). You can also see this in the below
 figures which lump together (ignore) hparam perturbation choices
 
-![Accuracy distributions ignoring hparam perturbation](anneal_accs__violin.png)
-![Accuracy distributions ignoring hparam perturbation](vehicle_accs__violin.png)
+|Anneal | Vehicle|
+|--|--|
+|![Accuracy distributions ignoring hparam perturbation](anneal_accs__violin.png)| ![Accuracy distributions ignoring hparam perturbation](vehicle_accs__violin.png)|
 
 **Gross accuracy distributions ignoring hparam perturbation**: Each column
 shows a different hparam perturbation scheme. A subplot title of "None"
@@ -562,8 +563,8 @@ differences in the gross EC distributions are subtle.
 
 | Global $\text{EC}$ | Global $\text{EC}_{\text{acc}}$ |
 |-----------|--------------------------|
-|![](./ec/violin/anneal_ecs_global_norm_violin.png) | ![](./ec_acc/violin/anneal_ec_accs_global_norm_violin.png) |
-|![](./ec/violin/vehicle_ecs_global_norm_violin.png) | ![](./ec_acc/violin/vehicle_ec_accs_global_norm_violin.png) |
+|![](./plots/ec/violin/anneal_ecs_global_norm_violin.png) | ![](./plots/ec_acc/violin/anneal_ec_accs_global_norm_violin.png) |
+|![](./plots/ec/violin/vehicle_ecs_global_norm_violin.png) | ![](./plots/ec_acc/violin/vehicle_ec_accs_global_norm_violin.png) |
 
 
 **Global EC Distributions by data perturbation**: Left: Global EC. Right: Global
@@ -572,8 +573,8 @@ EC adjusted with accuracy.
 
 | Local $\text{EC}$ | Local $\text{EC}_{\text{acc}}$ |
 |-----------|--------------------------|
-|![](./ec/violin/anneal_ecs_local_norm_0_violin.png) | ![](./ec_acc/violin/anneal_ec_accs_local_norm_0_violin.png) |
-|![](./ec/violin/vehicle_ecs_local_norm_0_violin.png) | ![](./ec_acc/violin/vehicle_ec_accs_local_norm_0_violin.png) |
+|![](./plots/ec/violin/anneal_ecs_local_norm_0_violin.png) | ![](./plots/ec_acc/violin/anneal_ec_accs_local_norm_0_violin.png) |
+|![](./plots/ec/violin/vehicle_ecs_local_norm_0_violin.png) | ![](./plots/ec_acc/violin/vehicle_ec_accs_local_norm_0_violin.png) |
 
 **Local EC Distributions by data perturbation**: Left: Local EC. Right: Local
 EC adjusted with accuracy. Note how often local EC distributions are quite
@@ -584,20 +585,30 @@ describe.
 
 ## Repeat EC Means
 
-| Global $\text{EC}$ | Global $\text{EC}_{\text{acc}}$ |
+| Global $\text{EC}$: Anneal | Global $\text{EC}_{\text{acc}}$: Anneal |
 |-----------|--------------------------|
-|![](./ec_mean/violin/anneal_ec_means_global_norm_violin.png) | ![](./ec_acc_mean/violin/anneal_ec_acc_means_global_norm_violin.png) |
-|![](./ec_mean/violin/vehicle_ecs_global_norm_violin.png) | ![](./ec_acc_mean/violin/vehicle_ec_accs_global_norm_violin.png) |
+|![](./plots/ec_mean/violin/anneal_ec_means_global_norm_violin.png) | ![](./plots/ec_acc_mean/violin/anneal_ec_acc_means_global_norm_violin.png) |
+
+| Global $\text{EC}$: Vehicle | Global $\text{EC}_{\text{acc}}$: Vehicle |
+|-----------|--------------------------|
+|![](./plots/ec_mean/violin/vehicle_ec_means_global_norm_violin.png) | ![](./plots/ec_acc_mean/violin/vehicle_ec_acc_means_global_norm_violin.png) |
 
 
-**Global EC Distributions by data perturbation**: Left: Global EC. Right: Global
+**Distributions of Global EC Means Across Repeats, by data perturbation**: Left: Global EC. Right: Global
 EC adjusted with accuracy.
 
 
-| Local $\text{EC}$ | Local $\text{EC}_{\text{acc}}$ |
+| Local $\text{EC}$: Anneal | Local $\text{EC}_{\text{acc}}$: Anneal |
 |-----------|--------------------------|
-|![](./ec_mean/violin/anneal_ecs_local_norm_0_violin.png) | ![](./ec_acc_mean/violin/anneal_ec_accs_local_norm_0_violin.png) |
-|![](./ec_mean/violin/vehicle_ecs_local_norm_0_violin.png) | ![](./ec_acc_mean/violin/vehicle_ec_accs_local_norm_0_violin.png) |
+|![](./plots/ec_mean/violin/anneal_ec_means_local_norm_0_violin.png) | ![](./plots/ec_acc_mean/violin/anneal_ec_acc_means_local_norm_0_violin.png) |
+
+| Local $\text{EC}$: Vehicle | Local $\text{EC}_{\text{acc}}$: Vehicle |
+|-----------|--------------------------|
+|![](./plots/ec_mean/violin/vehicle_ec_means_local_norm_0_violin.png) | ![](./plots/ec_acc_mean/violin/vehicle_ec_acc_means_local_norm_0_violin.png) |
+
+**Distributions of Global EC Means Across Repeats, by data perturbation**: Left: Local EC. Right: Local
+EC adjusted with accuracy. Note the extremely large spread of the local EC means, especially relative to
+the global EC means. Accuracy adjustment helps reduce this spread only a little.
 
 ## Repeat EC Ranges
 
@@ -607,8 +618,8 @@ differences in the gross EC distributions are subtle.
 
 | Global $\text{EC}$ | Global $\text{EC}_{\text{acc}}$ |
 |-----------|--------------------------|
-|![](./ec_range/violin/anneal_ec_ranges_global_norm_violin.png) | ![](./ec_acc_range/violin/anneal_ec_acc_ranges_global_norm_violin.png) |
-|![](./ec_range/violin/vehicle_ecs_global_norm_violin.png) | ![](./ec_acc_range/violin/vehicle_ec_accs_global_norm_violin.png) |
+|![](./plots/ec_range/violin/anneal_ec_ranges_global_norm_violin.png) | ![](./plots/ec_acc_range/violin/anneal_ec_acc_ranges_global_norm_violin.png) |
+|![](./plots/ec_range/violin/vehicle_ecs_global_norm_violin.png) | ![](./plots/ec_acc_range/violin/vehicle_ec_accs_global_norm_violin.png) |
 
 
 **Global EC Distributions by data perturbation**: Left: Global EC. Right: Global
@@ -617,8 +628,8 @@ EC adjusted with accuracy.
 
 | Local $\text{EC}$ | Local $\text{EC}_{\text{acc}}$ |
 |-----------|--------------------------|
-|![](./ec_range/violin/anneal_ec_ranges_local_norm_0_violin.png) | ![](./ec_acc_range/violin/anneal_ec_acc_ranges_local_norm_0_violin.png) |
-|![](./ec_range/violin/vehicle_ecs_local_norm_0_violin.png) | ![](./ec_acc_range/violin/vehicle_ec_rangs_local_norm_0_violin.png) |
+|![](./plots/ec_range/violin/anneal_ec_ranges_local_norm_0_violin.png) | ![](./plots/ec_acc_range/violin/anneal_ec_acc_ranges_local_norm_0_violin.png) |
+|![](./plots/ec_range/violin/vehicle_ecs_local_norm_0_violin.png) | ![](./plots/ec_acc_range/violin/vehicle_ec_rangs_local_norm_0_violin.png) |
 
 **Local EC Distributions by data perturbation**: Left: Local EC. Right: Local
 EC adjusted with accuracy. Note how often local EC distributions are quite
