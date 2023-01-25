@@ -588,6 +588,11 @@ describe.
 
 ### Repeat EC Means
 
+Since there are 10 repeats, and 10 runs per repeat, each repeat yields 45 pairs
+of ECs. The mean of these 45 EC pairs is a single value, the "EC Mean", and the
+10 of them gives us a distribution on the EC mean. These distributions are depicted
+in the figures below.
+
 | Global $\text{EC}$: Anneal | Global $\text{EC}_{\text{acc}}$: Anneal |
 |-----------|--------------------------|
 |![](./plots/ec_mean/violin/anneal_ec_means_global_norm_violin.png) | ![](./plots/ec_acc_mean/violin/anneal_ec_acc_means_global_norm_violin.png) |
@@ -615,9 +620,11 @@ the global EC means. Accuracy adjustment helps reduce this spread only a little.
 
 ### Repeat EC Ranges
 
+Since there are 10 repeats, and 10 runs per repeat, each repeat yields 45 pairs
+of ECs. The range (max - min) of these 45 EC pairs is a single value, the "EC
+Range", and the 10 of them gives us a distribution on the EC ranges. These
+distributions are depicted in the figures below.
 
-As usual, significant digit perturbation has the most effect, but otherwise,
-differences in the gross EC distributions are subtle.
 
 | Global $\text{EC}$ | Global $\text{EC}_{\text{acc}}$ |
 |-----------|--------------------------|
