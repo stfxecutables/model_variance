@@ -519,6 +519,9 @@ figures directly below), but perturbation at the zeroth significant digit has
 the most dramatic / obvious effect. In general, the stronger the hparam perturbation
 (larger $p$), the wider the global accuracy distributions.
 
+IMO the effects below are too subtle to be publication-worthy, and suggest
+choosing stronger perturbations.
+
 ![Accuracy distributions on Anneal data](anneal_accs__bigviolin.png).
 ![Accuracy distributions on Vehicle data](vehicle_accs__bigviolin.png).
 
