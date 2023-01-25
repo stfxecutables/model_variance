@@ -632,7 +632,7 @@ distributions are depicted in the figures below.
 |![](./plots/ec_range/violin/vehicle_ecs_global_norm_violin.png) | ![](./plots/ec_acc_range/violin/vehicle_ec_accs_global_norm_violin.png) |
 
 
-**Global EC Distributions by data perturbation**: Left: Global EC. Right: Global
+**Distribution of Global EC Ranges by data perturbation**: Left: Global EC. Right: Global
 EC adjusted with accuracy.
 
 
@@ -641,22 +641,14 @@ EC adjusted with accuracy.
 |![](./plots/ec_range/violin/anneal_ec_ranges_local_norm_0_violin.png) | ![](./plots/ec_acc_range/violin/anneal_ec_acc_ranges_local_norm_0_violin.png) |
 |![](./plots/ec_range/violin/vehicle_ecs_local_norm_0_violin.png) | ![](./plots/ec_acc_range/violin/vehicle_ec_rangs_local_norm_0_violin.png) |
 
-**Local EC Distributions by data perturbation**: Left: Local EC. Right: Local
-EC adjusted with accuracy. Note how often local EC distributions are quite
-pathological (e.g. very flat) so that the mean and range of the distribution
-do not provide much useful information about the distribution. Not also
-accuracy-adjusted local EC distributions are better-behaved and easier to
-describe.
+**Distribution of Local EC Ranges by data perturbation**: Left: Local EC.
+Right: Local EC adjusted with accuracy. Note how often local EC ranges
+are bimodal, with the largest mode often near 1.0, and the smallest at a similar
+extremely large value (e.g. 0.6). That is, within a repeat, the local EC will
+typically take on most values in $[0, 1]$. Accuracy adjustment does *not* save
+the local EC here.
 
 
-
-Impact on EC  Hparam perturbation at the zeroth digit
-has an obvious and dramatic effect on accuracy and EC distributions. Other
-perturbations don't have obvious effect on gross accuracy distributions, but
-
-
-Visually but only perturbation at the zeroth significant
-digit generally resulted in obvious visible changes to the metric distributions.
 
 
 
