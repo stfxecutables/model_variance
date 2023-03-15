@@ -67,7 +67,7 @@ def ckpt_file(
     classifier_kind: ClassifierKind,
     repeat: int,
     run: int,
-    dimension_reduction: Percentage | None,
+    dimension_reduction: Percentage | Literal["cat"] | None,
     continuous_perturb: DataPerturbation | None,
     categorical_perturb: float | None,
     hparam_perturb: HparamPerturbation | None,
@@ -122,7 +122,7 @@ class Evaluator(DirJSONable):
         repeat: int,
         run: int,
         base_hps: Hparams,
-        dimension_reduction: Percentage | None,
+        dimension_reduction: Percentage | Literal["cat"] | None,
         continuous_perturb: DataPerturbation | None,
         categorical_perturb: float | None,
         hparam_perturb: HparamPerturbation | None,
@@ -138,7 +138,7 @@ class Evaluator(DirJSONable):
         self.repeat: int = repeat
         self.run: int = run
         self.base_hps: Hparams = base_hps
-        self.dimension_reduction: Percentage | None = dimension_reduction
+        self.dimension_reduction: Percentage | Literal["cat"] | None = dimension_reduction
         self.continuous_perturb: DataPerturbation | None = continuous_perturb
         self.categorical_perturb: float | None = categorical_perturb
         self.hparam_perturb: HparamPerturbation | None = hparam_perturb

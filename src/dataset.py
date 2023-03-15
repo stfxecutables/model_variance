@@ -233,6 +233,7 @@ class Dataset:
         if perturbation is None:
             return X_f
         if perturbation in [
+            DataPerturbation.DoubleNeighbor,
             DataPerturbation.FullNeighbor,
             DataPerturbation.HalfNeighbor,
             DataPerturbation.QuarterNeighbor,
@@ -241,6 +242,7 @@ class Dataset:
             # random perturbation vector for each sample in d_nn / 2, where
             # d_nn = sqrt(|x^2 - x_nn^2|) for sample x and nearest neighor x_nn
             scale = {
+                DataPerturbation.DoubleNeighbor: 0.5,
                 DataPerturbation.FullNeighbor: 1,
                 DataPerturbation.HalfNeighbor: 2,
                 DataPerturbation.QuarterNeighbor: 4,
@@ -540,7 +542,9 @@ class Dataset:
             if (X_cont is not None) and (X_cat is not None):
                 X = np.concatenate([X_cont, X_cat], axis=1)
             elif X_cont is None and X_cat is None:
-                raise RuntimeError(f"Empty dataset found for `reduction='cat'`: {self.name.name}")
+                raise RuntimeError(
+                    f"Empty dataset found for `reduction='cat'`: {self.name.name}"
+                )
             elif X_cont is None:
                 X = X_cat
             elif X_cat is None:
@@ -549,7 +553,6 @@ class Dataset:
                 raise RuntimeError("Impossible!")
         else:
             raise NotImplementedError("Not going to be testing other reduction sizes")
-
 
         cluster = str(os.environ.get("CC_CLUSTER")).lower()
         n_jobs = {"none": -1, "niagara": 80, "cedar": 32}[cluster]

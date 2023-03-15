@@ -10,6 +10,7 @@ sys.path.append(str(ROOT))  # isort: skip
 from abc import abstractmethod
 from enum import Enum
 from pathlib import Path
+from typing import Literal
 
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
@@ -27,7 +28,9 @@ class Indexable(Enum):
         return [*self.__class__].index(self) + 1
 
 
-def get_index(indexable: Indexable | None | int) -> int:
+def get_index(indexable: Indexable | None | int | Literal["cat"]) -> int | str:
+    if indexable == "cat":
+        return "C"
     if indexable is None:
         return 0
     if isinstance(indexable, Indexable):
@@ -271,6 +274,7 @@ class Percentage(Indexable):
 
 
 class DataPerturbation(Indexable):
+    DoubleNeighbor = "double-neighbour"  # Yes
     FullNeighbor = "full-neighbour"  # Yes
     HalfNeighbor = "half-neighbour"  # Yes
     QuarterNeighbor = "quarter-neighbour"  # No
