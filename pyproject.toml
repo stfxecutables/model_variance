@@ -17,7 +17,9 @@ filterwarnings = [
     # "error",
     # note the use of single quote below to denote "raw" strings in TOML
     'ignore:Call to deprecated create function:DeprecationWarning',
-    'ignore:distutils Version classes are deprecated:DeprecationWarning'
+    'ignore:distutils Version classes are deprecated:DeprecationWarning',
+    'ignore:pkg_resources is deprecated:DeprecationWarning',
+    'ignore:Deprecated call to:DeprecationWarning'
 ]
 markers = [
     "slow: mark slow-running tests",

@@ -135,12 +135,13 @@ def reduce_categoricals(dataset: Dataset) -> NDArray[np.float64] | None:
     A 10% embedding dimension ought to be more than sufficient, given the relative
     embedding size of NLP models compared to vocobulary size.
     """
-    from umap import UMAP
 
     outfile = CAT_REDUCED / f"{dataset.name.name}.npy"
     if outfile.exists():
         reduced: NDArray[np.float64] = np.load(outfile)
         return reduced
+
+    from umap import UMAP
     df = dataset.data.drop(columns="__target")
     cats = df.select_dtypes(include=[CategoricalDtype])  # type: ignore
     if cats.shape[1] == 0:

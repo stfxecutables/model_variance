@@ -16,11 +16,26 @@ from base64 import urlsafe_b64encode
 from enum import Enum, EnumMeta
 from shutil import make_archive, rmtree
 from time import sleep, strftime
-from typing import Any, Literal, Type, TypeVar, overload
+from typing import (
+    Any,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+    no_type_check,
+    overload,
+)
 from uuid import uuid4
 
 import numpy as np
 from numpy import ndarray
+from typing_extensions import Literal
 
 from src.constants import CKPTS, DEBUG_LOGS, LOGS, ensure_dir
 from src.dataset import Dataset
@@ -33,6 +48,7 @@ from src.enumerables import (
     get_index,
 )
 from src.hparams.hparams import Hparams
+from src.models.dl_model import DLModel
 from src.models.logistic import LRModel, SGDLRModel
 from src.models.mlp import MLPModel
 from src.models.model import ClassifierModel
@@ -93,6 +109,27 @@ def ckpt_file(
     outdir = CKPTS / label
     ensure_dir(outdir)
     return outdir / f"{cid}.ckpt"
+
+
+def get_model(
+    kind: ClassifierKind, args: Dict[str, Any]
+) -> Union[ClassifierModel, DLModel]:
+    if kind is ClassifierKind.LR:
+        return LRModel(**args)
+    elif kind is ClassifierKind.SGD_LR:
+        return SGDLRModel(**args)
+    elif kind is ClassifierKind.SVM:
+        return SVCModel(**args)
+    elif kind is ClassifierKind.LinearSVM:
+        return LinearSVCModel(**args)
+    elif kind is ClassifierKind.SGD_SVM:
+        return SGDLinearSVCModel(**args)
+    elif kind is ClassifierKind.XGBoost:
+        return XGBoostModel(**args)
+    elif kind is ClassifierKind.MLP:
+        return MLPModel(**args)
+    else:
+        raise ValueError(f"Unknown model kind: {kind}")
 
 
 class Evaluator(DirJSONable):
@@ -187,22 +224,7 @@ class Evaluator(DirJSONable):
             dataset=self.dataset,
             logdir=logdir,
         )
-        if kind is ClassifierKind.LR:
-            self._model = LRModel(**args)
-        elif kind is ClassifierKind.SGD_LR:
-            self._model = SGDLRModel(**args)
-        elif kind is ClassifierKind.SVM:
-            self._model = SVCModel(**args)
-        elif kind is ClassifierKind.LinearSVM:
-            self._model = LinearSVCModel(**args)
-        elif kind is ClassifierKind.SGD_SVM:
-            self._model = SGDLinearSVCModel(**args)
-        elif kind is ClassifierKind.XGBoost:
-            self._model = XGBoostModel(**args)
-        elif kind is ClassifierKind.MLP:
-            self._model = MLPModel(**args)
-        else:
-            raise ValueError(f"Unknown model kind: {self.classifier_kind}")
+        self._model = get_model(kind, args)
         return self._model
 
     def get_id(self) -> str:
@@ -238,7 +260,7 @@ class Evaluator(DirJSONable):
 
     @property
     def preds_dir(self) -> Path:
-        return ensure_dir(self.logdir / "preds")
+        return ensure_dir(self.logdir)
 
     @property
     def metrics_dir(self) -> Path:
@@ -273,10 +295,9 @@ class Evaluator(DirJSONable):
 
     def to_json(self, root: Path) -> None:
         root.mkdir(exist_ok=True, parents=True)
-        hps = root / "hparams"
         out = root / "evaluator.json"
 
-        self.base_hps.to_json(hps)
+        self.base_hps.to_json(root)
         with open(out, "w") as fp:
             json.dump(
                 {
@@ -300,7 +321,7 @@ class Evaluator(DirJSONable):
     @classmethod
     def from_json(cls: Type[Evaluator], root: Path) -> Evaluator:
         root.mkdir(exist_ok=True, parents=True)
-        hps = root / "hparams"
+        hps = root / "all_hparams.json"
         out = root / "evaluator.json"
         hparams = Hparams.from_json(hps)
         with open(out, "r") as fp:

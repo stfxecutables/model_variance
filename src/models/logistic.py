@@ -21,6 +21,7 @@ from src.hparams.logistic import LRHparams, SGDLRHparams
 from src.models.dl_model import DLModel
 from src.models.model import ClassifierModel
 from src.models.torch_base import LogisticRegression
+from src.serialize import SKOPable
 
 
 class LRModel(DLModel):

@@ -13,7 +13,7 @@ from argparse import Namespace
 from enum import Enum
 from math import ceil
 from pathlib import Path
-from typing import Any, Collection, Generic, Sequence, Type, TypeVar
+from typing import Any, Collection, Dict, Generic, List, Sequence, Type, TypeVar
 
 import numpy as np
 from numpy.random import Generator
@@ -45,6 +45,16 @@ class Hparam(FileJSONable["Hparam"], Generic[T, H]):
 
     def to_dict(self) -> dict[str, T | None]:
         return {self.name: self.value}
+
+    @abstractmethod
+    def to_json_dict(self) -> dict[str, Any]:
+        ...
+
+    def to_jsons(self) -> str:
+        return json.dumps(
+            self.to_json_dict(),
+            indent=2,
+        )
 
     @property
     def value(self) -> T | None:
@@ -78,7 +88,7 @@ class Hparam(FileJSONable["Hparam"], Generic[T, H]):
         ...
 
     @staticmethod
-    def from_dict(tardict: dict[str, Any]) -> Hparam:
+    def from_dict(hpdict: dict[str, T]) -> Hparam:
         ...
 
     @abstractmethod
@@ -250,6 +260,17 @@ class ContinuousHparam(Hparam):
                 indent=2,
             )
 
+    def to_json_dict(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "value": self.value,
+            "default": self._default,
+            "min": self.min,
+            "max": self.max,
+            "log_scale": self.log_scale,
+            "kind": self.kind.value,
+        }
+
     @staticmethod
     def from_json(path: Path) -> ContinuousHparam:
         with open(path, "r") as handle:
@@ -264,8 +285,8 @@ class ContinuousHparam(Hparam):
         )
 
     @staticmethod
-    def from_dict(tardict: dict[str, Any]) -> ContinuousHparam:
-        d = Namespace(**tardict)
+    def from_dict(hpdict: dict[str, Any]) -> ContinuousHparam:
+        d = Namespace(**hpdict)
         return ContinuousHparam(
             name=d.name,
             value=d.value,
@@ -407,6 +428,16 @@ class OrdinalHparam(Hparam):
                 indent=2,
             )
 
+    def to_json_dict(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "value": self.value,
+            "default": self._default,
+            "min": self.min,
+            "max": self.max,
+            "kind": self.kind.value,
+        }
+
     @staticmethod
     def from_json(path: Path) -> OrdinalHparam:
         with open(path, "r") as handle:
@@ -420,8 +451,8 @@ class OrdinalHparam(Hparam):
         )
 
     @staticmethod
-    def from_dict(tardict: dict[str, Any]) -> OrdinalHparam:
-        d = Namespace(**tardict)
+    def from_dict(hpdict: dict[str, Any]) -> OrdinalHparam:
+        d = Namespace(**hpdict)
         return OrdinalHparam(
             name=d.name,
             value=d.value,
@@ -526,6 +557,15 @@ class CategoricalHparam(Hparam):
                 indent=2,
             )
 
+    def to_json_dict(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "value": self.value,
+            "default": self._default,
+            "categories": self.categories,
+            "kind": self.kind.value,
+        }
+
     @staticmethod
     def from_json(path: Path) -> CategoricalHparam:
         with open(path, "r") as handle:
@@ -538,8 +578,8 @@ class CategoricalHparam(Hparam):
         )
 
     @staticmethod
-    def from_dict(tardict: dict[str, Any]) -> CategoricalHparam:
-        d = Namespace(**tardict)
+    def from_dict(hpdict: dict[str, Any]) -> CategoricalHparam:
+        d = Namespace(**hpdict)
         return CategoricalHparam(
             name=d.name,
             value=d.value,
@@ -618,6 +658,14 @@ class FixedHparam(Hparam, Generic[T]):
                 indent=2,
             )
 
+    def to_json_dict(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "value": self.value,
+            "default": self._default,
+            "kind": self.kind.value,
+        }
+
     @staticmethod
     def from_json(path: Path) -> FixedHparam:
         with open(path, "r") as handle:
@@ -629,8 +677,8 @@ class FixedHparam(Hparam, Generic[T]):
         )
 
     @staticmethod
-    def from_dict(tardict: dict[str, Any]) -> FixedHparam:
-        d = Namespace(**tardict)
+    def from_dict(hpdict: dict[str, Any]) -> FixedHparam:
+        d = Namespace(**hpdict)
         return FixedHparam(
             name=d.name,
             value=d.value,
@@ -782,6 +830,15 @@ class Hparams(DirJSONable):
 
     def to_json(self, root: Path) -> None:
         root.mkdir(exist_ok=True, parents=True)
+        outfile = root / "all_hparams.json"
+        inners = []
+        hparam: Hparam
+        for name, hparam in self.hparams.items():
+            inners.append(hparam.to_json_dict())
+        outfile.write_text(json.dumps(inners))
+
+    def to_json_directories(self, root: Path) -> None:
+        root.mkdir(exist_ok=True, parents=True)
         for name, hparam in self.hparams.items():
             if hparam.kind is HparamKind.Categorical:
                 outdir = root / "categorical"
@@ -799,6 +856,28 @@ class Hparams(DirJSONable):
 
     @classmethod
     def from_json(cls: Type[Hparams], root: Path) -> Hparams:
+        outfile = list(root.rglob("all_hparams.json"))[0]
+        with open(outfile, "r") as handle:
+            hpdicts: List[Dict[str, Any]] = json.load(handle)
+        hparams = []
+        for hpdict in hpdicts:
+            ...
+            if hpdict["kind"] == "categorical":
+                hp = CategoricalHparam.from_dict(hpdict)
+            elif hpdict["kind"] == "ordinal":
+                hp = OrdinalHparam.from_dict(hpdict)
+            elif hpdict["kind"] == "continuous":
+                hp = ContinuousHparam.from_dict(hpdict)
+            elif hpdict["kind"] == "fixed":
+                hp = FixedHparam.from_dict(hpdict)
+            else:
+                raise ValueError("Impossible!")
+            hparams.append(hp)
+
+        return cls(hparams=hparams)
+
+    @classmethod
+    def from_json_directory(cls: Type[Hparams], root: Path) -> Hparams:
         jsons = sorted(root.rglob("*.json"))
         hparams = []
         for path in jsons:
@@ -820,13 +899,13 @@ class Hparams(DirJSONable):
         hparams = []
         for tardict in tardicts:
             if tardict["kind"] == "categorical":
-                hp = CategoricalHparam.from_dict(tardict=tardict)
+                hp = CategoricalHparam.from_dict(hpdict=tardict)
             elif tardict["kind"] == "ordinal":
-                hp = OrdinalHparam.from_dict(tardict=tardict)
+                hp = OrdinalHparam.from_dict(hpdict=tardict)
             elif tardict["kind"] == "continuous":
-                hp = ContinuousHparam.from_dict(tardict=tardict)
+                hp = ContinuousHparam.from_dict(hpdict=tardict)
             elif tardict["kind"] == "fixed":
-                hp = FixedHparam.from_dict(tardict=tardict)
+                hp = FixedHparam.from_dict(hpdict=tardict)
             else:
                 raise ValueError("Impossible!")
             hparams.append(hp)

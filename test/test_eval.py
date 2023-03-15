@@ -11,6 +11,7 @@ from pandas import DataFrame
 from pytest import CaptureFixture
 from tqdm import tqdm
 
+from src.archival import parse_tar_gz
 from src.enumerables import (
     CatPerturbLevel,
     ClassifierKind,
@@ -207,7 +208,7 @@ def test_archival() -> None:
             categorical_perturb=None,
             hparam_perturb=None,
             train_downsample=None,
-            hparams=hps,
+            base_hps=hps,
             debug=True,
         )
         ev = Evaluator(**ev_args)
@@ -221,7 +222,7 @@ def test_archival() -> None:
                 assert "preds.npz" in names
                 assert "targs.npz" in names
                 assert "evaluator.json" in names
-                assert "hparams" in names
+                assert "all_hparams.json" in names
 
         except Exception as e:
             raise e

@@ -10,22 +10,39 @@ sys.path.append(str(ROOT))  # isort: skip
 import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Mapping, Type
+from typing import (
+    Any,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+    cast,
+    no_type_check,
+)
 
+import skops.io as skio
 from numpy import ndarray
 from numpy.random import Generator
+from onnx import ModelProto
 from sklearn.svm import SVC
+from typing_extensions import Literal
 from xgboost import XGBClassifier
 
+from src.constants import ONNX_OPSET
 from src.dataset import Dataset
 from src.enumerables import ClassifierKind, RuntimeClass
 from src.hparams.hparams import Hparams
 from src.models.torch_base import MLP, LogisticRegression
+from src.serialize import SKOPable
 
-ThirdPartyClassifierModel = SVC | XGBClassifier | MLP | LogisticRegression
+ThirdPartyClassifierModel = Union[SVC, XGBClassifier, MLP, LogisticRegression]
 
 
-class ClassifierModel(ABC):
+class ClassifierModel(SKOPable):
     def __init__(self, hparams: Hparams, dataset: Dataset, logdir: Path) -> None:
         super().__init__()
         self.kind: ClassifierKind
@@ -35,14 +52,16 @@ class ClassifierModel(ABC):
         self.runtime = RuntimeClass.from_dataset(self.dataset.name)
         self.fitted: bool = False
         self.model_cls: Type[Any]
-        self.model: ThirdPartyClassifierModel | None
+        self.model: Optional[ThirdPartyClassifierModel] = None
 
     def fit(self, X: ndarray, y: ndarray) -> None:
         # constant (non-perturbable) constructor args and fit args
+
         fargs = (X, y)
         args = self._get_model_args()
         self.model = self.model_cls(**args)
         self.model.fit(*fargs)
+        self.to_skops(self.logdir)
         self.fitted = True
 
     def tune(self, X: ndarray, y: ndarray, rng: Generator | None, iteration: int) -> None:
@@ -51,6 +70,19 @@ class ClassifierModel(ABC):
     @abstractmethod
     def predict(self, X: ndarray, y: ndarray) -> tuple[ndarray, ndarray]:
         ...
+
+    def load_fitted(self) -> None:
+        if self.model is not None:
+            raise RuntimeError("Classifer already has fitted internal model.")
+        self.model = self.from_skops(self.logdir)
+
+    def to_skops(self, root: Path) -> None:
+        outfile = root / "model.skops"
+        skio.dump(self.model, file=outfile)
+
+    def from_skops(self, root: Path) -> ThirdPartyClassifierModel:
+        outfile = root / "model.skops"
+        return skio.load(file=outfile, trusted=True)
 
     def _get_model_args(self) -> dict[str, Any]:
         hps = self.hparams.to_dict()

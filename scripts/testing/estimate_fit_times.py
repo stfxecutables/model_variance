@@ -10,22 +10,13 @@ sys.path.append(str(ROOT))  # isort: skip
 import sys
 import traceback
 from pathlib import Path
-from time import time
-from traceback import print_exc
 from typing import Any, List, Optional
 from warnings import filterwarnings
 
-import numpy as np
-import pandas as pd
-from pandas import CategoricalDtype, DataFrame
 from pandas.errors import PerformanceWarning
 from sklearn.model_selection import ParameterGrid
-from sklearn.preprocessing import LabelEncoder
-from tqdm import tqdm
 from tqdm.contrib.concurrent import process_map
-from xgboost import XGBClassifier
 
-from src.dataset import Dataset
 from src.enumerables import (
     CatPerturbLevel,
     ClassifierKind,
@@ -122,7 +113,8 @@ def evaluate(args: dict[str, Any]) -> None:
 
 
 if __name__ == "__main__":
+    # 21 600 runs about an hour for Anneal
     grid = create_grid(dsnames=[DatasetName.Anneal])
     process_map(
-        evaluate, grid, total=len(grid), desc="Evaluating", chunksize=1, smoothing=0.08
+        evaluate, grid, total=len(grid), desc="Evaluating", chunksize=10, smoothing=0.08
     )

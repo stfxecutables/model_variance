@@ -27,6 +27,8 @@ PLOTS = ensure_dir(RESULTS / "plots")
 CC_RESULTS = ensure_dir(ROOT / "cc_results")
 TESTING_TEMP = ensure_dir(ROOT / "testing_temp")
 
+ONNX_OPSET = 18
+
 # constants
 TEST_SIZE = 0.25
 # LR_MAX_EPOCHS = 5

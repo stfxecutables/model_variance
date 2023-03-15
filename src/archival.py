@@ -12,7 +12,7 @@ import sys
 import tarfile
 from pathlib import Path
 from tarfile import ExFileObject, ReadError, TarFile, TarInfo
-from typing import Any
+from typing import Any, Dict, List
 
 import numpy as np
 from numpy import ndarray
@@ -45,7 +45,7 @@ def find_bad_tars(targz_path: Path) -> Any:
     return bads
 
 
-def read_tar_json(inner_tar: TarFile, name: str) -> dict[str, Any]:
+def read_tar_json(inner_tar: TarFile, name: str) -> List[Dict[str, Any]]:
     info: TarInfo = inner_tar.getmember(name)
     exfile: ExFileObject
     with inner_tar.extractfile(info) as exfile:  # type: ignore
@@ -53,7 +53,7 @@ def read_tar_json(inner_tar: TarFile, name: str) -> dict[str, Any]:
     return data
 
 
-def read_tar_npz(inner_tar: TarFile, name: str) -> dict[str, Any]:
+def read_tar_npz(inner_tar: TarFile, name: str) -> Dict[str, Any]:
     info: TarInfo = inner_tar.getmember(name)
     exfile: ExFileObject
     with inner_tar.extractfile(info) as exfile:  # type: ignore
@@ -68,7 +68,7 @@ def read_tar_npz(inner_tar: TarFile, name: str) -> dict[str, Any]:
 
 def parse_tar_gz(
     tarpath: Path,
-) -> tuple[DataFrame, list[Hparams], list[ndarray], list[ndarray], int]:
+) -> tuple[DataFrame, List[Hparams], List[ndarray], List[ndarray], int]:
     ev_dicts: list[dict[str, Any]] = []
     all_hps: list[Hparams] = []
     all_preds: list[ndarray] = []
@@ -101,17 +101,16 @@ def parse_tar_gz(
                                 missings += 1
                                 continue
                             evname = evnames[0]
-                            hpnames = list(
+                            hpfile = list(
                                 filter(lambda f: "hparam" in f and ".json" in f, fnames)
-                            )
+                            )[0]
                             pnames = list(filter(lambda f: ".npz" in f, fnames))
 
                             ev = read_tar_json(inner_tar=inner_contents, name=evname)
-                            hps = [
-                                read_tar_json(inner_tar=inner_contents, name=hp)
-                                for hp in hpnames
-                            ]
-                            hp = Hparams.from_dicts(hps)
+                            hpdicts: List[Dict[str, Any]] = read_tar_json(
+                                inner_tar=inner_contents, name=hpfile
+                            )
+                            hp = Hparams.from_dicts(hpdicts)
 
                             preds, targs = sorted(
                                 [read_tar_npz(inner_contents, p) for p in pnames],
