@@ -12,7 +12,7 @@ statsmodels==0.13.2
 tqdm==4.64.1
 umap-learn
 pyarrow==10.0.0
-pyqt5==5.15.7
+pyqt6
 mypy==0.982
 flake8==5.0.4
 isort==5.10.1

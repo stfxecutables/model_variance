@@ -45,15 +45,16 @@ def compute_distances_failsafe(ds_reduction: tuple[Dataset, int | None]) -> None
 def compute_distances(runtime: RuntimeClass) -> None:
     datasets = [Dataset(name) for name in runtime.members()]
     ds_reductions = []
-    for reduction in [None, 25, 50, 75]:
+    # for reduction in [None, 25, 50, 75]:
+    for reduction in ["cat"]:
         for ds in datasets:
             ds_reductions.append((ds, reduction))
     desc = "Computing distances: {ds}(reduction={red})"
     pbar = tqdm(ds_reductions, desc=desc.format(ds="", red="?"))
     for ds_reduction in pbar:
         ds, red = ds_reduction
-        if red in [50, 75] and ds.name.name == "Dionis":
-            continue
+        # if red in [50, 75] and ds.name.name == "Dionis":
+        #     continue
         pbar.set_description(desc.format(ds=str(ds), red=red))
         compute_distances_failsafe(ds_reduction)
     pbar.close()
@@ -61,6 +62,6 @@ def compute_distances(runtime: RuntimeClass) -> None:
 
 if __name__ == "__main__":
     filterwarnings("ignore", category=PerformanceWarning)
-    # compute_distances(RuntimeClass.Fast)
-    # compute_distances(RuntimeClass.Mid)
+    compute_distances(RuntimeClass.Fast)
+    compute_distances(RuntimeClass.Mid)
     compute_distances(RuntimeClass.Slow)

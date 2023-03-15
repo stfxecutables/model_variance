@@ -113,7 +113,27 @@ def reduce_categoricals(dataset: Dataset) -> NDArray[np.float64] | None:
         https://github.com/lmcinnes/umap/issues/104
         https://github.com/lmcinnes/umap/issues/241
 
-    in spirit, but just embed all dummified categoricals to two dimensions.
+    But embed all dummified categoricals to ceil(n_onehot_features / 10) dimensions.
+    Only 13 datasets have categorical variables, and all have <20 categorical features.
+
+        data                n_samples    n_feat    n_cats    n_onehot       p_max
+        ----------------  -----------  --------  --------  ----------  ----------
+        Ldpa                   164860         7         2           9  0.330462
+        Car                      1728         6         5          21  0.700231
+        Australian                690        14         4          36  0.555072
+        BankMarketing           45211        16         7          44  0.883015
+        Christine                5418      1636         5          49  0.5
+        Credit_g                 1000        20        13          56  0.7
+        Kr_vs_kp                 3196        36         4          74  0.522215
+        Nomao                   34465       118         2          85  0.714377
+        Adult                   48842        14         8          99  0.760718
+        Anneal                    898        38        18         107  0.541203
+        Connect4                67557        42         1         126  0.658303
+        Arrhythmia                452       270         1         146  0.542035
+        Jasmine                  2984       144         1         272  0.5
+
+    A 10% embedding dimension ought to be more than sufficient, given the relative
+    embedding size of NLP models compared to vocobulary size.
     """
     from umap import UMAP
 
@@ -128,8 +148,10 @@ def reduce_categoricals(dataset: Dataset) -> NDArray[np.float64] | None:
             OneHotEncoder(sparse=False).fit_transform(cats).astype(np.float64)
         )  # type: ignore
     x = pd.get_dummies(cats).astype(np.float64).to_numpy()
+    n_oh = x.shape[1]
+    n_components = ceil(n_oh / 10)
     filterwarnings("ignore", category=PerformanceWarning)
-    umap = UMAP(n_components=2, metric="jaccard")  # type: ignore
+    umap = UMAP(n_components=n_components, metric="jaccard")  # type: ignore
     with catch_warnings():
         filterwarnings("ignore", message="gradient function", category=UserWarning)
         reduced = umap.fit_transform(x)  # type: ignore
@@ -169,17 +191,19 @@ class Dataset:
     def get_X_continuous(
         self,
         perturbation: DataPerturbation | None = None,
-        reduction: int | None = None,
+        reduction: int | None | Literal["cat"] = "cat",
         rng: Generator | None = None,
     ) -> ndarray | None:
-        if reduction not in [None, 25, 50, 75]:
-            raise ValueError("`percent` must be in [None, 25, 50, 75]")
+        if reduction not in [None, 25, 50, 75, "cat"]:
+            raise ValueError("`percent` must be in [None, 25, 50, 75, 'cat']")
+        if reduction == "cat":
+            reduction = None  # handle the same as None
         if (reduction is not None) and (perturbation is not None):
             raise NotImplementedError("No plans to test perturbation on UMAP reductions.")
 
         rng = rng if rng is not None else np.random.default_rng()
 
-        if reduction is not None:
+        if reduction in [25, 50, 75]:
             X: ndarray | None = reduce_continuous(self, percent=reduction)
             if X is None or X.size == 0:
                 return None
@@ -281,7 +305,7 @@ class Dataset:
         self,
         perturbation_prob: float | None = 0,
         perturb_level: CatPerturbLevel = CatPerturbLevel.Label,
-        reduction: int | None = None,
+        reduction: int | None | Literal["cat"] = "cat",
         rng: Generator | None = None,
     ) -> ndarray | None:
         """
@@ -317,8 +341,8 @@ class Dataset:
             distance metric, and thus the matrix is NOT sparsely populated as
             it is in the `None` case above.
         """
-        if reduction not in [None, 25, 50, 75]:
-            raise ValueError("`percent` must be in [None, 25, 50, 75]")
+        if reduction not in [None, 25, 50, 75, "cat"]:
+            raise ValueError("`percent` must be in [None, 25, 50, 75, 'cat']")
         if perturbation_prob is None:
             perturbation_prob = 0
         if (reduction is not None) and (perturbation_prob > 0):
@@ -327,6 +351,14 @@ class Dataset:
             )
         if perturbation_prob > 1:
             raise ValueError("`perturbation_prob` must be <= 1")
+
+        if reduction == "cat":
+            X = reduce_categoricals(self)
+            if X is None:  # fine, reduct is just continuous vars
+                return None
+            if X.ndim == 0:
+                X = X.reshape(-1, 1)
+            return X
 
         if reduction is None:
             df = self.data.drop(columns="__target")
@@ -337,6 +369,7 @@ class Dataset:
                     .fit_transform(cats)
                     .astype(np.float64)  # type: ignore
                 )
+
             if perturbation_prob > 0:
                 rng = np.random.default_rng() if rng is None else rng
                 if perturb_level is CatPerturbLevel.Sample:
@@ -372,8 +405,10 @@ class Dataset:
                     raise ValueError(f"Unrecognized CatPerturbLevel: {perturb_level}")
             return pd.get_dummies(cats).astype(np.float64).to_numpy()  # type: ignore
 
+        raise NotImplementedError()
+
         X = reduce_categoricals(self)
-        if X is None:  # fine, reduct is just continues vars
+        if X is None:  # fine, reduct is just continuous vars
             return None
         if X.ndim == 0:
             X = X.reshape(-1, 1)
@@ -384,7 +419,7 @@ class Dataset:
         cont_perturb: DataPerturbation | None = None,
         cat_perturb_prob: float = 0,
         cat_perturb_level: CatPerturbLevel = CatPerturbLevel.Label,
-        reduction: int | None = None,
+        reduction: int | None | Literal["cat"] = "cat",
         rng: Generator | None = None,
     ) -> tuple[ndarray, ndarray]:
         """
@@ -480,21 +515,44 @@ class Dataset:
         drop = cols[sds == 0]
         df.drop(columns=drop, inplace=True)
 
-    def nearest_distances(self, reduction: int | None) -> ndarray | None:
-        if reduction not in [None, 25, 50, 75]:
-            raise ValueError("`percent` must be in [25, 50, 75]")
-        label = "" if reduction is None else f"_reduce={int(reduction):02d}"
+    def nearest_distances(self, reduction: int | None | Literal["cat"]) -> ndarray | None:
+        if reduction not in [None, 25, 50, 75, "cat"]:
+            raise ValueError("`percent` must be in [25, 50, 75, 'cat']")
+        label = (
+            ""
+            if reduction is None
+            else "cat"
+            if reduction == "cat"
+            else f"_reduce={int(reduction):02d}"
+        )
         outfile = DISTANCES / f"{self.name.name}{label}_distances.npz"
-
-        X = self.get_X_continuous(perturbation=None, reduction=reduction)
-        if X is None or X.shape[1] == 0:
-            return None
 
         if outfile.exists():
             return np.load(outfile).get("distances").astype(np.float64)
 
+        if reduction is None:
+            X = self.get_X_continuous(perturbation=None, reduction=reduction)
+            if X is None or X.shape[1] == 0:
+                return None
+        elif reduction == "cat":
+            X_cont = self.get_X_continuous(perturbation=None, reduction="cat")
+            X_cat = self.get_X_categorical(reduction="cat")
+            if (X_cont is not None) and (X_cat is not None):
+                X = np.concatenate([X_cont, X_cat], axis=1)
+            elif X_cont is None and X_cat is None:
+                raise RuntimeError(f"Empty dataset found for `reduction='cat'`: {self.name.name}")
+            elif X_cont is None:
+                X = X_cat
+            elif X_cat is None:
+                X = X_cont
+            else:
+                raise RuntimeError("Impossible!")
+        else:
+            raise NotImplementedError("Not going to be testing other reduction sizes")
+
+
         cluster = str(os.environ.get("CC_CLUSTER")).lower()
-        n_jobs = {"none": -1, "niagara": 40, "cedar": 32}[cluster]
+        n_jobs = {"none": -1, "niagara": 80, "cedar": 32}[cluster]
         # if self.name is DatasetName.DevnagariScript:
         #     n_jobs = 6
         # if cluster is not None:
@@ -526,7 +584,7 @@ class Dataset:
 
     @property
     def n_cats(self) -> int:
-        df = self.data
+        df = self.data.drop(columns="__target")
         cat_dtypes = list(
             filter(
                 lambda dtype: isinstance(dtype, CategoricalDtype),
@@ -576,6 +634,24 @@ class Dataset:
             print(f"NaNs: {nancol_counts.sum()}")
             print(f"{nancols}")
         print("")
+
+    def summary(self) -> DataFrame:
+        df = self.data
+        nrows, ncols = df.shape
+        n_cats = self.n_cats
+        n_one_hot = self.get_X_categorical().shape[1]
+        p_majority = np.unique(df["__target"], return_counts=True)[1].max() / nrows
+        return DataFrame(
+            {
+                "data": self.name.name,
+                "n_samples": nrows,
+                "n_feat": ncols - 1,
+                "n_cats": n_cats,
+                "n_onehot": n_one_hot,
+                "p_max": p_majority,
+            },
+            index=[0],
+        )
 
     def __str__(self) -> str:
         df = self.data
