@@ -371,35 +371,12 @@ class Evaluator(DirJSONable):
                 f"{self.logdir} or {self.ckpt_file}. "
             ) from e
 
-    @overload
     def evaluate(
         self,
         no_pred: bool = False,
-        return_test_acc: Literal[True] = True,
-        skip_done: bool = False,
-    ) -> float:
-        ...
-
-    @overload
-    def evaluate(
-        self,
-        no_pred: Literal[True] = True,
-        return_test_acc: bool = True,
-        skip_done: bool = False,
-    ) -> None:
-        ...
-
-    @overload
-    def evaluate(
-        self,
-        no_pred: bool = False,
-        return_test_acc: Literal[False] = False,
-        skip_done: bool = False,
-    ) -> None:
-        ...
-
-    def evaluate(
-        self, no_pred: bool = False, return_test_acc: bool = False, skip_done: bool = True
+        return_test_acc: bool = False,
+        skip_done: bool = True,
+        archive: bool = True,
     ) -> float | None:
         if not skip_done:
             self.ckpt_file.unlink(missing_ok=True)
@@ -428,11 +405,13 @@ class Evaluator(DirJSONable):
             self.save_targs(targs)
             if self.dl_dir.exists():  # make sure to do before archiving!
                 rmtree(self.dl_dir)
-            self.archive()
+            if archive:
+                self.archive()
             sleep(5)  # dunno, maybe this prevents sudden stops?
             with open(self.ckpt_file, "w+") as fp:
                 fp.write(f"{self.logdir}\n")
-            self.cleanup(remove_ckpt=False, silent=True)
+            if archive:
+                self.cleanup(remove_ckpt=False, silent=True)
 
             if return_test_acc:
                 if preds.ndim == 2:

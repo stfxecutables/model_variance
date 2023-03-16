@@ -13,7 +13,18 @@ import re
 import sys
 from math import ceil
 from pathlib import Path
-from typing import Literal, Optional, Tuple
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+    cast,
+    no_type_check,
+)
 from warnings import catch_warnings, filterwarnings
 
 import numpy as np
@@ -27,6 +38,7 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from tqdm.contrib.concurrent import process_map
+from typing_extensions import Literal
 
 from src.constants import CAT_REDUCED, CONT_REDUCED, DISTANCES
 from src.enumerables import CatPerturbLevel, DataPerturbation, DatasetName
@@ -142,6 +154,7 @@ def reduce_categoricals(dataset: Dataset) -> NDArray[np.float64] | None:
         return reduced
 
     from umap import UMAP
+
     df = dataset.data.drop(columns="__target")
     cats = df.select_dtypes(include=[CategoricalDtype])  # type: ignore
     if cats.shape[1] == 0:
@@ -674,7 +687,7 @@ class Dataset:
         cont_perturb: DataPerturbation | None = None,
         cat_perturb_prob: float | None = None,
         cat_perturb_level: CatPerturbLevel = CatPerturbLevel.Label,
-        reduction: int | None = None,
+        reduction: Union[int, None, Literal["cat"]] = "cat",
         repeat: int = 0,
         run: int = 0,
     ) -> Tuple[ndarray, ndarray, ndarray, ndarray]:

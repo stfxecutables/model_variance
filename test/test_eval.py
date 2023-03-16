@@ -55,7 +55,7 @@ def get_evaluator(kind: ClassifierKind, random: bool, i: int) -> Evaluator:
         classifier_kind=kind,
         repeat=0,
         run=0,
-        dimension_reduction=None,
+        dimension_reduction="cat",
         continuous_perturb=None,
         categorical_perturb=None,
         hparam_perturb=None,
@@ -90,7 +90,7 @@ def random_evaluator(rng: np.random.Generator | None = None) -> Evaluator:
         classifier_kind=kind,
         repeat=choice(list(range(50))),
         run=choice(list(range(50))),
-        dimension_reduction=choice([None, 25, 50, 75]),
+        dimension_reduction="cat",
         continuous_perturb=choice([*DataPerturbation]),
         categorical_perturb=choice([None, 0.1, 0.2]),
         categorical_perturb_level=choice([*CatPerturbLevel]),
@@ -114,7 +114,7 @@ def helper(
             evaluator = get_evaluator(kind=kind, random=random, i=i)
             with _capsys.disabled():
                 pbar.set_description(f"{kind.value}: {evaluator.dataset_name.name:<20}")
-            evaluator.evaluate(no_pred=False)
+            evaluator.evaluate(no_pred=False, skip_done=False, archive=False)
             elapsed = time() - start
             times.append(
                 DataFrame(
@@ -174,7 +174,7 @@ def test_ckpts() -> None:
             categorical_perturb=None,
             hparam_perturb=None,
             train_downsample=None,
-            hparams=hps,
+            base_hps=hps,
             debug=True,
         )
         ev = Evaluator(**ev_args)
