@@ -12,7 +12,7 @@ from pathlib import Path
 from random import choice
 from shutil import rmtree
 from tempfile import mkdtemp
-from typing import Literal
+from typing import Literal, Optional
 
 import numpy as np
 
@@ -145,7 +145,7 @@ def test_evaluator() -> None:
             MLPHparams: ClassifierKind.MLP,
         }[hp_cls]
         hps = hp_cls().random()
-        dim_reduce: Percentage | None = choice([25, 50, 75, None])
+        dim_reduce: Optional[Percentage] = choice([25, 50, 75, None])
         cont_perturb = choice([*DataPerturbation, None])
         cat_perturb = choice([None, 0.1, 0.2])
         h_perturb: HparamPerturbation = choice([*HparamPerturbation])
@@ -207,7 +207,7 @@ def test_tuner() -> None:
             MLPHparams: ClassifierKind.MLP,
         }[hp_cls]
         hps = hp_cls().random()
-        dim_reduce: Percentage | None = choice([25, 50, 75, None])
+        dim_reduce: Optional[Percentage] = choice([25, 50, 75, None])
         cont_perturb = choice([*DataPerturbation, None])
         cat_perturb = choice([None, 0.1, 0.2])
         h_perturb: HparamPerturbation = choice([*HparamPerturbation])
@@ -218,15 +218,9 @@ def test_tuner() -> None:
             classifier_kind=classifier_kind,
             hparams=hps,
             dimension_reduction=dim_reduce,
-            continuous_perturb=cont_perturb,
-            categorical_perturb=cat_perturb,
-            hparam_perturb=h_perturb,
-            train_downsample=train_downsample,
-            categorical_perturb_level=cat_perturb_level,
             repeat=int(np.random.randint(0, 50)),
             run=int(np.random.randint(0, 50)),
             debug=True,
-            _suppress_json=False,
         )
         try:
             ev2 = Tuner.from_json(ev.logdir)

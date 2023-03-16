@@ -10,7 +10,7 @@ sys.path.append(str(ROOT))  # isort: skip
 import sys
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, List, Tuple, no_type_check
+from typing import Any, Dict, List, Tuple, no_type_check
 
 import numpy as np
 import torch
@@ -54,7 +54,7 @@ class BaseModel(LightningModule):
         self.max_epochs: int = LR_MAX_EPOCHS
 
         # task = "binary" if self.num_classes == 2 else "multiclass"
-        acc_args: dict[str, Any] = dict(
+        acc_args: Dict[str, Any] = dict(
             task="multiclass", num_classes=self.num_classes, top_k=1
         )
         self.train_acc = Accuracy(**acc_args)
@@ -98,7 +98,7 @@ class BaseModel(LightningModule):
     @no_type_check
     def test_step(
         self, batch: Tuple[Tensor, Tensor], batch_idx: int, *args, **kwargs
-    ) -> dict[str, ndarray]:
+    ) -> Dict[str, ndarray]:
         preds, loss = self._shared_step(batch)[:2]
         self.test_acc(preds=preds, target=batch[1])
         self.log("test/loss", loss)
@@ -111,7 +111,7 @@ class BaseModel(LightningModule):
     @no_type_check
     def predict_step(
         self, batch: Tuple[Tensor, Tensor], batch_idx: int, *args, **kwargs
-    ) -> dict[str, ndarray]:
+    ) -> Dict[str, ndarray]:
         preds, loss = self._shared_step(batch)[:2]
         return {
             "pred": preds.cpu().numpy(),
@@ -120,7 +120,7 @@ class BaseModel(LightningModule):
         }
 
     @no_type_check
-    def test_epoch_end(self, outputs: list[dict[str, Tensor]]) -> dict[str, ndarray]:
+    def test_epoch_end(self, outputs: List[Dict[str, Tensor]]) -> Dict[str, ndarray]:
         """Save predictions each epoch. We will compare to true values after."""
         if self.trainer is None:
             raise RuntimeError(f"LightningModule {self} has empty .trainer property")
@@ -171,7 +171,7 @@ class BaseModel(LightningModule):
             T_max=self.max_epochs,
             eta_min=0,
         )
-        return [opt], [sched]
+        return [opt], [sched]  # type: ignore
 
 
 class MlpBlock(Module):

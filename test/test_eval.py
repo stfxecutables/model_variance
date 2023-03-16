@@ -3,15 +3,15 @@ from shutil import rmtree
 from tarfile import TarFile
 from tarfile import open as tar_open
 from time import time
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pytest
+from numpy.random import Generator
 from pandas import DataFrame
 from pytest import CaptureFixture
 from tqdm import tqdm
 
-from src.archival import parse_tar_gz
 from src.enumerables import (
     CatPerturbLevel,
     ClassifierKind,
@@ -65,11 +65,11 @@ def get_evaluator(kind: ClassifierKind, random: bool, i: int) -> Evaluator:
     )
 
 
-def random_evaluator(rng: np.random.Generator | None = None) -> Evaluator:
+def random_evaluator(rng: Optional[Generator] = None) -> Evaluator:
     if rng is None:
         rng = np.random.default_rng()
 
-    def choice(x: list[Any]) -> Any:
+    def choice(x: List[Any]) -> Any:
         val = rng.choice(x)
         if isinstance(val, np.ndarray):
             val = val.item()
@@ -103,7 +103,7 @@ def random_evaluator(rng: np.random.Generator | None = None) -> Evaluator:
 
 def helper(
     kind: ClassifierKind, random: bool, _capsys: CaptureFixture
-) -> list[DataFrame]:
+) -> List[DataFrame]:
     print("")
     with _capsys.disabled():
         pbar = tqdm(desc=f"{kind.value}: {'':<20}", total=len(FASTS), ncols=80)
@@ -164,7 +164,7 @@ def test_ckpts() -> None:
     hps = SGDLinearSVMHparams().defaults()
     for i in range(3):
         ds = FASTS[i]
-        ev_args: dict[str, Any] = dict(
+        ev_args: Dict[str, Any] = dict(
             dataset_name=ds,
             classifier_kind=ClassifierKind.SGD_SVM,
             repeat=0,
@@ -198,7 +198,7 @@ def test_archival() -> None:
     hps = SGDLinearSVMHparams().defaults()
     for i in range(3):
         ds = FASTS[i]
-        ev_args: dict[str, Any] = dict(
+        ev_args: Dict[str, Any] = dict(
             dataset_name=ds,
             classifier_kind=ClassifierKind.SGD_SVM,
             repeat=0,
@@ -233,49 +233,49 @@ def test_archival() -> None:
 
 
 @pytest.mark.medium
-def test_svm_random(capsys: CaptureFixture) -> list[DataFrame]:
+def test_svm_random(capsys: CaptureFixture) -> List[DataFrame]:
     return helper(ClassifierKind.SVM, random=True, _capsys=capsys)
 
 
 @pytest.mark.medium
-def test_linear_svm_random(capsys: CaptureFixture) -> list[DataFrame]:
+def test_linear_svm_random(capsys: CaptureFixture) -> List[DataFrame]:
     return helper(ClassifierKind.LinearSVM, random=True, _capsys=capsys)
 
 
 @pytest.mark.medium
-def test_xgb_random(capsys: CaptureFixture) -> list[DataFrame]:
+def test_xgb_random(capsys: CaptureFixture) -> List[DataFrame]:
     return helper(ClassifierKind.XGBoost, random=True, _capsys=capsys)
 
 
 @pytest.mark.medium
-def test_lr_random(capsys: CaptureFixture) -> list[DataFrame]:
+def test_lr_random(capsys: CaptureFixture) -> List[DataFrame]:
     with capsys.disabled():
         return helper(ClassifierKind.LR, random=True, _capsys=capsys)
 
 
 @pytest.mark.medium
-def test_mlp_random(capsys: CaptureFixture) -> list[DataFrame]:
+def test_mlp_random(capsys: CaptureFixture) -> List[DataFrame]:
     with capsys.disabled():
         return helper(ClassifierKind.MLP, random=True, _capsys=capsys)
 
 
 @pytest.mark.medium
-def test_svm_default(capsys: CaptureFixture) -> list[DataFrame]:
+def test_svm_default(capsys: CaptureFixture) -> List[DataFrame]:
     return helper(ClassifierKind.SVM, random=False, _capsys=capsys)
 
 
 @pytest.mark.medium
-def test_xgb_default(capsys: CaptureFixture) -> list[DataFrame]:
+def test_xgb_default(capsys: CaptureFixture) -> List[DataFrame]:
     return helper(ClassifierKind.XGBoost, random=False, _capsys=capsys)
 
 
 @pytest.mark.medium
-def test_lr_default(capsys: CaptureFixture) -> list[DataFrame]:
+def test_lr_default(capsys: CaptureFixture) -> List[DataFrame]:
     with capsys.disabled():
         return helper(ClassifierKind.LR, random=False, _capsys=capsys)
 
 
 @pytest.mark.medium
-def test_mlp_default(capsys: CaptureFixture) -> list[DataFrame]:
+def test_mlp_default(capsys: CaptureFixture) -> List[DataFrame]:
     with capsys.disabled():
         return helper(ClassifierKind.MLP, random=False, _capsys=capsys)

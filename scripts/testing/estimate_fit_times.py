@@ -10,7 +10,7 @@ sys.path.append(str(ROOT))  # isort: skip
 import sys
 import traceback
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 from warnings import filterwarnings
 
 from pandas.errors import PerformanceWarning
@@ -35,7 +35,7 @@ from src.hparams.xgboost import XGBoostHparams
 filterwarnings("ignore", category=PerformanceWarning)
 
 
-def create_grid(dsnames: Optional[List[DatasetName]] = None) -> list[dict[str, Any]]:
+def create_grid(dsnames: Optional[List[DatasetName]] = None) -> List[Dict[str, Any]]:
     classifiers = [
         ClassifierKind.SGD_LR,
         ClassifierKind.SGD_SVM,
@@ -90,7 +90,7 @@ def create_grid(dsnames: Optional[List[DatasetName]] = None) -> list[dict[str, A
     return grid
 
 
-def evaluate(args: dict[str, Any]) -> None:
+def evaluate(args: Dict[str, Any]) -> None:
     try:
         ckpt_args = {**args}
         ckpt_args.pop("debug")

@@ -13,13 +13,14 @@ from dataclasses import dataclass
 from enum import Enum
 from itertools import combinations
 from pathlib import Path
-from typing import Any, Literal, Type, TypeVar, Union
+from typing import Any, List, Literal, Optional, Type, Union
 
 import numpy as np
 import pandas as pd
 from numpy import ndarray
 from pandas import DataFrame
 from tqdm import tqdm
+from typing_extensions import Literal
 
 from src.archival import parse_tar_gz
 from src.constants import TESTING_TEMP
@@ -73,36 +74,36 @@ class Results:
     def __init__(
         self,
         evaluators: DataFrame,
-        hps: list[Hparams],
-        preds: list[ndarray],
-        targs: list[ndarray],
+        hps: List[Hparams],
+        preds: List[ndarray],
+        targs: List[ndarray],
     ) -> None:
         # indexed by repeat, run?
         self.evaluators: DataFrame = evaluators
-        self.hps: list[Hparams] = hps
-        self.preds: list[ndarray] = preds
-        self.targs: list[ndarray] = targs
+        self.hps: List[Hparams] = hps
+        self.preds: List[ndarray] = preds
+        self.targs: List[ndarray] = targs
 
     def select(
         self,
-        dsnames: list[DatasetName] | All = "all",
-        classifier_kinds: list[ClassifierKind] | All = "all",
-        reductions: list[Literal[25, 50, 75] | None] | All = "all",
-        cont_perturb: list[DataPerturbation | None] | All = "all",
-        cat_perturb: list[DataPerturbation | None] | All = "all",
-        hp_perturb: list[HparamPerturbation | None] | All = "all",
-        train_downsample: list[Literal[25, 50, 75] | None] | All = "all",
-        cat_perturb_level: list[CatPerturbLevel] | All = "all",
-        repeats: list[int] | All = "all",
-        runs: list[int] | All = "all",
+        dsnames: Union[List[DatasetName], All] = "all",
+        classifier_kinds: Union[List[ClassifierKind], All] = "all",
+        reductions: Union[List[Optional[Literal[25, 50, 75]]], All] = "all",
+        cont_perturb: Union[List[Optional[DataPerturbation]], All] = "all",
+        cat_perturb: Union[List[Optional[DataPerturbation]], All] = "all",
+        hp_perturb: Union[List[Optional[HparamPerturbation]], All] = "all",
+        train_downsample: Union[List[Optional[Literal[25, 50, 75]]], All] = "all",
+        cat_perturb_level: Union[List[CatPerturbLevel], All] = "all",
+        repeats: Union[List[int], All] = "all",
+        runs: Union[List[int], All] = "all",
     ) -> Results:
-        def to_floats(vals: list[Any]) -> list[float]:
+        def to_floats(vals: List[Any]) -> List[float]:
             ret = []
             for val in vals:
                 ret.append(float("nan") if val is None else float(val))
             return ret
 
-        def to_strs(vals: list[Any]) -> list[str]:
+        def to_strs(vals: List[Any]) -> List[str]:
             ret = []
             for val in vals:
                 ret.append(val.value if isinstance(val, Enum) else "None")
@@ -141,7 +142,7 @@ class Results:
             targs=[self.targs[i] for i in idx_int],
         )
 
-    def repeat_dfs(self) -> tuple[list[int], list[DataFrame]]:
+    def repeat_dfs(self) -> tuple[List[int], List[DataFrame]]:
         df = self.evaluators.copy()
         df.categorical_perturb.fillna(0.0, inplace=True)
         df.train_downsample.fillna(100, inplace=True)
@@ -162,14 +163,14 @@ class Results:
             reps.append(rep)
         return reps, dfs
 
-    def repeat_pairs(self, repeat: int) -> list[tuple[int, int]]:
+    def repeat_pairs(self, repeat: int) -> List[tuple[int, int]]:
         """Return indices of pairs matching `repeat`"""
         df = self.evaluators["repeat"]
         idx = df[df.isin([repeat])].index.to_list()
         combs = list(combinations(idx, 2))
         return combs
 
-    def repeat_preds_targs(self, repeat: int) -> list[tuple[PredTarg, PredTarg]]:
+    def repeat_preds_targs(self, repeat: int) -> List[tuple[PredTarg, PredTarg]]:
         idx = self.repeat_pairs(repeat)
         pairs = []
         for i1, i2 in idx:

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from random import choice
 from shutil import rmtree
 from time import time
-from typing import Any
+from typing import Any, Dict, List
 
 import numpy as np
 import pandas as pd
@@ -110,7 +110,7 @@ def get_times_sequential(
     print("")
 
     dsnames = runtime.members()
-    targs: list[TimingArgs] = []
+    targs: List[TimingArgs] = []
     for _ in range(repeats):
         targs.extend([TimingArgs(kind=kind, dsname=name) for name in dsnames])
     dfs = []
@@ -163,7 +163,7 @@ def summarize_times(
     _capsys: CaptureFixture,
 ) -> None:
     with _capsys.disabled():
-        args: dict[str, Any] = dict(
+        args: Dict[str, Any] = dict(
             kind=kind, runtime=runtime, repeats=repeats, _capsys=_capsys
         )
         if parallel:

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any
+from typing import Any, List, Optional
 
 import numpy as np
 from numpy.random import Generator
@@ -18,7 +18,7 @@ DIR.mkdir(exist_ok=True)
 CATS = [chr(i) for i in (list(range(97, 123)) + list(range(65, 91)))]
 
 
-def random_continuous(rng: Generator | None = None) -> ContinuousHparam:
+def random_continuous(rng: Optional[Generator] = None) -> ContinuousHparam:
     if rng is None:
         rng = np.random.default_rng()
     log_scale = bool(rng.choice([True, False]))
@@ -30,7 +30,7 @@ def random_continuous(rng: Generator | None = None) -> ContinuousHparam:
     )
 
 
-def random_fixed(rng: Generator | None = None) -> FixedHparam[float]:
+def random_fixed(rng: Optional[Generator] = None) -> FixedHparam[float]:
     if rng is None:
         rng = np.random.default_rng()
     value = rng.uniform(0, 1)
@@ -38,7 +38,7 @@ def random_fixed(rng: Generator | None = None) -> FixedHparam[float]:
     return FixedHparam(f"test_fixed_{hsh}", value=value)
 
 
-def random_categorical(rng: Generator | None = None) -> CategoricalHparam:
+def random_categorical(rng: Optional[Generator] = None) -> CategoricalHparam:
     if rng is None:
         rng = np.random.default_rng()
     size = rng.integers(1, 20)
@@ -48,7 +48,7 @@ def random_categorical(rng: Generator | None = None) -> CategoricalHparam:
     return CategoricalHparam(f"test_cat_{hsh}", value=value, categories=values)
 
 
-def random_ordinal(rng: Generator | None = None) -> OrdinalHparam:
+def random_ordinal(rng: Optional[Generator] = None) -> OrdinalHparam:
     if rng is None:
         rng = np.random.default_rng()
     mx = rng.integers(1, 500)
@@ -57,7 +57,7 @@ def random_ordinal(rng: Generator | None = None) -> OrdinalHparam:
     return OrdinalHparam(f"test_ord_{hsh}", value=value, min=0, max=mx)
 
 
-def random_hparams(rng: Generator | None = None) -> list[Hparam[Any, Any]]:
+def random_hparams(rng: Optional[Generator] = None) -> List[Hparam[Any, Any]]:
     if rng is None:
         rng = np.random.default_rng()
     n = rng.choice(list(range(1, 100)))

@@ -1,8 +1,7 @@
 from shutil import rmtree
-from typing import Any
+from typing import Any, Dict
 
 import numpy as np
-from pytest import raises
 
 from src.enumerables import ClassifierKind, RuntimeClass
 from src.evaluator import Evaluator, Tuner
@@ -64,7 +63,7 @@ def test_ckpts() -> None:
     hps = SGDLinearSVMHparams().defaults()
     for i in range(3):
         ds = FASTS[i]
-        ev_args: dict[str, Any] = dict(
+        ev_args: Dict[str, Any] = dict(
             dataset_name=ds,
             classifier_kind=ClassifierKind.SGD_SVM,
             repeat=0,
@@ -92,4 +91,3 @@ def test_ckpts() -> None:
             if len(ckpts) > 0:
                 for ckpt in ckpts:
                     ckpt.unlink(missing_ok=True)
-

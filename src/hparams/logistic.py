@@ -8,7 +8,7 @@ sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
 from pathlib import Path
-from typing import Any, Collection, Literal, Sequence
+from typing import Any, Collection, Dict, List, Literal, Optional, Sequence, Union
 
 from src.constants import LR_LR_INIT_DEFAULT as LR
 from src.constants import LR_WD_DEFAULT as WD
@@ -24,7 +24,7 @@ from src.hparams.hparams import (
     Hparams,
 )
 
-TUNED: dict[DatasetName, dict[str, Any] | None] = {
+TUNED: Dict[DatasetName, Optional[Dict[str, Any]]] = {
     DatasetName.Arrhythmia: None,
     DatasetName.Kc1: None,
     DatasetName.ClickPrediction: None,
@@ -66,7 +66,7 @@ TUNED: dict[DatasetName, dict[str, Any] | None] = {
     DatasetName.Vehicle: None,
 }
 
-SGD_TUNED: dict[DatasetName, dict[str, Any] | None] = {
+SGD_TUNED: Dict[DatasetName, Optional[Dict[str, Any]]] = {
     DatasetName.Arrhythmia: None,
     DatasetName.Kc1: None,
     DatasetName.ClickPrediction: None,
@@ -110,9 +110,9 @@ SGD_TUNED: dict[DatasetName, dict[str, Any] | None] = {
 
 
 def lr_hparams(
-    lr: float | None = None,
-    wd: float | None = None,
-) -> list[Hparam]:
+    lr: Optional[float] = None,
+    wd: Optional[float] = None,
+) -> List[Hparam]:
     return [
         ContinuousHparam("lr", lr, max=5e-1, min=1e-5, default=LR, log_scale=True),
         ContinuousHparam("wd", wd, max=5e-1, min=1e-8, default=WD, log_scale=True),
@@ -120,12 +120,12 @@ def lr_hparams(
 
 
 def sgd_lr_hparams(
-    alpha: float | None = 1e-4,
-    l1_ratio: float | None = 0.15,
-    lr_init: float | None = 1e-3,
+    alpha: Optional[float] = 1e-4,
+    l1_ratio: Optional[float] = 0.15,
+    lr_init: Optional[float] = 1e-3,
     penalty: Literal["l1", "l2", "elasticnet", None] = "l2",
     average: bool = False,
-) -> list[Hparam]:
+) -> List[Hparam]:
     # see https://jcheminf.biomedcentral.com/articles/10.1186/s13321-015-0088-0#Sec6
     # for a possible tuning range on C, gamma
     return [
@@ -153,14 +153,14 @@ def sgd_lr_hparams(
 class LRHparams(Hparams):
     def __init__(
         self,
-        hparams: Collection[Hparam] | Sequence[Hparam] | None = None,
+        hparams: Optional[Union[Collection[Hparam], Sequence[Hparam]]] = None,
     ) -> None:
 
         if hparams is None:
             hparams = lr_hparams()
         super().__init__(hparams)
 
-    def tuned_dict(self, dsname: DatasetName) -> dict[str, Any]:
+    def tuned_dict(self, dsname: DatasetName) -> Dict[str, Any]:
         hps = TUNED[dsname]
         if hps is None:
             return self.defaults().to_dict()
@@ -170,14 +170,14 @@ class LRHparams(Hparams):
 class SGDLRHparams(Hparams):
     def __init__(
         self,
-        hparams: Collection[Hparam] | Sequence[Hparam] | None = None,
+        hparams: Optional[Union[Collection[Hparam], Sequence[Hparam]]] = None,
     ) -> None:
 
         if hparams is None:
             hparams = sgd_lr_hparams()
         super().__init__(hparams)
 
-    def tuned_dict(self, dsname: DatasetName) -> dict[str, Any]:
+    def tuned_dict(self, dsname: DatasetName) -> Dict[str, Any]:
         hps = SGD_TUNED[dsname]
         if hps is None:
             return self.defaults().to_dict()

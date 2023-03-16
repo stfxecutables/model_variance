@@ -12,7 +12,7 @@ import traceback
 from argparse import Namespace
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import List, Optional
 from warnings import filterwarnings
 
 import numpy as np
@@ -21,14 +21,7 @@ from pandas.errors import PerformanceWarning
 from sklearn.model_selection import ParameterGrid
 from tqdm.contrib.concurrent import process_map
 
-from src.enumerables import (
-    CatPerturbLevel,
-    ClassifierKind,
-    DataPerturbation,
-    DatasetName,
-    HparamPerturbation,
-    RuntimeClass,
-)
+from src.enumerables import ClassifierKind, DatasetName, RuntimeClass
 from src.evaluator import Tuner, ckpt_file
 from src.hparams.hparams import Hparams
 from src.hparams.logistic import SGDLRHparams

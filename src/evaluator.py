@@ -16,21 +16,7 @@ from base64 import urlsafe_b64encode
 from enum import Enum, EnumMeta
 from shutil import make_archive, rmtree
 from time import sleep, strftime
-from typing import (
-    Any,
-    Dict,
-    List,
-    Literal,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-    cast,
-    no_type_check,
-    overload,
-)
+from typing import Any, Dict, Literal, Optional, Type, TypeVar, Union
 from uuid import uuid4
 
 import numpy as np
@@ -62,7 +48,7 @@ Percentage = Literal[25, 50, 75]
 E = TypeVar("E")
 
 
-def value_or_none(enumerable: Enum | None) -> Enum | None:
+def value_or_none(enumerable: Optional[Enum]) -> Union[Enum, None]:
     if isinstance(enumerable, EnumMeta):
         raise TypeError("Must pass Enum instance, not class.")
     if isinstance(enumerable, Enum):
@@ -70,7 +56,7 @@ def value_or_none(enumerable: Enum | None) -> Enum | None:
     return None
 
 
-def to_enum_or_none(enum_type: Type[E] | None, value: str | None) -> E | None:
+def to_enum_or_none(enum_type: Optional[Type[E]], value: Optional[str]) -> Optional[E]:
     if not isinstance(enum_type, EnumMeta):
         raise TypeError("Must pass enum class, not instance.")
     if value is None:
@@ -83,11 +69,11 @@ def ckpt_file(
     classifier_kind: ClassifierKind,
     repeat: int,
     run: int,
-    dimension_reduction: Percentage | Literal["cat"] | None,
-    continuous_perturb: DataPerturbation | None,
-    categorical_perturb: float | None,
-    hparam_perturb: HparamPerturbation | None,
-    train_downsample: Percentage | None,
+    dimension_reduction: Optional[Union[Percentage, Literal["cat"]]],
+    continuous_perturb: Optional[DataPerturbation],
+    categorical_perturb: Optional[float],
+    hparam_perturb: Optional[HparamPerturbation],
+    train_downsample: Optional[Percentage],
     categorical_perturb_level: CatPerturbLevel = CatPerturbLevel.Sample,
     label: str = "debug",
     tune: bool = False,
@@ -145,7 +131,7 @@ class Evaluator(DirJSONable):
     classifier: Classifier
         Model to fit
 
-    train_downsample: float | None
+    train_downsample: Optional[float]
         Proportion `p` in (0, 1] to down*sample* to, e.g. reduce the training
         sample to. E.g. len(X_train) = ceil(len(X) * p). Should be a value in
         [0.30, 0.45, 0.60, 0.75, 0.90].
@@ -160,29 +146,31 @@ class Evaluator(DirJSONable):
         repeat: int,
         run: int,
         base_hps: Hparams,
-        dimension_reduction: Percentage | Literal["cat"] | None,
-        continuous_perturb: DataPerturbation | None,
-        categorical_perturb: float | None,
-        hparam_perturb: HparamPerturbation | None,
-        train_downsample: Percentage | None,
+        dimension_reduction: Optional[Union[Percentage, Literal["cat"]]],
+        continuous_perturb: Optional[DataPerturbation],
+        categorical_perturb: Optional[float],
+        hparam_perturb: Optional[HparamPerturbation],
+        train_downsample: Optional[Percentage],
         categorical_perturb_level: CatPerturbLevel = CatPerturbLevel.Label,
-        label: str | None = None,
+        label: Optional[str] = None,
         debug: bool = False,
         _suppress_json: bool = False,
         _suppress_logdir: bool = False,
     ) -> None:
         self.dataset_name: DatasetName = dataset_name
-        self.dataset_: Dataset | None = None
+        self.dataset_: Optional[Dataset] = None
         self.classifier_kind: ClassifierKind = classifier_kind
         self.repeat: int = repeat
         self.run: int = run
         self.base_hps: Hparams = base_hps
-        self.dimension_reduction: Percentage | Literal["cat"] | None = dimension_reduction
-        self.continuous_perturb: DataPerturbation | None = continuous_perturb
-        self.categorical_perturb: float | None = categorical_perturb
-        self.hparam_perturb: HparamPerturbation | None = hparam_perturb
-        self.train_downsample: Percentage | None = train_downsample
-        self._model: ClassifierModel | None = None
+        self.dimension_reduction: Optional[
+            Union[Percentage, Literal["cat"]]
+        ] = dimension_reduction
+        self.continuous_perturb: Optional[DataPerturbation] = continuous_perturb
+        self.categorical_perturb: Optional[float] = categorical_perturb
+        self.hparam_perturb: Optional[HparamPerturbation] = hparam_perturb
+        self.train_downsample: Optional[Percentage] = train_downsample
+        self._model: Optional[ClassifierModel] = None
         self.categorical_perturb_level: CatPerturbLevel = categorical_perturb_level
         self.debug = debug
         self._label = label
@@ -222,7 +210,7 @@ class Evaluator(DirJSONable):
             run_hps = self.base_hps.perturbed(method=hpmethod, rng=rng)
         else:
             run_hps = self.base_hps.clone()
-        args: dict[str, Any] = dict(
+        args: Dict[str, Any] = dict(
             hparams=run_hps,
             dataset=self.dataset,
             logdir=logdir,
@@ -379,7 +367,7 @@ class Evaluator(DirJSONable):
         return_test_acc: bool = False,
         skip_done: bool = True,
         archive: bool = True,
-    ) -> float | None:
+    ) -> Union[float, None]:
         if not skip_done:
             self.ckpt_file.unlink(missing_ok=True)
         if skip_done and self.ckpt_file.exists():
@@ -495,7 +483,7 @@ class Tuner(Evaluator):
         run: int,
         hparams: Hparams,
         dimension_reduction: Union[Literal["cat"], Percentage, None] = "cat",
-        label: str | None = None,
+        label: Optional[str] = None,
         debug: bool = False,
     ) -> None:
         super().__init__(
@@ -657,11 +645,6 @@ class Tuner(Evaluator):
             classifier_kind=ClassifierKind(d.classifier_kind),
             hparams=hparams,
             dimension_reduction=d.dimension_reduction,
-            continuous_perturb=c_perturb,
-            categorical_perturb=d.categorical_perturb,
-            hparam_perturb=h_perturb,
-            train_downsample=d.train_downsample,
-            categorical_perturb_level=cat_perturb,
             repeat=d.repeat,
             run=d.run,
             label=d.label,

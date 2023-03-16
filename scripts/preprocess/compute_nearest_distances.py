@@ -21,6 +21,7 @@ import sys
 import traceback
 from pathlib import Path
 from time import sleep
+from typing import Optional
 from warnings import filterwarnings
 
 from pandas.errors import PerformanceWarning
@@ -30,7 +31,7 @@ from src.dataset import Dataset
 from src.enumerables import RuntimeClass
 
 
-def compute_distances_failsafe(ds_reduction: tuple[Dataset, int | None]) -> None:
+def compute_distances_failsafe(ds_reduction: tuple[Dataset, Optional[int]]) -> None:
     try:
         ds, reduction = ds_reduction
         ds.nearest_distances(reduction=reduction)

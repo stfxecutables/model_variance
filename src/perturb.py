@@ -10,6 +10,7 @@ sys.path.append(str(ROOT))  # isort: skip
 import sys
 from copy import deepcopy
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 from numpy import ndarray
@@ -17,17 +18,17 @@ from numpy.random import Generator
 
 
 def sig_perturb(x: ndarray, n_digits: int = 1) -> ndarray:
-    delta = 10 ** (np.floor(np.log10(np.abs(x))) / 10 ** n_digits)
+    delta = 10 ** (np.floor(np.log10(np.abs(x))) / 10**n_digits)
     return x + delta * np.random.uniform(-1, 1, x.shape)
 
 
 def sig_perturb_plus(
-    x: ndarray, n_digits: int = 1, rng: Generator | None = None
+    x: ndarray, n_digits: int = 1, rng: Optional[Generator] = None
 ) -> ndarray:
     rng = np.random.default_rng() if rng is None else rng
     x = np.asarray(x)
     idx = x != 0
-    delta = 10 ** (np.floor(np.log10(np.abs(x[idx]))) / 10 ** n_digits)
+    delta = 10 ** (np.floor(np.log10(np.abs(x[idx]))) / 10**n_digits)
     # delta[idx] = 0
     if n_digits == 1:
         delta *= 2
@@ -42,7 +43,7 @@ def percent_perturb(x: float, xmin: float, xmax: float, magnitude: float) -> nda
 
 
 def neighbour_perturb(
-    x: ndarray, distances: ndarray, scale: float, rng: Generator | None = None
+    x: ndarray, distances: ndarray, scale: float, rng: Optional[Generator] = None
 ) -> ndarray:
     """
     We use the "normalized Gaussians" method to get a random perturbation

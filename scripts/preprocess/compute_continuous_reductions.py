@@ -11,6 +11,7 @@ sys.path.append(str(ROOT))  # isort: skip
 import sys
 import traceback
 from pathlib import Path
+from typing import Union
 from warnings import filterwarnings
 
 import numpy as np
@@ -22,7 +23,9 @@ from src.dataset import Dataset, reduce_continuous
 from src.enumerables import RuntimeClass
 
 
-def reduce_continous_failsafe(ds_perc: tuple[Dataset, int]) -> NDArray[np.float64] | None:
+def reduce_continous_failsafe(
+    ds_perc: tuple[Dataset, int]
+) -> Union[NDArray[np.float64], None]:
     try:
         ds, percent = ds_perc
         return reduce_continuous(ds, percent)  # type: ignore

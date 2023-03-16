@@ -10,16 +10,17 @@ sys.path.append(str(ROOT))  # isort: skip
 from abc import abstractmethod
 from enum import Enum
 from pathlib import Path
-from typing import Literal
+from typing import List, Literal, Union
 
 from sklearn.svm import SVC
+from typing_extensions import Literal
 from xgboost import XGBClassifier
 
 JSONS = ROOT / "data/json"
 PQS = ROOT / "data/parquet"
 
 
-ThridPartyClassifierModel = SVC | XGBClassifier
+ThridPartyClassifierModel = Union[SVC, XGBClassifier]
 
 
 class Indexable(Enum):
@@ -28,7 +29,7 @@ class Indexable(Enum):
         return [*self.__class__].index(self) + 1
 
 
-def get_index(indexable: Indexable | None | int | Literal["cat"]) -> int | str:
+def get_index(indexable: Union[Indexable, None, int, Literal["cat"]]) -> Union[int, str]:
     if indexable == "cat":
         return "C"
     if indexable is None:
@@ -142,7 +143,7 @@ class RuntimeClass(Indexable):
     def index(self) -> int:
         return [*RuntimeClass].index(self)
 
-    def members(self) -> list[DatasetName]:
+    def members(self) -> List[DatasetName]:
         runtimes = {
             RuntimeClass.Fast: [  # <1min on one core
                 DatasetName.Arrhythmia,
@@ -196,7 +197,7 @@ class RuntimeClass(Indexable):
         return runtimes[self]
 
     @staticmethod
-    def very_fasts() -> list[DatasetName]:
+    def very_fasts() -> List[DatasetName]:
         return [
             DatasetName.Arrhythmia,
             DatasetName.Kc1,
@@ -217,7 +218,7 @@ class RuntimeClass(Indexable):
         ]
 
     @staticmethod
-    def most_fastest() -> list[DatasetName]:
+    def most_fastest() -> List[DatasetName]:
         # Runtime is <10 seconds, <5 seconds if not MLP
         return [DatasetName.Anneal, DatasetName.Vehicle]
 
@@ -316,7 +317,7 @@ class HparamPerturbation(Indexable):
     def index(self) -> int:
         return [*HparamPerturbation].index(self) + 1
 
-    def magnitude(self) -> int | float:
+    def magnitude(self) -> Union[int, float]:
         return {
             HparamPerturbation.SigZero: 0,
             HparamPerturbation.SigOne: 1,
@@ -348,7 +349,7 @@ class ClassifierKind(Indexable):
         return [*ClassifierKind].index(self) + 1
 
     @staticmethod
-    def final_kinds() -> list[ClassifierKind]:
+    def final_kinds() -> List[ClassifierKind]:
         return [
             ClassifierKind.SGD_LR,
             ClassifierKind.SGD_SVM,
@@ -358,7 +359,7 @@ class ClassifierKind(Indexable):
 
     # def model(self) -> ClassifierModel:
     #     """Should return something that implements `.fit()` and `.predict()` methods"""
-    #     models: dict[ClassifierKind, ClassifierModel] = {
+    #     models: Dict[ClassifierKind, ClassifierModel] = {
     #         ClassifierKind.XGBoost: XGBClassifier,
     #         ClassifierKind.SVM: SVC,
     #         ClassifierKind.MLP: MLP,

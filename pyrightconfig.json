@@ -2,6 +2,7 @@
     // "include": ["src", "test", "scripts", "tests"],
     "exclude": [
         "**/data",
+        "**/cc_results",
         "**/__CACHE__",
         "**/__MAPPINGS_CACHE__",
         "**/__pycache__",
@@ -13,6 +14,7 @@
     ],
     "ignore": [
         "**/data",
+        "**/cc_results",
         "**/__CACHE__",
         "**/__MAPPINGS_CACHE__",
         "**/__pycache__",

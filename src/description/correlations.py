@@ -7,50 +7,11 @@ ROOT = Path(__file__).resolve().parent.parent.parent  # isort: skip
 sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
-import pickle
-import re
 import sys
-from abc import ABC, abstractmethod
-from enum import Enum
 from pathlib import Path
-from typing import (
-    Any,
-    List,
-    Literal,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-    cast,
-    no_type_check,
-)
 
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
-import seaborn as sbn
-from matplotlib.figure import Figure
-from numpy import ndarray
-from pandas import DataFrame, Series
-from seaborn import FacetGrid
-from tqdm import tqdm
-from tqdm.contrib.concurrent import process_map
-from typing_extensions import Literal
-
-from src.archival import parse_tar_gz
-from src.constants import PLOTS
-from src.enumerables import (
-    CatPerturbLevel,
-    ClassifierKind,
-    DataPerturbation,
-    DatasetName,
-    HparamPerturbation,
-)
-from src.hparams.hparams import Hparams
-from src.metrics.functional import RunComputer, _accuracy, _default
-from src.results import Results
+from pandas import DataFrame
 
 DROPS = [
     "count",
@@ -89,11 +50,11 @@ def cleanup(df: DataFrame, metric: str, pairwise: bool = False) -> DataFrame:
         cols.remove("repeat")
         cols.remove(metric)
         print("Grouping repeats...")
-        df = df.groupby(cols).describe(percentiles=[0.025, 0.5, 0.975])[metric]
+        df = df.groupby(cols).describe(percentiles=[0.025, 0.5, 0.975])[metric]  # type: ignore  # noqa
     return df
 
 
-def print_strongest_corrs(corrs: DataFrame, metric: str) -> DataFrame:
+def print_strongest_corrs(corrs: DataFrame, metric: str) -> None:
     df = corrs[metric].unstack().drop(columns=DROPS).reset_index()
 
     print("=" * 80)
@@ -106,7 +67,7 @@ def print_strongest_corrs(corrs: DataFrame, metric: str) -> DataFrame:
         .apply(lambda g: g.abs())
         .idxmax(axis=1)
     )
-    vals = [df[idx.values[i]][df[idx.values[i]].abs().idxmax()] for i in range(len(idx))]  # type: ignore
+    vals = [df[idx.values[i]][df[idx.values[i]].abs().idxmax()] for i in range(len(idx))]  # type: ignore # noqa
     frame = pd.concat(
         [idx.to_frame().reset_index().drop(columns="level_2"), pd.Series(vals)], axis=1
     )
@@ -119,7 +80,7 @@ def print_strongest_corrs(corrs: DataFrame, metric: str) -> DataFrame:
         .apply(lambda g: g.abs())
         .idxmax(axis=1)
     )
-    vals = [df[idx.values[i]][df[idx.values[i]].abs().idxmax()] for i in range(len(idx))]  # type: ignore
+    vals = [df[idx.values[i]][df[idx.values[i]].abs().idxmax()] for i in range(len(idx))]  # type: ignore # noqa
     frame = pd.concat(
         [idx.to_frame().reset_index().drop(columns="level_2"), pd.Series(vals)], axis=1
     )
@@ -171,7 +132,7 @@ def print_gross_descriptions() -> None:
     ecs = cleanup(ecs, metric="ec", pairwise=True)
     els = cleanup(els, metric="ec", pairwise=True)
 
-    sep = "="*80
+    sep = "=" * 80
     print(sep)
     print("Accuracies")
     print(accs.round(3))

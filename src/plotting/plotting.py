@@ -7,50 +7,20 @@ ROOT = Path(__file__).resolve().parent.parent.parent  # isort: skip
 sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
-import pickle
 import re
 import sys
-from abc import ABC, abstractmethod
-from enum import Enum
 from pathlib import Path
-from typing import (
-    Any,
-    List,
-    Literal,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-    cast,
-    no_type_check,
-)
+from typing import Any, Dict, List, Literal, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sbn
 from matplotlib.figure import Figure
-from numpy import ndarray
-from pandas import DataFrame, Series
+from pandas import DataFrame
 from seaborn import FacetGrid
-from tqdm import tqdm
-from tqdm.contrib.concurrent import process_map
-from typing_extensions import Literal
 
-from src.archival import parse_tar_gz
 from src.constants import PLOTS
-from src.enumerables import (
-    CatPerturbLevel,
-    ClassifierKind,
-    DataPerturbation,
-    DatasetName,
-    HparamPerturbation,
-)
-from src.hparams.hparams import Hparams
-from src.metrics.functional import RunComputer, _accuracy, _default
-from src.results import Results
 
 CONT_PERTURB_ORDER = [
     "None",
@@ -95,7 +65,7 @@ def clean_titles(
     grid: FacetGrid,
     text: str = "subgroup = ",
     replace: str = "",
-    split_at: Literal["-", "|"] | None = None,
+    split_at: Optional[Literal["-", "|"]] = None,
 ) -> None:
     fig: Figure = grid.fig
     for ax in fig.axes:
@@ -117,7 +87,7 @@ def rotate_labels(grid: FacetGrid, axis: Literal["x", "y"] = "x") -> None:
             plt.setp(ax.get_yticklabels(), rotation=40, ha="right")
 
 
-def make_row_labels(grid: FacetGrid, col_order: list[str], row_order: list[str]) -> None:
+def make_row_labels(grid: FacetGrid, col_order: List[str], row_order: List[str]) -> None:
     ncols = len(col_order)
     row = 0
     for i, ax in enumerate(grid.fig.axes):
@@ -154,7 +124,7 @@ def cleanup(df: DataFrame, metric: str, pairwise: bool = False) -> DataFrame:
         cols.remove("repeat")
         cols.remove(metric)
         print("Grouping repeats...")
-        df = df.groupby(cols).describe()[metric]
+        df = df.groupby(cols).describe()[metric]  # type: ignore
     return df
 
 
@@ -205,8 +175,8 @@ def violin_grid(
     title_extra: str = "",
     show: bool = False,
 ) -> None:
-    # hargs: dict[str, Any] = dict(hue="hparam_perturb", hue_order=HP_ORDER)
-    hargs: dict[str, Any] = dict(hue="classifier", hue_order=CLASSIFIER_ORDER)
+    # hargs: Dict[str, Any] = dict(hue="hparam_perturb", hue_order=HP_ORDER)
+    hargs: Dict[str, Any] = dict(hue="classifier", hue_order=CLASSIFIER_ORDER)
     if "train_size" in df.columns:
         args = {**dict(row="train_size", row_order=["50%", "75%", "100%"]), **hargs}
     else:
@@ -272,7 +242,7 @@ def violin_grid(
     outdir = PLOTS / f"{metric}/violin"
     outdir.mkdir(exist_ok=True, parents=True)
     out = outdir / f"{dsname}_{metric}s_{label}_violin.png"
-    fig.savefig(out, dpi=150)
+    fig.savefig(str(out), dpi=150)
     plt.close()
     print(f"Saved plot to {out}")
 
@@ -285,8 +255,8 @@ def big_violin_grid(
     title_extra: str = "",
     show: bool = False,
 ) -> None:
-    # hargs: dict[str, Any] = dict(hue="hparam_perturb", hue_order=HP_ORDER)
-    hargs: dict[str, Any] = dict(hue="classifier", hue_order=CLASSIFIER_ORDER)
+    # hargs: Dict[str, Any] = dict(hue="hparam_perturb", hue_order=HP_ORDER)
+    hargs: Dict[str, Any] = dict(hue="classifier", hue_order=CLASSIFIER_ORDER)
     if "train_size" in df.columns:
         args = {**dict(row="train_size", row_order=["50%", "75%", "100%"]), **hargs}
     else:
@@ -350,7 +320,7 @@ def big_violin_grid(
     outdir = PLOTS / f"{metric}/big-violin/"
     outdir.mkdir(exist_ok=True, parents=True)
     out = outdir / f"{dsname}_{metric}s_{label}_bigviolin.png"
-    fig.savefig(out, dpi=300)
+    fig.savefig(str(out), dpi=300)
     plt.close()
     print(f"Saved plot to {out}")
 
@@ -363,8 +333,8 @@ def big_bar_grid(
     title_extra: str = "",
     show: bool = False,
 ) -> None:
-    # hargs: dict[str, Any] = dict(hue="hparam_perturb", hue_order=HP_ORDER)
-    hargs: dict[str, Any] = dict(hue="classifier", hue_order=CLASSIFIER_ORDER)
+    # hargs: Dict[str, Any] = dict(hue="hparam_perturb", hue_order=HP_ORDER)
+    hargs: Dict[str, Any] = dict(hue="classifier", hue_order=CLASSIFIER_ORDER)
     if "train_size" in df.columns:
         args = {**dict(row="train_size", row_order=["50%", "75%", "100%"]), **hargs}
     else:
@@ -407,7 +377,7 @@ def big_bar_grid(
     outdir = PLOTS / f"{metric}/big-bar/"
     outdir.mkdir(exist_ok=True, parents=True)
     out = outdir / f"{dsname}_{metric}s_{label}_bigbar.png"
-    fig.savefig(out, dpi=150)
+    fig.savefig(str(out), dpi=150)
     plt.close()
     print(f"Saved plot to {out}")
 
@@ -420,8 +390,8 @@ def strip_grid(
     title_extra: str = "",
     show: bool = False,
 ) -> None:
-    # hargs: dict[str, Any] = dict(hue="hparam_perturb", hue_order=HP_ORDER)
-    hargs: dict[str, Any] = dict(hue="classifier")
+    # hargs: Dict[str, Any] = dict(hue="hparam_perturb", hue_order=HP_ORDER)
+    hargs: Dict[str, Any] = dict(hue="classifier")
     if "train_size" in df.columns:
         args = {**dict(row="train_size", row_order=["50%", "75%", "100%"]), **hargs}
     else:
@@ -464,21 +434,9 @@ def strip_grid(
     outdir = PLOTS / f"{metric}/strip/"
     outdir.mkdir(exist_ok=True, parents=True)
     out = outdir / f"{dsname}_{metric}s_{label}_strip.png"
-    fig.savefig(out, dpi=150)
+    fig.savefig(str(out), dpi=150)
     plt.close()
     print(f"Saved plot to {out}")
-
-
-# def describe_ranges(df: DataFrame) -> DataFrame:
-#     df["range"] = df["max"] - df["min"]
-
-#     df.drop(
-#         columns=["count", "mean", "std", "min", "25%", "50%", "75%", "max"], inplace=True
-#     )
-#     df.groupby(["data", "classifier"], group_keys=False).apply(
-#         lambda grp: pd.get_dummies(grp)
-#     ).corr("spearman")["range"].sort_values()
-#     raise NotImplementedError()
 
 
 def plot_grid(
@@ -724,8 +682,6 @@ if __name__ == "__main__":
     plot_ec_ranges(els, metric="ec", local_norm=True, show=SHOW, kind=KIND)
     plot_ec_ranges(eas, metric="ec_acc", local_norm=False, show=SHOW, kind=KIND)
     plot_ec_ranges(eal, metric="ec_acc", local_norm=True, show=SHOW, kind=KIND)
-
-
 
     # plot_ec_sds(ecs, local_norm=False, kind=KIND, show=SHOW)
 

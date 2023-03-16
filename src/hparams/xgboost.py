@@ -8,7 +8,7 @@ sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
 from pathlib import Path
-from typing import Any, Collection, Sequence
+from typing import Any, Collection, Dict, List, Optional, Sequence, Union
 
 from src.enumerables import DatasetName
 from src.hparams.hparams import (
@@ -19,7 +19,7 @@ from src.hparams.hparams import (
     OrdinalHparam,
 )
 
-TUNED: dict[DatasetName, dict[str, Any] | None] = {
+TUNED: Dict[DatasetName, Optional[Dict[str, Any]]] = {
     DatasetName.Arrhythmia: None,
     DatasetName.Kc1: None,
     DatasetName.ClickPrediction: None,
@@ -63,19 +63,19 @@ TUNED: dict[DatasetName, dict[str, Any] | None] = {
 
 
 def xgboost_hparams(
-    eta: float | None = None,
-    lamda: float | None = None,
-    alpha: float | None = None,
-    num_round: int | None = None,
-    gamma: float | None = None,
-    colsample_bylevel: float | None = None,
-    colsample_bynode: float | None = None,
-    colsample_bytree: float | None = None,
-    max_depth: int | None = None,
-    max_delta_step: int | None = None,
-    min_child_weight: float | None = None,
-    subsample: float | None = None,
-) -> list[Hparam]:
+    eta: Optional[float] = None,
+    lamda: Optional[float] = None,
+    alpha: Optional[float] = None,
+    num_round: Optional[int] = None,
+    gamma: Optional[float] = None,
+    colsample_bylevel: Optional[float] = None,
+    colsample_bynode: Optional[float] = None,
+    colsample_bytree: Optional[float] = None,
+    max_depth: Optional[int] = None,
+    max_delta_step: Optional[int] = None,
+    min_child_weight: Optional[float] = None,
+    subsample: Optional[float] = None,
+) -> List[Hparam]:
     """Note we define ranges as per https://arxiv.org/abs/2106.11189 Appendix B.2,
     Table 6
 
@@ -177,14 +177,14 @@ def xgboost_hparams(
 class XGBoostHparams(Hparams):
     def __init__(
         self,
-        hparams: Collection[Hparam] | Sequence[Hparam] | None = None,
+        hparams: Optional[Union[Collection[Hparam], Sequence[Hparam]]] = None,
     ) -> None:
 
         if hparams is None:
             hparams = xgboost_hparams()
         super().__init__(hparams)
 
-    def tuned_dict(self, dsname: DatasetName) -> dict[str, Any]:
+    def tuned_dict(self, dsname: DatasetName) -> Dict[str, Any]:
         hps = TUNED[dsname]
         if hps is None:
             return self.defaults().to_dict()

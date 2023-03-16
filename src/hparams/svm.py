@@ -9,9 +9,10 @@ sys.path.append(str(ROOT))  # isort: skip
 
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Collection, Literal, Sequence
+from typing import Any, Collection, Dict, List, Literal, Optional, Sequence, Union
 
 from numpy.random import Generator
+from typing_extensions import Literal
 
 from src.constants import SKLEARN_SGD_LR_DEFAULT as LR_DEFAULT
 from src.constants import SKLEARN_SGD_LR_MAX as LR_MAX
@@ -26,7 +27,7 @@ from src.hparams.hparams import (
     Hparams,
 )
 
-TUNED: dict[DatasetName, dict[str, Any] | None] = {
+TUNED: Dict[DatasetName, Optional[Dict[str, Any]]] = {
     DatasetName.Arrhythmia: None,
     DatasetName.Kc1: None,
     DatasetName.ClickPrediction: None,
@@ -68,7 +69,7 @@ TUNED: dict[DatasetName, dict[str, Any] | None] = {
     DatasetName.Vehicle: None,
 }
 
-LINEAR_TUNED: dict[DatasetName, dict[str, Any] | None] = {
+LINEAR_TUNED: Dict[DatasetName, Optional[Dict[str, Any]]] = {
     DatasetName.Arrhythmia: None,
     DatasetName.Kc1: None,
     DatasetName.ClickPrediction: None,
@@ -110,7 +111,7 @@ LINEAR_TUNED: dict[DatasetName, dict[str, Any] | None] = {
     DatasetName.Vehicle: None,
 }
 
-SGD_TUNED: dict[DatasetName, dict[str, Any] | None] = {
+SGD_TUNED: Dict[DatasetName, Optional[Dict[str, Any]]] = {
     DatasetName.Arrhythmia: None,
     DatasetName.Kc1: None,
     DatasetName.ClickPrediction: None,
@@ -154,9 +155,9 @@ SGD_TUNED: dict[DatasetName, dict[str, Any] | None] = {
 
 
 def svm_hparams(
-    C: float | None = 1.0,
-    gamma: float | None = GAMMA,
-) -> list[Hparam]:
+    C: Optional[float] = 1.0,
+    gamma: Optional[float] = GAMMA,
+) -> List[Hparam]:
     # see https://jcheminf.biomedcentral.com/articles/10.1186/s13321-015-0088-0#Sec6
     # for a possible tuning range on C, gamma
     return [
@@ -169,11 +170,11 @@ def svm_hparams(
 
 
 def linear_svm_hparams(
-    C: float | None = 1.0,
+    C: Optional[float] = 1.0,
     penalty: Literal["l1", "l2"] = "l2",
     loss: Literal["hinge", "squared_hinge"] = "squared_hinge",
     dual: bool = True,
-) -> list[Hparam]:
+) -> List[Hparam]:
     # see https://jcheminf.biomedcentral.com/articles/10.1186/s13321-015-0088-0#Sec6
     # for a possible tuning range on C, gamma
     return [
@@ -187,13 +188,13 @@ def linear_svm_hparams(
 
 
 def sgd_svm_hparams(
-    alpha: float | None = 1e-4,
-    l1_ratio: float | None = 0.15,
-    lr_init: float | None = 1e-3,
+    alpha: Optional[float] = 1e-4,
+    l1_ratio: Optional[float] = 0.15,
+    lr_init: Optional[float] = 1e-3,
     penalty: Literal["l1", "l2", "elasticnet", None] = "l2",
     loss: Literal["hinge", "modified_huber"] = "hinge",
     average: bool = False,
-) -> list[Hparam]:
+) -> List[Hparam]:
     # see https://jcheminf.biomedcentral.com/articles/10.1186/s13321-015-0088-0#Sec6
     # for a possible tuning range on C, gamma
     return [
@@ -223,14 +224,14 @@ def sgd_svm_hparams(
 class SVMHparams(Hparams):
     def __init__(
         self,
-        hparams: Collection[Hparam] | Sequence[Hparam] | None = None,
+        hparams: Optional[Union[Collection[Hparam], Sequence[Hparam]]] = None,
     ) -> None:
 
         if hparams is None:
             hparams = svm_hparams()
         super().__init__(hparams)
 
-    def tuned_dict(self, dsname: DatasetName) -> dict[str, Any]:
+    def tuned_dict(self, dsname: DatasetName) -> Dict[str, Any]:
         hps = TUNED[dsname]
         if hps is None:
             return self.defaults().to_dict()
@@ -240,20 +241,20 @@ class SVMHparams(Hparams):
 class LinearSVMHparams(Hparams):
     def __init__(
         self,
-        hparams: Collection[Hparam] | Sequence[Hparam] | None = None,
+        hparams: Optional[Union[Collection[Hparam], Sequence[Hparam]]] = None,
     ) -> None:
 
         if hparams is None:
             hparams = linear_svm_hparams()
         super().__init__(hparams)
 
-    def tuned_dict(self, dsname: DatasetName) -> dict[str, Any]:
+    def tuned_dict(self, dsname: DatasetName) -> Dict[str, Any]:
         hps = LINEAR_TUNED[dsname]
         if hps is None:
             return self.defaults().to_dict()
         return hps
 
-    def random(self, rng: Generator | None = None) -> LinearSVMHparams:
+    def random(self, rng: Optional[Generator] = None) -> LinearSVMHparams:
         hps = super().random(rng)
         assert isinstance(hps, LinearSVMHparams)
         if hps.is_valid():
@@ -290,20 +291,20 @@ class LinearSVMHparams(Hparams):
 class SGDLinearSVMHparams(Hparams):
     def __init__(
         self,
-        hparams: Collection[Hparam] | Sequence[Hparam] | None = None,
+        hparams: Optional[Union[Collection[Hparam], Sequence[Hparam]]] = None,
     ) -> None:
 
         if hparams is None:
             hparams = sgd_svm_hparams()
         super().__init__(hparams)
 
-    def tuned_dict(self, dsname: DatasetName) -> dict[str, Any]:
+    def tuned_dict(self, dsname: DatasetName) -> Dict[str, Any]:
         hps = SGD_TUNED[dsname]
         if hps is None:
             return self.defaults().to_dict()
         return hps
 
-    def random(self, rng: Generator | None = None) -> SGDLinearSVMHparams:
+    def random(self, rng: Optional[Generator] = None) -> SGDLinearSVMHparams:
         hps = super().random(rng)
         assert isinstance(hps, SGDLinearSVMHparams)
         if hps.is_valid():

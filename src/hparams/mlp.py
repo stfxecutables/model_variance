@@ -8,7 +8,7 @@ sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
 from pathlib import Path
-from typing import Any, Collection, Sequence
+from typing import Any, Collection, Dict, List, Optional, Sequence, Union
 
 from src.constants import DROPOUT_DEFAULT as P
 from src.constants import MLP_LR_INIT_DEFAULT as LR
@@ -17,7 +17,7 @@ from src.constants import MLP_WIDTH_DEFAULT as WIDTH
 from src.enumerables import DatasetName
 from src.hparams.hparams import ContinuousHparam, Hparam, Hparams, OrdinalHparam
 
-TUNED: dict[DatasetName, dict[str, Any] | None] = {
+TUNED: Dict[DatasetName, Optional[Dict[str, Any]]] = {
     DatasetName.Arrhythmia: None,
     DatasetName.Kc1: None,
     DatasetName.ClickPrediction: None,
@@ -61,12 +61,12 @@ TUNED: dict[DatasetName, dict[str, Any] | None] = {
 
 
 def mlp_hparams(
-    lr: float | None = None,
-    wd: float | None = None,
-    dropout: float | None = None,
-    w1: int | None = None,
-    w2: int | None = None,
-) -> list[Hparam]:
+    lr: Optional[float] = None,
+    wd: Optional[float] = None,
+    dropout: Optional[float] = None,
+    w1: Optional[int] = None,
+    w2: Optional[int] = None,
+) -> List[Hparam]:
     return [
         ContinuousHparam("lr", lr, max=5e-1, min=1e-5, default=LR, log_scale=True),
         ContinuousHparam("wd", wd, max=5e-1, min=1e-8, default=WD, log_scale=True),
@@ -81,14 +81,14 @@ def mlp_hparams(
 class MLPHparams(Hparams):
     def __init__(
         self,
-        hparams: Collection[Hparam] | Sequence[Hparam] | None = None,
+        hparams: Optional[Union[Collection[Hparam], Sequence[Hparam]]] = None,
     ) -> None:
 
         if hparams is None:
             hparams = mlp_hparams()
         super().__init__(hparams)
 
-    def tuned_dict(self, dsname: DatasetName) -> dict[str, Any]:
+    def tuned_dict(self, dsname: DatasetName) -> Dict[str, Any]:
         hps = TUNED[dsname]
         if hps is None:
             return self.defaults().to_dict()

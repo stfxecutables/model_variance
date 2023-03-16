@@ -11,7 +11,7 @@ sys.path.append(str(ROOT))  # isort: skip
 import sys
 import traceback
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, List
 
 from sklearn.model_selection import ParameterGrid
 from tqdm.contrib.concurrent import process_map
@@ -31,7 +31,7 @@ from src.hparams.svm import SGDLinearSVMHparams
 from src.hparams.xgboost import XGBoostHparams
 
 
-def create_grid() -> list[dict[str, Any]]:
+def create_grid() -> List[Dict[str, Any]]:
     # classifiers = [ClassifierKind.SGD_LR, ClassifierKind.SGD_SVM, ClassifierKind.XGBoost]
     classifiers = [ClassifierKind.MLP]
     data_perturbs = [
@@ -87,7 +87,7 @@ def create_grid() -> list[dict[str, Any]]:
     return grid
 
 
-def evaluate(args: dict[str, Any]) -> None:
+def evaluate(args: Dict[str, Any]) -> None:
     try:
         ckpt_args = {**args}
         ckpt_args.pop("debug")

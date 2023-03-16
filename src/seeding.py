@@ -9,7 +9,7 @@ sys.path.append(str(ROOT))  # isort: skip
 
 import json
 import os
-from typing import Any
+from typing import Any, Dict, List
 
 import numpy as np
 from numpy.random import Generator, SeedSequence
@@ -22,14 +22,14 @@ def urandom_int() -> int:
     return int.from_bytes(entropy, byteorder="little", signed=False)
 
 
-def generate_seed_sequences(n_seqs: int) -> list[SeedSequence]:
+def generate_seed_sequences(n_seqs: int) -> List[SeedSequence]:
     seed = urandom_int()
     seqs = SeedSequence(entropy=seed).spawn(n_seqs)
     return seqs
 
 
 def save_seed_seqs(
-    seed_seqs: list[SeedSequence], outname: str = DEFAULT_SEEDS.name
+    seed_seqs: List[SeedSequence], outname: str = DEFAULT_SEEDS.name
 ) -> None:
     d = {}
     for i, ss in enumerate(seed_seqs):
@@ -40,9 +40,9 @@ def save_seed_seqs(
     print(f"Saved seed sequences to {out}")
 
 
-def load_seed_seqs(outfile: Path = DEFAULT_SEEDS) -> dict[int, SeedSequence]:
+def load_seed_seqs(outfile: Path = DEFAULT_SEEDS) -> Dict[int, SeedSequence]:
     with open(outfile, "r") as fp:
-        d: dict[int, Any] = json.load(fp)
+        d: Dict[int, Any] = json.load(fp)
     seqs = {}
     for i, args in d.items():
         seqs[int(i)] = SeedSequence(
@@ -52,7 +52,7 @@ def load_seed_seqs(outfile: Path = DEFAULT_SEEDS) -> dict[int, SeedSequence]:
     return seqs
 
 
-def load_rngs(seedfile: Path = DEFAULT_SEEDS) -> list[Generator]:
+def load_rngs(seedfile: Path = DEFAULT_SEEDS) -> List[Generator]:
     seqs = load_seed_seqs(outfile=seedfile)
     return [np.random.default_rng(ss) for ss in seqs]
 

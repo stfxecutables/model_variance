@@ -9,7 +9,7 @@ sys.path.append(str(ROOT))  # isort: skip
 
 import sys
 from pathlib import Path
-from typing import Any, Type
+from typing import Any, Dict, Type
 
 from numpy import ndarray
 from sklearn.linear_model import SGDClassifier
@@ -21,7 +21,6 @@ from src.hparams.logistic import LRHparams, SGDLRHparams
 from src.models.dl_model import DLModel
 from src.models.model import ClassifierModel
 from src.models.torch_base import LogisticRegression
-from src.serialize import SKOPable
 
 
 class LRModel(DLModel):
@@ -45,8 +44,8 @@ class SGDLRModel(ClassifierModel):
     def predict(self, X: ndarray, y: ndarray) -> tuple[ndarray, ndarray]:
         return self.model.predict(X), y
 
-    def _get_model_args(self) -> dict[str, Any]:
-        args: dict[str, Any] = super()._get_model_args()
+    def _get_model_args(self) -> Dict[str, Any]:
+        args: Dict[str, Any] = super()._get_model_args()
         args["n_jobs"] = 1
         return args
         # if RuntimeClass.from_dataset(self.dataset.name) is not RuntimeClass.Fast:

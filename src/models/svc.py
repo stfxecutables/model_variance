@@ -9,7 +9,7 @@ sys.path.append(str(ROOT))  # isort: skip
 
 import sys
 from pathlib import Path
-from typing import Any, Mapping, Type
+from typing import Any, Dict, Mapping, Type
 
 from numpy import ndarray
 from sklearn.linear_model import SGDClassifier
@@ -32,7 +32,7 @@ class SVCModel(ClassifierModel):
     def predict(self, X: ndarray, y: ndarray) -> tuple[ndarray, ndarray]:
         return self.model.predict(X), y
 
-    def _get_model_args(self) -> dict[str, Any]:
+    def _get_model_args(self) -> Dict[str, Any]:
         args = super()._get_model_args()
         if RuntimeClass.from_dataset(self.dataset.name) is not RuntimeClass.Fast:
             args["cache_size"] = 512  # type: ignore
@@ -63,7 +63,7 @@ class SGDLinearSVCModel(ClassifierModel):
         return self.model.predict(X), y
 
     def _get_model_args(self) -> Mapping:
-        args: dict[str, Any] = super()._get_model_args()
+        args: Dict[str, Any] = super()._get_model_args()
         args["n_jobs"] = 1
         return args
         # if RuntimeClass.from_dataset(self.dataset.name) is not RuntimeClass.Fast:

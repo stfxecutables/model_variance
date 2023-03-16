@@ -13,6 +13,7 @@ from math import ceil
 from pathlib import Path
 from time import time
 from traceback import print_exc
+from typing import Union
 from warnings import catch_warnings, filterwarnings
 
 import numpy as np
@@ -32,7 +33,7 @@ from src.enumerables import RuntimeClass
 filterwarnings("ignore", category=PerformanceWarning)
 
 
-def embed_categoricals(ds: Dataset) -> NDArray[np.float64] | None:
+def embed_categoricals(ds: Dataset) -> Union[NDArray[np.float64], None]:
     """
     Notes
     -----
@@ -61,7 +62,7 @@ def embed_categoricals(ds: Dataset) -> NDArray[np.float64] | None:
     return reduced
 
 
-def embed_continuous(ds_perc: tuple[Dataset, int]) -> NDArray[np.float64] | None:
+def embed_continuous(ds_perc: tuple[Dataset, int]) -> Union[NDArray[np.float64], None]:
     ds, percent = ds_perc
     outfile = CONT_REDUCED / f"{ds.name.name}_{percent}percent.npy"
     if outfile.exists():
@@ -82,7 +83,7 @@ def embed_continuous(ds_perc: tuple[Dataset, int]) -> NDArray[np.float64] | None
     return reduced
 
 
-def estimate_cat_embed_time(ds: Dataset) -> DataFrame | None:
+def estimate_cat_embed_time(ds: Dataset) -> Union[DataFrame, None]:
     try:
         start = time()
         embed_categoricals(ds)
@@ -103,7 +104,9 @@ def estimate_cat_embed_time(ds: Dataset) -> DataFrame | None:
         return None
 
 
-def estimate_continuous_embed_time(ds_perc: tuple[Dataset, int]) -> DataFrame | None:
+def estimate_continuous_embed_time(
+    ds_perc: tuple[Dataset, int]
+) -> Union[DataFrame, None]:
     try:
         ds, percent = ds_perc
         start = time()
@@ -201,7 +204,7 @@ def get_float_X(df: DataFrame) -> DataFrame:
     return df
 
 
-def estimate_runtime_xgb(dataset: Dataset) -> DataFrame | None:
+def estimate_runtime_xgb(dataset: Dataset) -> Union[DataFrame, None]:
     try:
         start = time()
         df = dataset.data

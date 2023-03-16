@@ -12,7 +12,7 @@ import sys
 import tarfile
 from pathlib import Path
 from tarfile import ExFileObject, ReadError, TarFile, TarInfo
-from typing import Any, Dict, List
+from typing import Any, Dict, List, cast
 
 import numpy as np
 from numpy import ndarray
@@ -38,7 +38,7 @@ def find_bad_tars(targz_path: Path) -> Any:
     with open(targz_path, "rb") as fp:
         outer_tar: TarFile
         with tarfile.open(fileobj=fp, mode="r") as outer_tar:
-            infos: list[TarInfo] = [*outer_tar.getmembers()]
+            infos: List[TarInfo] = [*outer_tar.getmembers()]
             for info in tqdm(infos):
                 if is_bad_tar(outer_tar, info):
                     bads.append(info.name)
@@ -50,7 +50,7 @@ def read_tar_json(inner_tar: TarFile, name: str) -> List[Dict[str, Any]]:
     exfile: ExFileObject
     with inner_tar.extractfile(info) as exfile:  # type: ignore
         data = json.load(exfile)
-    return data
+    return cast(List[Dict[str, Any]], data)
 
 
 def read_tar_npz(inner_tar: TarFile, name: str) -> Dict[str, Any]:
@@ -69,10 +69,10 @@ def read_tar_npz(inner_tar: TarFile, name: str) -> Dict[str, Any]:
 def parse_tar_gz(
     tarpath: Path,
 ) -> tuple[DataFrame, List[Hparams], List[ndarray], List[ndarray], int]:
-    ev_dicts: list[dict[str, Any]] = []
-    all_hps: list[Hparams] = []
-    all_preds: list[ndarray] = []
-    all_targs: list[ndarray] = []
+    ev_dicts: List[Dict[str, Any]] = []
+    all_hps: List[Hparams] = []
+    all_preds: List[ndarray] = []
+    all_targs: List[ndarray] = []
     read_fails: int = 0
     missings: int = 0
 
@@ -80,7 +80,7 @@ def parse_tar_gz(
         gz_archive: TarFile
         with tarfile.open(fileobj=fp, mode="r") as gz_archive:
 
-            infos: list[TarInfo] = [*gz_archive.getmembers()]  # [:1000]
+            infos: List[TarInfo] = [*gz_archive.getmembers()]  # [:1000]
             for info in tqdm(infos):
 
                 inner_archive: ExFileObject
@@ -93,7 +93,7 @@ def parse_tar_gz(
                         with tarfile.open(
                             fileobj=inner_archive, mode="r"
                         ) as inner_contents:
-                            fnames: list[str] = inner_contents.getnames()
+                            fnames: List[str] = inner_contents.getnames()
                             evnames = list(
                                 filter(lambda f: "evaluator.json" in f, fnames)
                             )
@@ -117,7 +117,7 @@ def parse_tar_gz(
                                 key=lambda d: list(d.keys())[0],
                             )
 
-                            ev_dicts.append(ev)
+                            ev_dicts.append(ev)  # type: ignore
                             all_hps.append(hp)
                             all_preds.append(preds["preds"])
                             all_targs.append(targs["targs"])

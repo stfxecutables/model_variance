@@ -8,31 +8,16 @@ sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
 import sys
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from pathlib import Path
-from typing import (
-    Any,
-    Dict,
-    List,
-    Mapping,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    Union,
-    cast,
-    no_type_check,
-)
+from typing import Any, Dict, Mapping, Optional, Type, Union
 
 import skops.io as skio
 from numpy import ndarray
 from numpy.random import Generator
-from onnx import ModelProto
 from sklearn.svm import SVC
-from typing_extensions import Literal
 from xgboost import XGBClassifier
 
-from src.constants import ONNX_OPSET
 from src.dataset import Dataset
 from src.enumerables import ClassifierKind, RuntimeClass
 from src.hparams.hparams import Hparams
@@ -65,7 +50,9 @@ class ClassifierModel(SKOPable):
             self.to_skops(self.logdir)
         self.fitted = True
 
-    def tune(self, X: ndarray, y: ndarray, rng: Generator | None, iteration: int) -> None:
+    def tune(
+        self, X: ndarray, y: ndarray, rng: Optional[Generator], iteration: int
+    ) -> None:
         ...
 
     @abstractmethod
@@ -85,7 +72,7 @@ class ClassifierModel(SKOPable):
         outfile = root / "model.skops"
         return skio.load(file=outfile, trusted=True)
 
-    def _get_model_args(self) -> dict[str, Any]:
+    def _get_model_args(self) -> Dict[str, Any]:
         hps = self.hparams.to_dict()
         if self.kind is ClassifierKind.XGBoost:
             n_jobs = 1 if self.runtime is RuntimeClass.Fast else -1

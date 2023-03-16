@@ -7,13 +7,10 @@ ROOT = Path(__file__).resolve().parent.parent.parent  # isort: skip
 sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
-import pickle
 import sys
-from abc import ABC, abstractmethod
-from enum import Enum
-from itertools import combinations
+from abc import ABC
 from pathlib import Path
-from typing import Any, Literal, Type, TypeVar, Union
+from typing import List, Literal, Optional
 
 import numpy as np
 import pandas as pd
@@ -22,16 +19,12 @@ from pandas import DataFrame, Series
 from tqdm import tqdm
 from tqdm.contrib.concurrent import process_map
 
-from src.archival import parse_tar_gz
-from src.constants import TESTING_TEMP
 from src.enumerables import (
-    CatPerturbLevel,
     ClassifierKind,
     DataPerturbation,
     DatasetName,
     HparamPerturbation,
 )
-from src.hparams.hparams import Hparams
 from src.metrics.functional import RunComputer, _accuracy, _default, _ec, _ec_acc
 from src.results import Results
 
@@ -59,7 +52,7 @@ class RunMetric(ABC):
     def __init__(self, results: Results) -> None:
         super().__init__()
         self.results: Results = results
-        self.computed: Series | None = None
+        self.computed: Optional[Series] = None
         self.computer: RunComputer = _default
         self.name: str = "default"
 
@@ -95,16 +88,16 @@ class ErrorConsistency:
         self.results = results
         self.local_norm = local_norm
         self.empty_unions: Literal["nan", "0", "1"] = empty_unions
-        # self.computed: tuple[list[DataFrame], list[ndarray]] | None = None
-        self.computed: DataFrame | None = None
+        # self.computed: Optional[tuple[List[DataFrame], List[ndarray]]] = None
+        self.computed: Optional[DataFrame] = None
         self.computer = _ec
         self.name = "ec"
 
     def compute(self, show_progress: bool = False) -> DataFrame:
         def ne(pred: ndarray, targ: ndarray) -> ndarray:
             if pred.ndim == 2:  # softmax values
-                return np.argmax(pred, axis=1) != targ
-            return pred != targ
+                return np.argmax(pred, axis=1) != targ  # type: ignore
+            return pred != targ  # type: ignore
 
         if self.computed is not None:
             return self.computed
@@ -112,9 +105,9 @@ class ErrorConsistency:
         preds = self.results.preds
         targs = self.results.targs
         reps, dfs = self.results.repeat_dfs()
-        lengths: list[int] = []
-        all_errors: list[ndarray] = []
-        rep_dfs: list[DataFrame] = []
+        lengths: List[int] = []
+        all_errors: List[ndarray] = []
+        rep_dfs: List[DataFrame] = []
         df: DataFrame
         for rep, df in zip(reps, dfs):
             lengths.append(len(df))
@@ -128,7 +121,7 @@ class ErrorConsistency:
             rep_dfs.append(rep_df)
             all_errors.append(errors)
 
-        ecs: list[ndarray] = []
+        ecs: List[ndarray] = []
         for errors in tqdm(all_errors, desc="Computing ECs", disable=not show_progress):
             ecs.append(
                 self.computer(
@@ -195,17 +188,17 @@ class Accuracy(RunMetric):
 
 
 def compute_effect_sizes(dummy_df: DataFrame) -> float:
-    cols = df.columns
+    raise NotImplementedError()
 
 
 def get_describe(arr: ndarray) -> DataFrame:
     s = pd.Series(arr).describe().to_frame().T
-    s.index = [0]
+    s.index = [0]  # type: ignore
     return s
 
 
 def get_describes_df(
-    arrs: list[ndarray], label: str, show_progress: bool = False
+    arrs: List[ndarray], label: str, show_progress: bool = False
 ) -> DataFrame:
     # tested chunksize below, seems to be fastest
     desc = f"Describing {label}s"

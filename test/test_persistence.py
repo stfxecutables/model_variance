@@ -12,8 +12,7 @@ from copy import deepcopy
 from pathlib import Path
 from random import choice
 from shutil import rmtree
-from tempfile import mkdtemp
-from typing import Literal, Type, Union, cast
+from typing import Literal, cast
 
 import numpy as np
 import pytest
@@ -22,22 +21,14 @@ from sklearn.model_selection import train_test_split
 
 from src.constants import ensure_dir
 from src.dataset import Dataset
-from src.enumerables import (
-    CatPerturbLevel,
-    ClassifierKind,
-    DataPerturbation,
-    DatasetName,
-    HparamPerturbation,
-)
-from src.evaluator import Evaluator, Tuner, get_model
-from src.hparams.hparams import CategoricalHparam, ContinuousHparam, OrdinalHparam
+from src.enumerables import ClassifierKind, DatasetName
+from src.evaluator import get_model
 from src.hparams.logistic import LRHparams, SGDLRHparams
 from src.hparams.mlp import MLPHparams
 from src.hparams.svm import LinearSVMHparams, SGDLinearSVMHparams, SVMHparams
 from src.hparams.xgboost import XGBoostHparams
 from src.models.dl_model import DLModel
 from src.models.model import ClassifierModel
-from src.utils import missing_keys
 
 Percentage = Literal[None, 25, 50, 75]
 
@@ -47,7 +38,7 @@ DIR.mkdir(exist_ok=True)
 CATS = [chr(i) for i in (list(range(97, 123)) + list(range(65, 91)))]
 
 
-def random_classifier(logdir: Path) -> Union[ClassifierModel, DLModel]:
+def random_classifier(logdir: Path) -> ClassifierModel:
     hp_cls = choice(
         [
             SVMHparams,

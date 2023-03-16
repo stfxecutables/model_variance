@@ -13,18 +13,7 @@ import re
 import sys
 from math import ceil
 from pathlib import Path
-from typing import (
-    Any,
-    Dict,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    Union,
-    cast,
-    no_type_check,
-)
+from typing import Dict, List, Optional, Tuple, Union
 from warnings import catch_warnings, filterwarnings
 
 import numpy as np
@@ -67,14 +56,14 @@ max    179.000000  176.000000  166.000000  163.000000
 
 
 """
-MEDIAN_FILL_COLS: dict[
-    DatasetName, list[str]
+MEDIAN_FILL_COLS: Dict[
+    DatasetName, List[str]
 ] = {  # columns to fil lwith median column value
     DatasetName.Arrhythmia: ["T", "P", "QRST", "heartrate"],
 }
 
-UNKNOWN_FILL_COLS: dict[
-    DatasetName, list[str]
+UNKNOWN_FILL_COLS: Dict[
+    DatasetName, List[str]
 ] = {  # categorical columns to make "unknown"
     DatasetName.Adult: ["workclass", "occupation", "native-country"],
 }
@@ -89,7 +78,7 @@ def load(name: DatasetName) -> Dataset:
     return Dataset(name)
 
 
-def reduce_continuous(dataset: Dataset, percent: int) -> NDArray[np.float64] | None:
+def reduce_continuous(dataset: Dataset, percent: int) -> Union[NDArray[np.float64], None]:
     # do not bother with all-categorical data here
     from umap import UMAP
 
@@ -115,7 +104,7 @@ def reduce_continuous(dataset: Dataset, percent: int) -> NDArray[np.float64] | N
     return reduced
 
 
-def reduce_categoricals(dataset: Dataset) -> NDArray[np.float64] | None:
+def reduce_categoricals(dataset: Dataset) -> Union[NDArray[np.float64], None]:
     """
     Notes
     -----
@@ -204,10 +193,10 @@ class Dataset:
 
     def get_X_continuous(
         self,
-        perturbation: DataPerturbation | None = None,
-        reduction: int | None | Literal["cat"] = "cat",
-        rng: Generator | None = None,
-    ) -> ndarray | None:
+        perturbation: Optional[DataPerturbation] = None,
+        reduction: Union[int, None, Literal["cat"]] = "cat",
+        rng: Optional[Generator] = None,
+    ) -> Union[ndarray, None]:
         if reduction not in [None, 25, 50, 75, "cat"]:
             raise ValueError("`percent` must be in [None, 25, 50, 75, 'cat']")
         if reduction == "cat":
@@ -218,7 +207,7 @@ class Dataset:
         rng = rng if rng is not None else np.random.default_rng()
 
         if reduction in [25, 50, 75]:
-            X: ndarray | None = reduce_continuous(self, percent=reduction)
+            X: Optional[ndarray] = reduce_continuous(self, percent=reduction)
             if X is None or X.size == 0:
                 return None
             if X.ndim == 0 or X.ndim == 1:
@@ -319,11 +308,11 @@ class Dataset:
 
     def get_X_categorical(
         self,
-        perturbation_prob: float | None = 0,
+        perturbation_prob: Optional[float] = 0,
         perturb_level: CatPerturbLevel = CatPerturbLevel.Label,
-        reduction: int | None | Literal["cat"] = "cat",
-        rng: Generator | None = None,
-    ) -> ndarray | None:
+        reduction: Union[int, None, Literal["cat"]] = "cat",
+        rng: Optional[Generator] = None,
+    ) -> Union[ndarray, None]:
         """
         Parameters
         ----------
@@ -432,11 +421,11 @@ class Dataset:
 
     def get_X_y(
         self,
-        cont_perturb: DataPerturbation | None = None,
+        cont_perturb: Optional[DataPerturbation] = None,
         cat_perturb_prob: float = 0,
         cat_perturb_level: CatPerturbLevel = CatPerturbLevel.Label,
-        reduction: int | None | Literal["cat"] = "cat",
-        rng: Generator | None = None,
+        reduction: Union[int, None, Literal["cat"]] = "cat",
+        rng: Optional[Generator] = None,
     ) -> tuple[ndarray, ndarray]:
         """
         Returns
@@ -487,7 +476,7 @@ class Dataset:
         X, y = self.get_X_y()
         return X.shape[1]
 
-    def X_reduced(self, percent: int) -> ndarray | None:
+    def X_reduced(self, percent: int) -> Union[ndarray, None]:
         if percent not in [25, 50, 75]:
             raise ValueError("`percent` must be in [25, 50, 75]")
         X_cont = reduce_continuous(self, percent)
@@ -531,7 +520,9 @@ class Dataset:
         drop = cols[sds == 0]
         df.drop(columns=drop, inplace=True)
 
-    def nearest_distances(self, reduction: int | None | Literal["cat"]) -> ndarray | None:
+    def nearest_distances(
+        self, reduction: Union[int, None, Literal["cat"]]
+    ) -> Union[ndarray, None]:
         if reduction not in [None, 25, 50, 75, "cat"]:
             raise ValueError("`percent` must be in [25, 50, 75, 'cat']")
         label = (
@@ -656,7 +647,8 @@ class Dataset:
         df = self.data
         nrows, ncols = df.shape
         n_cats = self.n_cats
-        n_one_hot = self.get_X_categorical().shape[1]
+        cats = self.get_X_categorical()
+        n_one_hot = cats.shape[1] if cats is not None else 0
         p_majority = np.unique(df["__target"], return_counts=True)[1].max() / nrows
         return DataFrame(
             {
@@ -683,9 +675,9 @@ class Dataset:
 
     def get_monte_carlo_splits(
         self,
-        train_downsample: Percentage | None,
-        cont_perturb: DataPerturbation | None = None,
-        cat_perturb_prob: float | None = None,
+        train_downsample: Optional[Percentage],
+        cont_perturb: Optional[DataPerturbation] = None,
+        cat_perturb_prob: Optional[float] = None,
         cat_perturb_level: CatPerturbLevel = CatPerturbLevel.Label,
         reduction: Union[int, None, Literal["cat"]] = "cat",
         repeat: int = 0,
@@ -755,8 +747,8 @@ class Dataset:
         return X_train, y_train, X_test, y_test
 
     @staticmethod
-    def load_all() -> list[Dataset]:
-        datasets: list[Dataset] = process_map(load, DatasetName, desc="Loading datasets")
+    def load_all() -> List[Dataset]:
+        datasets: List[Dataset] = process_map(load, DatasetName, desc="Loading datasets")
         return datasets
 
     def __len__(self) -> int:

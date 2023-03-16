@@ -1,38 +1,7 @@
 from __future__ import annotations
 
-import json
-import pickle
-import sys
-import tarfile
 from pathlib import Path
-from tarfile import ExFileObject, ReadError, TarFile, TarInfo
-from typing import Any, List, Optional, Sequence, Tuple, Type, Union, cast, no_type_check
 
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-from numpy import ndarray
-from pandas import DataFrame, Series
-from tqdm import tqdm
-from typing_extensions import Literal
-
-from src.archival import (
-    find_bad_tars,
-    is_bad_tar,
-    parse_tar_gz,
-    read_tar_json,
-    read_tar_npz,
-)
-from src.constants import TESTING_TEMP
-from src.enumerables import (
-    CatPerturbLevel,
-    ClassifierKind,
-    DataPerturbation,
-    DatasetName,
-    HparamPerturbation,
-)
-from src.evaluator import Evaluator
-from src.hparams.hparams import Hparams
 from src.results import Results
 
 ROOT = Path(__file__).resolve().parent

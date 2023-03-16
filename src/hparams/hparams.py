@@ -13,7 +13,18 @@ from argparse import Namespace
 from enum import Enum
 from math import ceil
 from pathlib import Path
-from typing import Any, Collection, Dict, Generic, List, Sequence, Type, TypeVar
+from typing import (
+    Any,
+    Collection,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Sequence,
+    Type,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
 from numpy.random import Generator
@@ -36,18 +47,20 @@ class HparamKind(Enum):
 
 
 class Hparam(FileJSONable["Hparam"], Generic[T, H]):
-    def __init__(self, name: str, value: T | None, default: T | None = None) -> None:
+    def __init__(
+        self, name: str, value: Optional[T], default: Optional[T] = None
+    ) -> None:
         super().__init__()
         self.name: str = name
-        self._value: T | None = value
-        self._default: T | None = default
+        self._value: Optional[T] = value
+        self._default: Optional[T] = default
         self.kind: HparamKind
 
-    def to_dict(self) -> dict[str, T | None]:
+    def to_dict(self) -> Dict[str, Optional[T]]:
         return {self.name: self.value}
 
     @abstractmethod
-    def to_json_dict(self) -> dict[str, Any]:
+    def to_json_dict(self) -> Dict[str, Any]:
         ...
 
     def to_jsons(self) -> str:
@@ -57,7 +70,7 @@ class Hparam(FileJSONable["Hparam"], Generic[T, H]):
         )
 
     @property
-    def value(self) -> T | None:
+    def value(self) -> Optional[T]:
         return self._value
 
     @value.setter
@@ -68,19 +81,19 @@ class Hparam(FileJSONable["Hparam"], Generic[T, H]):
         return self.new(value=self._default)
 
     @abstractmethod
-    def random(self, rng: Generator | None = None) -> Hparam:
+    def random(self, rng: Optional[Generator] = None) -> Hparam:
         ...
 
     @abstractmethod
     def perturbed(
         self,
         method: HparamPerturbation,
-        rng: Generator | None = None,
+        rng: Optional[Generator] = None,
     ) -> Hparam:
         ...
 
     @abstractmethod
-    def new(self, value: T | None) -> Hparam:
+    def new(self, value: Optional[T]) -> Hparam:
         ...
 
     @abstractmethod
@@ -88,7 +101,7 @@ class Hparam(FileJSONable["Hparam"], Generic[T, H]):
         ...
 
     @staticmethod
-    def from_dict(hpdict: dict[str, T]) -> Hparam:
+    def from_dict(hpdict: Dict[str, T]) -> Hparam:
         ...
 
     @abstractmethod
@@ -121,16 +134,16 @@ class ContinuousHparam(Hparam):
     def __init__(
         self,
         name: str,
-        value: float | None,
+        value: Optional[float],
         max: float,
         min: float,
         log_scale: bool = False,
-        default: float | None = None,
+        default: Optional[float] = None,
     ) -> None:
         super().__init__(name=name, value=value, default=default)
         self.name: str = name
         self.kind: HparamKind = HparamKind.Continuous
-        self._value: float | None = float(value) if value is not None else None
+        self._value: Optional[float] = float(value) if value is not None else None
         self.min: float = float(min)
         self.max: float = float(max)
         self.log_scale: bool = log_scale
@@ -158,7 +171,7 @@ class ContinuousHparam(Hparam):
             log_scale=self.log_scale,
         )
 
-    def random(self, rng: Generator | None = None) -> ContinuousHparam:
+    def random(self, rng: Optional[Generator] = None) -> ContinuousHparam:
         if rng is None:
             if self.log_scale:
                 value = float(loguniform.rvs(self.min, self.max, size=1))
@@ -175,7 +188,7 @@ class ContinuousHparam(Hparam):
     def perturbed(
         self,
         method: HparamPerturbation,
-        rng: Generator | None = None,
+        rng: Optional[Generator] = None,
     ) -> Hparam:
         if self.value is None:
             raise ValueError("Cannot perturb hparam if value is None.")
@@ -260,7 +273,7 @@ class ContinuousHparam(Hparam):
                 indent=2,
             )
 
-    def to_json_dict(self) -> dict[str, Any]:
+    def to_json_dict(self) -> Dict[str, Any]:
         return {
             "name": self.name,
             "value": self.value,
@@ -285,7 +298,7 @@ class ContinuousHparam(Hparam):
         )
 
     @staticmethod
-    def from_dict(hpdict: dict[str, Any]) -> ContinuousHparam:
+    def from_dict(hpdict: Dict[str, Any]) -> ContinuousHparam:
         d = Namespace(**hpdict)
         return ContinuousHparam(
             name=d.name,
@@ -323,15 +336,15 @@ class OrdinalHparam(Hparam):
     def __init__(
         self,
         name: str,
-        value: int | None,
+        value: Optional[int],
         max: int,
         min: int = 0,
-        default: int | None = None,
+        default: Optional[int] = None,
     ) -> None:
         super().__init__(name=name, value=value, default=default)
         self.name: str = name
         self.kind: HparamKind = HparamKind.Ordinal
-        self._value: int | None = int(value) if value is not None else None
+        self._value: Optional[int] = int(value) if value is not None else None
         self.min: int = int(min)
         self.max: int = int(max)
         self.values = list(range(self.min, self.max + 1))
@@ -357,7 +370,7 @@ class OrdinalHparam(Hparam):
     def perturbed(
         self,
         method: HparamPerturbation,
-        rng: Generator | None = None,
+        rng: Optional[Generator] = None,
     ) -> Hparam:
         if self.value is None:
             raise ValueError("Cannot perturn hparam if value is None.")
@@ -400,7 +413,7 @@ class OrdinalHparam(Hparam):
         val = np.clip(value, a_min=self.min, a_max=self.max)
         return self.new(val)
 
-    def random(self, rng: Generator | None = None) -> OrdinalHparam:
+    def random(self, rng: Optional[Generator] = None) -> OrdinalHparam:
         if rng is None:
             value = int(np.random.choice(self.values))
         else:
@@ -428,7 +441,7 @@ class OrdinalHparam(Hparam):
                 indent=2,
             )
 
-    def to_json_dict(self) -> dict[str, Any]:
+    def to_json_dict(self) -> Dict[str, Any]:
         return {
             "name": self.name,
             "value": self.value,
@@ -451,7 +464,7 @@ class OrdinalHparam(Hparam):
         )
 
     @staticmethod
-    def from_dict(hpdict: dict[str, Any]) -> OrdinalHparam:
+    def from_dict(hpdict: Dict[str, Any]) -> OrdinalHparam:
         d = Namespace(**hpdict)
         return OrdinalHparam(
             name=d.name,
@@ -491,15 +504,15 @@ class CategoricalHparam(Hparam):
     def __init__(
         self,
         name: str,
-        value: Any | None,
-        categories: Sequence[Any] | Collection[Any],
-        default: Any | None = None,
+        value: Optional[Any],
+        categories: Union[Sequence[Any], Collection[Any]],
+        default: Optional[Any] = None,
     ) -> None:
         super().__init__(name=name, value=value, default=default)
         self.name: str = name
         self.kind: HparamKind = HparamKind.Categorical
-        self._value: Any | None = value if value is not None else None
-        self.categories: list[Any] = sorted(categories, key=str)
+        self._value: Optional[Any] = value if value is not None else None
+        self.categories: List[Any] = sorted(categories, key=str)
         self.n_categories: int = len(self.categories)
 
     def new(self, value: Any) -> CategoricalHparam:
@@ -521,7 +534,7 @@ class CategoricalHparam(Hparam):
     def perturbed(
         self,
         method: HparamPerturbation = HparamPerturbation.AbsPercent10,
-        rng: Generator | None = None,
+        rng: Optional[Generator] = None,
     ) -> Hparam:
         if self.value is None:
             raise ValueError("Cannot perturb categorical hparam with value None.")
@@ -536,7 +549,7 @@ class CategoricalHparam(Hparam):
             return self.random(rng)
         return self.new(self.value)
 
-    def random(self, rng: Generator | None = None) -> CategoricalHparam:
+    def random(self, rng: Optional[Generator] = None) -> CategoricalHparam:
         if rng is None:
             value = np.random.choice(self.categories, size=1).item()
         else:
@@ -557,7 +570,7 @@ class CategoricalHparam(Hparam):
                 indent=2,
             )
 
-    def to_json_dict(self) -> dict[str, Any]:
+    def to_json_dict(self) -> Dict[str, Any]:
         return {
             "name": self.name,
             "value": self.value,
@@ -578,7 +591,7 @@ class CategoricalHparam(Hparam):
         )
 
     @staticmethod
-    def from_dict(hpdict: dict[str, Any]) -> CategoricalHparam:
+    def from_dict(hpdict: Dict[str, Any]) -> CategoricalHparam:
         d = Namespace(**hpdict)
         return CategoricalHparam(
             name=d.name,
@@ -614,14 +627,14 @@ class CategoricalHparam(Hparam):
 
 
 class FixedHparam(Hparam, Generic[T]):
-    def __init__(self, name: str, value: T, default: Any | None = None) -> None:
+    def __init__(self, name: str, value: T, default: Optional[Any] = None) -> None:
         super().__init__(name=name, value=value, default=default)
         self.name: str = name
         self.kind: HparamKind = HparamKind.Fixed
         self._value: T = value
         self._default: T = value
 
-    def new(self, value: T | None) -> FixedHparam:
+    def new(self, value: Optional[T]) -> FixedHparam:
         cls: Type[FixedHparam] = self.__class__
         return cls(
             name=self.name,
@@ -638,11 +651,11 @@ class FixedHparam(Hparam, Generic[T]):
     def perturbed(
         self,
         method: HparamPerturbation = HparamPerturbation.AbsPercent10,
-        rng: Generator | None = None,
+        rng: Optional[Generator] = None,
     ) -> Hparam:
         return self.new(self.value)
 
-    def random(self, rng: Generator | None = None) -> FixedHparam:
+    def random(self, rng: Optional[Generator] = None) -> FixedHparam:
         return self.new(self.value)
 
     def to_json(self, path: Path) -> None:
@@ -658,7 +671,7 @@ class FixedHparam(Hparam, Generic[T]):
                 indent=2,
             )
 
-    def to_json_dict(self) -> dict[str, Any]:
+    def to_json_dict(self) -> Dict[str, Any]:
         return {
             "name": self.name,
             "value": self.value,
@@ -677,7 +690,7 @@ class FixedHparam(Hparam, Generic[T]):
         )
 
     @staticmethod
-    def from_dict(hpdict: dict[str, Any]) -> FixedHparam:
+    def from_dict(hpdict: Dict[str, Any]) -> FixedHparam:
         d = Namespace(**hpdict)
         return FixedHparam(
             name=d.name,
@@ -711,21 +724,21 @@ class FixedHparam(Hparam, Generic[T]):
 
 class Hparams(DirJSONable):
     def __init__(
-        self, hparams: Collection[Hparam] | Sequence[Hparam] | None = None
+        self, hparams: Optional[Union[Collection[Hparam], Sequence[Hparam]]] = None
     ) -> None:
         super().__init__()
         hps = sorted(hparams, key=lambda hp: hp.name) if hparams is not None else []
-        self.hparams: dict[str, Hparam] = {}
+        self.hparams: Dict[str, Hparam] = {}
         for hp in hps:
             if hp.name in self.hparams:
                 raise ValueError(f"Hparam with duplicate name {hp.name} found.")
             self.hparams[hp.name] = hp
 
         self.n_hparams = self.N = len(self.hparams)
-        self.continuous: dict[str, ContinuousHparam] = {}
-        self.ordinals: dict[str, OrdinalHparam] = {}
-        self.categoricals: dict[str, CategoricalHparam] = {}
-        self.fixeds: dict[str, FixedHparam] = {}
+        self.continuous: Dict[str, ContinuousHparam] = {}
+        self.ordinals: Dict[str, OrdinalHparam] = {}
+        self.categoricals: Dict[str, CategoricalHparam] = {}
+        self.fixeds: Dict[str, FixedHparam] = {}
         for name, hp in self.hparams.items():
             if hp.kind is HparamKind.Continuous:
                 self.continuous[name] = hp  # type: ignore
@@ -742,7 +755,7 @@ class Hparams(DirJSONable):
         self.n_categorical = len(self.categoricals)
         self.n_fixed = len(self.fixeds)
 
-    def to_dict(self) -> dict[str, int | float | str]:
+    def to_dict(self) -> Dict[str, Union[int, float, str]]:
         d = {}
         for hp in self.hparams.values():
             if hp.name in d:
@@ -768,13 +781,13 @@ class Hparams(DirJSONable):
     def perturbed(
         self,
         method: HparamPerturbation = HparamPerturbation.AbsPercent10,
-        rng: Generator | None = None,
+        rng: Optional[Generator] = None,
     ) -> Hparams:
         cls: Type[Hparams] = self.__class__
         perturbs = [hp.perturbed(method=method, rng=rng) for hp in self.hparams.values()]
         return cls(perturbs)
 
-    def random(self, rng: Generator | None = None) -> Hparams:
+    def random(self, rng: Optional[Generator] = None) -> Hparams:
         cls = self.__class__
         hps = []
         for name, hp in self.hparams.items():
@@ -782,7 +795,7 @@ class Hparams(DirJSONable):
         return cls(hparams=hps)
 
     def quasirandom(
-        self, iteration: int | None = None, rng: Generator | None = None
+        self, iteration: Optional[int] = None, rng: Optional[Generator] = None
     ) -> Hparams:
         cls = self.__class__
         # not sure we can do this with one generator unfortunately
@@ -792,7 +805,7 @@ class Hparams(DirJSONable):
             Halton_cnt.fast_forward(iteration)
             Halton_ord.fast_forward(iteration)
 
-        hps: list[Hparam] = []
+        hps: List[Hparam] = []
         conts = Halton_cnt.random()
         hpc: ContinuousHparam
         for i, (name, hpc) in enumerate(self.continuous.items()):
@@ -895,7 +908,7 @@ class Hparams(DirJSONable):
         return cls(hparams=hparams)
 
     @classmethod
-    def from_dicts(cls: Type[Hparams], tardicts: list[dict[str, Any]]) -> Hparams:
+    def from_dicts(cls: Type[Hparams], tardicts: List[Dict[str, Any]]) -> Hparams:
         hparams = []
         for tardict in tardicts:
             if tardict["kind"] == "categorical":

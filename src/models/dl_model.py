@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 from pickle import HIGHEST_PROTOCOL
 from platform import system
-from typing import Mapping, Optional
+from typing import Dict, List, Mapping, Optional
 from warnings import catch_warnings, filterwarnings
 
 import numpy as np
@@ -30,7 +30,6 @@ from src.dataset import Dataset
 from src.enumerables import RuntimeClass
 from src.hparams.hparams import Hparams
 from src.models.model import ClassifierModel
-from src.serialize import SKOPable
 
 
 class DisabledSLURMEnvironment(SLURMEnvironment):
@@ -56,7 +55,7 @@ def loader(
     return DataLoader(ds, batch_size=batch_size, shuffle=shuffle, drop_last=True)
 
 
-def callbacks() -> list[Callback]:
+def callbacks() -> List[Callback]:
     return [
         ModelCheckpoint(
             monitor="train/acc", save_last=True, mode="max", every_n_epochs=1
@@ -71,7 +70,7 @@ class DLModel(ClassifierModel):
     def __init__(self, hparams: Hparams, dataset: Dataset, logdir: Path) -> None:
         super().__init__(hparams=hparams, dataset=dataset, logdir=logdir)
         self.model: Optional[LightningModule] = None
-        self.trainer: Trainer | None = None
+        self.trainer: Optional[Trainer] = None
         self.max_epochs: int
         self.fitted: bool = False
         self.fitted_model: Path = self.logdir / "fitted.pickle"
@@ -128,7 +127,7 @@ class DLModel(ClassifierModel):
         with catch_warnings():
             # stfu Lightning
             filterwarnings("ignore", message="The dataloader")
-            results: list[dict[str, ndarray]] = trainer.predict(  # type: ignore
+            results: List[Dict[str, ndarray]] = trainer.predict(  # type: ignore
                 model=self.model,
                 dataloaders=test_loader,
                 ckpt_path="last" if not self.loaded else None,

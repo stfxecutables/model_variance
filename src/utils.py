@@ -1,8 +1,8 @@
 from pprint import pformat
-from typing import Any
+from typing import Any, Optional, Union
 
 
-def missing_keys(dict1: dict | Any, dict2: dict | Any) -> str | None:
+def missing_keys(dict1: Union[dict, Any], dict2: Union[dict, Any]) -> Optional[str]:
     if hasattr(dict1, "__dict__"):
         dict1 = dict1.__dict__
     if hasattr(dict2, "__dict__"):
