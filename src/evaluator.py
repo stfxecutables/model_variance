@@ -37,7 +37,7 @@ import numpy as np
 from numpy import ndarray
 from typing_extensions import Literal
 
-from src.constants import CKPTS, DEBUG_LOGS, LOGS, ensure_dir
+from src.constants import CKPTS, DEBUG_LOGS, LOGS, TUNE_CKPTS, ensure_dir
 from src.dataset import Dataset
 from src.enumerables import (
     CatPerturbLevel,
@@ -88,8 +88,9 @@ def ckpt_file(
     categorical_perturb: float | None,
     hparam_perturb: HparamPerturbation | None,
     train_downsample: Percentage | None,
-    categorical_perturb_level: CatPerturbLevel,
+    categorical_perturb_level: CatPerturbLevel = CatPerturbLevel.Sample,
     label: str = "debug",
+    tune: bool = False,
     **kwargs: Any,  # to ignore
 ) -> Path:
     cid = "_".join(
@@ -106,7 +107,7 @@ def ckpt_file(
             f"{get_index(categorical_perturb_level)}",
         ]
     )
-    outdir = CKPTS / label
+    outdir = TUNE_CKPTS if tune else CKPTS / label
     ensure_dir(outdir)
     return outdir / f"{cid}.ckpt"
 
@@ -168,6 +169,7 @@ class Evaluator(DirJSONable):
         label: str | None = None,
         debug: bool = False,
         _suppress_json: bool = False,
+        _suppress_logdir: bool = False,
     ) -> None:
         self.dataset_name: DatasetName = dataset_name
         self.dataset_: Dataset | None = None
@@ -189,7 +191,8 @@ class Evaluator(DirJSONable):
         else:
             self.label = self._label
 
-        self.logdir = self.setup_logdir()
+        if not _suppress_logdir:
+            self.logdir = self.setup_logdir()
         if not _suppress_json:
             self.to_json(self.logdir)
         if not debug:
@@ -321,9 +324,8 @@ class Evaluator(DirJSONable):
     @classmethod
     def from_json(cls: Type[Evaluator], root: Path) -> Evaluator:
         root.mkdir(exist_ok=True, parents=True)
-        hps = root / "all_hparams.json"
         out = root / "evaluator.json"
-        hparams = Hparams.from_json(hps)
+        hparams = Hparams.from_json(root)
         with open(out, "r") as fp:
             d = Namespace(**json.load(fp))
 
@@ -492,15 +494,9 @@ class Tuner(Evaluator):
         repeat: int,
         run: int,
         hparams: Hparams,
-        dimension_reduction: Percentage | None,
-        continuous_perturb: DataPerturbation | None,
-        categorical_perturb: float | None,
-        hparam_perturb: HparamPerturbation | None,
-        train_downsample: Percentage | None,
-        categorical_perturb_level: CatPerturbLevel = CatPerturbLevel.Label,
+        dimension_reduction: Union[Literal["cat"], Percentage, None] = "cat",
         label: str | None = None,
         debug: bool = False,
-        _suppress_json: bool = False,
     ) -> None:
         super().__init__(
             dataset_name=dataset_name,
@@ -509,29 +505,32 @@ class Tuner(Evaluator):
             run=run,
             base_hps=hparams,
             dimension_reduction=dimension_reduction,
-            continuous_perturb=continuous_perturb,
-            categorical_perturb=categorical_perturb,
-            hparam_perturb=hparam_perturb,
-            train_downsample=train_downsample,
-            categorical_perturb_level=categorical_perturb_level,
+            continuous_perturb=None,
+            categorical_perturb=None,
+            hparam_perturb=None,
+            train_downsample=None,
             label=label,
             debug=debug,
-            _suppress_json=True,
+            _suppress_json=True,  # we do it ourselves manually
+            _suppress_logdir=True,  # we do it ourselves manually
         )
         if self._label is None:
             self.label = "debug" if self.debug else "tune"
         else:
             self.label = self._label
         self.logdir = self.setup_logdir()
-        if not _suppress_json:
-            self.to_json(self.logdir)
+        self.to_json(self.logdir)
+        self.acc_file = self.logdir / "accuracy.json"
 
-    def tune(
-        self, no_pred: bool = False, return_test_acc: bool = False, skip_done: bool = True
-    ) -> float | None:
+    def tune(self, skip_done: bool = True) -> float:
         try:
             if self.ckpt_file.exists() and skip_done:
-                return None
+                root = Path(self.ckpt_file.read_text().replace("\n", ""))
+                acc_file = root / self.acc_file.name
+                with open(acc_file, "r") as handle:
+                    acc = float(json.load(handle))
+                self.cleanup()
+                return acc
             ds = self.dataset
             X_train, y_train, X_test, y_test = ds.get_monte_carlo_splits(
                 train_downsample=self.train_downsample,
@@ -542,15 +541,16 @@ class Tuner(Evaluator):
                 repeat=self.repeat,
                 run=self.run,
             )
-            self.model.fit(X=X_train, y=y_train)
-            if return_test_acc:
-                preds, targs = self.model.predict(X=X_test, y=y_test)
-                if preds.ndim == 2:
-                    return float(np.mean(np.argmax(preds, axis=1) == targs))
-                return float(np.mean(preds == targs))
-            if not no_pred:
-                preds, targs = self.model.predict(X=X_test, y=y_test)
-                self.save_preds(preds)
+            self.model.fit(X=X_train, y=y_train, save=False)
+            preds, targs = self.model.predict(X=X_test, y=y_test)
+            if preds.ndim == 2:
+                acc = float(np.mean(np.argmax(preds, axis=1) == targs))
+            else:
+                acc = float(np.mean(preds == targs))
+            with open(self.acc_file, "w") as handle:
+                json.dump(acc, handle)
+            self.ckpt_file.write_text(f"{self.logdir}")
+            return acc
 
         except Exception as e:
             info = traceback.format_exc()
@@ -558,6 +558,17 @@ class Tuner(Evaluator):
             rmtree(self.logdir)
             print(f"Removed {self.logdir}")
             raise RuntimeError(f"Could not fit model:\n{info}") from e
+
+    def cleanup(self) -> None:
+        try:
+            if self.logdir.exists():
+                rmtree(self.logdir)
+        except Exception as e:
+            traceback.print_exc()
+            raise RuntimeError(
+                f"Failed to cleanup run data. Data may remain at either "
+                f"{self.logdir} or {self.ckpt_file}. "
+            ) from e
 
     def setup_logdir(self) -> Path:
         arg_id = self.get_id()
@@ -600,14 +611,14 @@ class Tuner(Evaluator):
             train_downsample=self.train_downsample,
             categorical_perturb_level=self.categorical_perturb_level,
             label=self.label,
+            tune=True,
         )
 
     def to_json(self, root: Path) -> None:
         root.mkdir(exist_ok=True, parents=True)
-        hps = root / "hparams"
         out = root / "tuner.json"
 
-        self.base_hps.to_json(hps)
+        self.base_hps.to_json(root)
         with open(out, "w") as fp:
             json.dump(
                 {
@@ -631,7 +642,7 @@ class Tuner(Evaluator):
     @classmethod
     def from_json(cls: Type[Tuner], root: Path) -> Evaluator:
         root.mkdir(exist_ok=True, parents=True)
-        hps = root / "hparams"
+        hps = root / "all_hparams.json"
         out = root / "tuner.json"
         hparams = Hparams.from_json(hps)
         with open(out, "r") as fp:
@@ -655,7 +666,6 @@ class Tuner(Evaluator):
             run=d.run,
             label=d.label,
             debug=d.debug,
-            _suppress_json=True,
         )
         new.logdir = root
         return new

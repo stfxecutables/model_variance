@@ -222,6 +222,7 @@ def summarize_times(
 
 @pytest.mark.slow
 class TestFast:
+    @pytest.mark.slow
     def test_sgd_svm(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.SGD_SVM,
@@ -231,6 +232,7 @@ class TestFast:
             _capsys=capsys,
         )
 
+    @pytest.mark.slow
     def test_linear_svm(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.LinearSVM,
@@ -240,6 +242,7 @@ class TestFast:
             _capsys=capsys,
         )
 
+    @pytest.mark.slow
     def test_xgb(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.XGBoost,
@@ -249,6 +252,7 @@ class TestFast:
             _capsys=capsys,
         )
 
+    @pytest.mark.slow
     def test_lr(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.LR,
@@ -258,6 +262,7 @@ class TestFast:
             _capsys=capsys,
         )
 
+    @pytest.mark.slow
     def test_sgd_lr(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.SGD_LR,
@@ -267,6 +272,7 @@ class TestFast:
             _capsys=capsys,
         )
 
+    @pytest.mark.slow
     def test_mlp(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.MLP,
@@ -292,6 +298,7 @@ class TestFast:
 
 @pytest.mark.slow
 class TestMed:
+    @pytest.mark.slow
     def test_sgd_svm(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.SGD_SVM,
@@ -301,6 +308,7 @@ class TestMed:
             _capsys=capsys,
         )
 
+    @pytest.mark.slow
     def test_xgb(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.XGBoost,
@@ -310,6 +318,7 @@ class TestMed:
             _capsys=capsys,
         )
 
+    @pytest.mark.slow
     def test_lr(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.LR,
@@ -319,6 +328,7 @@ class TestMed:
             _capsys=capsys,
         )
 
+    @pytest.mark.slow
     def test_sgd_lr(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.SGD_LR,
@@ -328,6 +338,7 @@ class TestMed:
             _capsys=capsys,
         )
 
+    @pytest.mark.slow
     def test_mlp(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.MLP,
@@ -349,6 +360,7 @@ class TestMed:
 
 @pytest.mark.slow
 class TestSlow:
+    @pytest.mark.slow
     def test_sgd_svm(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.SGD_SVM,
@@ -358,6 +370,7 @@ class TestSlow:
             _capsys=capsys,
         )
 
+    @pytest.mark.slow
     def test_xgb(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.XGBoost,
@@ -367,6 +380,7 @@ class TestSlow:
             _capsys=capsys,
         )
 
+    @pytest.mark.slow
     def test_lr(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.LR,
@@ -376,6 +390,7 @@ class TestSlow:
             _capsys=capsys,
         )
 
+    @pytest.mark.slow
     def test_sgd_lr(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.SGD_LR,
@@ -385,6 +400,7 @@ class TestSlow:
             _capsys=capsys,
         )
 
+    @pytest.mark.slow
     def test_mlp(self, capsys: CaptureFixture) -> None:
         summarize_times(
             kind=ClassifierKind.MLP,

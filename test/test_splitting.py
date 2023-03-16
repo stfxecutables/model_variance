@@ -15,7 +15,7 @@ def test_no_perturb(capsys: CaptureFixture) -> None:
     grid = dict(
         dsname=RuntimeClass.Fast.members()[:2],
         down=[None, 25, 50, 75],
-        red=[None, 25, 50, 75],
+        red=["cat"],
         rep=list(range(2)),
         run=list(range(2)),
     )

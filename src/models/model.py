@@ -54,14 +54,15 @@ class ClassifierModel(SKOPable):
         self.model_cls: Type[Any]
         self.model: Optional[ThirdPartyClassifierModel] = None
 
-    def fit(self, X: ndarray, y: ndarray) -> None:
+    def fit(self, X: ndarray, y: ndarray, save: bool = True) -> None:
         # constant (non-perturbable) constructor args and fit args
 
         fargs = (X, y)
         args = self._get_model_args()
         self.model = self.model_cls(**args)
         self.model.fit(*fargs)
-        self.to_skops(self.logdir)
+        if save:
+            self.to_skops(self.logdir)
         self.fitted = True
 
     def tune(self, X: ndarray, y: ndarray, rng: Generator | None, iteration: int) -> None:

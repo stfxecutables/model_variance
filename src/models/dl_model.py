@@ -98,7 +98,7 @@ class DLModel(ClassifierModel):
             batch_size = 64
         return batch_size
 
-    def fit(self, X: ndarray, y: ndarray) -> None:
+    def fit(self, X: ndarray, y: ndarray, save: bool = True) -> None:
         logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
         batch_size = self.batch_size()
         if self.trainer is not None:
@@ -115,7 +115,8 @@ class DLModel(ClassifierModel):
             self.model = self.model_cls(**self._get_model_args())
             self.trainer.fit(self.model, train_dataloaders=train_loader)
         # self.model is either a Linear or Sequential, should be no issue
-        torch.save(self.model, f=self.fitted_model, pickle_protocol=HIGHEST_PROTOCOL)
+        if save:
+            torch.save(self.model, f=self.fitted_model, pickle_protocol=HIGHEST_PROTOCOL)
         self.fitted = True
 
     def predict(self, X: ndarray, y: ndarray) -> tuple[ndarray, ndarray]:

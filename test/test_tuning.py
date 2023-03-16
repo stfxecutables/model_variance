@@ -1,6 +1,7 @@
 from shutil import rmtree
 from typing import Any
 
+import numpy as np
 from pytest import raises
 
 from src.enumerables import ClassifierKind, RuntimeClass
@@ -31,11 +32,7 @@ def get_tuner(kind: ClassifierKind, random: bool, i: int) -> Evaluator:
         classifier_kind=kind,
         repeat=0,
         run=0,
-        dimension_reduction=None,
-        continuous_perturb=None,
-        categorical_perturb=None,
-        hparam_perturb=None,
-        train_downsample=None,
+        dimension_reduction="cat",
         hparams=hps,
         debug=True,
     )
@@ -72,22 +69,27 @@ def test_ckpts() -> None:
             classifier_kind=ClassifierKind.SGD_SVM,
             repeat=0,
             run=0,
-            dimension_reduction=None,
-            continuous_perturb=None,
-            categorical_perturb=None,
-            hparam_perturb=None,
-            train_downsample=None,
             hparams=hps,
+            dimension_reduction="cat",
             debug=True,
         )
-        ev = Tuner(**ev_args)
-        ckpt_dir = ev.ckpt_file.parent
-        ckpts = sorted(ckpt_dir.glob("*.ckpt"))
-        if len(ckpts) > 0:
-            for ckpt in ckpts:
-                ckpt.unlink(missing_ok=True)
+        tuner = Tuner(**ev_args)
+        ckpt_dir = tuner.ckpt_file.parent
+        try:
 
-        ev.evaluate()
-        ev2 = Tuner(**ev_args)
-        with raises(FileExistsError):
-            ev2.evaluate()
+            res = tuner.tune(skip_done=True)
+            assert tuner.acc_file.exists()
+            assert tuner.ckpt_file.exists()
+
+            tuner2 = Tuner(**ev_args)
+            res2 = tuner2.tune(skip_done=True)
+            assert not tuner2.logdir.exists()
+            np.testing.assert_approx_equal(res, res2)
+        except Exception as e:
+            raise e
+        finally:
+            ckpts = sorted(ckpt_dir.glob("*.ckpt"))
+            if len(ckpts) > 0:
+                for ckpt in ckpts:
+                    ckpt.unlink(missing_ok=True)
+

@@ -20,6 +20,7 @@ CONT_REDUCED = ensure_dir(PQS / "continuous_reductions")
 
 LOGS = ensure_dir(ROOT / "logs")
 CKPTS = ensure_dir(ROOT / "ckpts")
+TUNE_CKPTS = ensure_dir(ROOT / "ckpts/tuning")
 DEBUG_LOGS = ensure_dir(ROOT / "debug_logs")
 
 RESULTS = ensure_dir(ROOT / "results")

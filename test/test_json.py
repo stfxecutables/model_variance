@@ -164,6 +164,7 @@ def test_evaluator() -> None:
             repeat=int(np.random.randint(0, 50)),
             run=int(np.random.randint(0, 50)),
             debug=True,
+            _suppress_json=False,
         )
         try:
             ev2 = Evaluator.from_json(ev.logdir)

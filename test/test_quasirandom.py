@@ -2,6 +2,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pytest
 
 from src.hparams.hparams import ContinuousHparam, Hparams, OrdinalHparam
 from test.helpers import random_hparams
@@ -25,6 +26,7 @@ def test_randoms() -> None:
             assert qr1 == qr2
 
 
+@pytest.mark.slow
 def test_discrepancies() -> None:
     c1 = ContinuousHparam("c1", value=None, max=10, min=0)
     c2 = ContinuousHparam("c2", value=None, max=10, min=0)
