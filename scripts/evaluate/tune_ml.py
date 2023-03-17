@@ -53,6 +53,7 @@ from src.hparams.logistic import SGDLRHparams
 from src.hparams.mlp import MLPHparams
 from src.hparams.svm import NystroemHparams, SGDLinearSVMHparams
 from src.hparams.xgboost import XGBoostHparams
+from src.parallelize import joblib_map
 
 filterwarnings("ignore", category=PerformanceWarning)
 
@@ -63,50 +64,6 @@ class ParallelArgs:
     classifier_kind: ClassifierKind
     repeat: int
     rng: Generator
-
-
-class TQDMParallel(Parallel):
-    def __init__(
-        self,
-        n_jobs=None,
-        backend=None,
-        verbose=0,
-        timeout=None,
-        pre_dispatch="2 * n_jobs",
-        batch_size="auto",
-        temp_folder=None,
-        max_nbytes="1M",
-        mmap_mode="r",
-        prefer=None,
-        require=None,
-        desc: Optional[str] = None,
-    ):
-        super().__init__(
-            n_jobs,
-            backend,
-            verbose,
-            timeout,
-            pre_dispatch,
-            batch_size,
-            temp_folder,
-            max_nbytes,
-            mmap_mode,
-            prefer,
-            require,
-        )
-        self.desc = desc
-
-    def print_progress(self):
-        update = self.n_completed_tasks - self.pbar.n
-        self.pbar.update(update)
-        return super().print_progress()
-
-    def __call__(self, iterable):
-        if hasattr(iterable, "__len__"):
-            self.pbar = tqdm(total=len(iterable), desc=self.desc)
-        else:
-            self.pbar = tqdm(desc=self.desc)
-        return super().__call__(iterable)
 
 
 def create_args(dsnames: Optional[List[DatasetName]] = None) -> List[ParallelArgs]:
@@ -239,19 +196,19 @@ def get_best_params() -> None:
             outfile = outdir / "all_hparams.json"
             copyfile(hpfile, outfile)
 
-
     desc = pd.concat(descs, axis=0, ignore_index=True)
     print(desc.to_markdown(tablefmt="simple", floatfmt="0.4f"))
 
 
 if __name__ == "__main__":
     # 21 600 runs about an hour for Anneal
-    # runtime = RuntimeClass.Fast
+    runtime = RuntimeClass.Fast
     # runtime = RuntimeClass.Mid
     # runtime = RuntimeClass.Slow
-    # n_jobs = 40 if runtime is RuntimeClass.Slow else -1
-    # dsnames = runtime.members()
-    # args = create_args(dsnames=dsnames)
+    n_jobs = 40 if runtime is RuntimeClass.Slow else -1
+    dsnames = runtime.members()
+    args = create_args(dsnames=dsnames)
+    joblib_map(evaluate, args, max_workers=n_jobs, desc="Tuning")
     # TQDMParallel(n_jobs=n_jobs, verbose=0)([delayed(evaluate)(arg) for arg in args])
     # TQDMParallel(n_jobs=1, verbose=0)([delayed(evaluate)(arg) for arg in args])
     get_best_params()
