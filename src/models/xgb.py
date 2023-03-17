@@ -9,13 +9,13 @@ sys.path.append(str(ROOT))  # isort: skip
 
 import sys
 from pathlib import Path
-from typing import Type
+from typing import Any, Dict, Type
 
 from numpy import ndarray
 from xgboost import XGBClassifier
 
 from src.dataset import Dataset
-from src.enumerables import ClassifierKind
+from src.enumerables import ClassifierKind, DatasetName, RuntimeClass
 from src.hparams.xgboost import XGBoostHparams
 from src.models.model import ClassifierModel
 
@@ -30,3 +30,12 @@ class XGBoostModel(ClassifierModel):
 
     def predict(self, X: ndarray, y: ndarray) -> tuple[ndarray, ndarray]:
         return self.model.predict(X), y
+
+    def _get_model_args(self) -> Dict[str, Any]:
+        args = super()._get_model_args()
+        runtime = RuntimeClass.from_dataset(self.dataset.name)
+        if runtime in (RuntimeClass.Fast.members() + RuntimeClass.Mid.members()):
+            args["n_jobs"] = 1
+        elif runtime in RuntimeClass.Slow.members():
+            args["n_jobs"] = 2
+        return args

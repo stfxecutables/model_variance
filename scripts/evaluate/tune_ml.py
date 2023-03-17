@@ -7,19 +7,42 @@ ROOT = Path(__file__).resolve().parent.parent.parent  # isort: skip
 sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
+import json
+import os
 import sys
 import traceback
-from argparse import Namespace
+from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
-from typing import List, Optional
+from random import shuffle
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+    no_type_check,
+)
 from warnings import filterwarnings
 
+import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+from joblib import Parallel, delayed
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
+from numpy import ndarray
 from numpy.random import Generator
+from pandas import DataFrame, Series
 from pandas.errors import PerformanceWarning
 from sklearn.model_selection import ParameterGrid
-from tqdm.contrib.concurrent import process_map
+from tqdm import tqdm
+from typing_extensions import Literal
 
 from src.enumerables import ClassifierKind, DatasetName, RuntimeClass
 from src.evaluator import Tuner, ckpt_file
@@ -40,10 +63,54 @@ class ParallelArgs:
     rng: Generator
 
 
+class TQDMParallel(Parallel):
+    def __init__(
+        self,
+        n_jobs=None,
+        backend=None,
+        verbose=0,
+        timeout=None,
+        pre_dispatch="2 * n_jobs",
+        batch_size="auto",
+        temp_folder=None,
+        max_nbytes="1M",
+        mmap_mode="r",
+        prefer=None,
+        require=None,
+        desc: Optional[str] = None,
+    ):
+        super().__init__(
+            n_jobs,
+            backend,
+            verbose,
+            timeout,
+            pre_dispatch,
+            batch_size,
+            temp_folder,
+            max_nbytes,
+            mmap_mode,
+            prefer,
+            require,
+        )
+        self.desc = desc
+
+    def print_progress(self):
+        update = self.n_completed_tasks - self.pbar.n
+        self.pbar.update(update)
+        return super().print_progress()
+
+    def __call__(self, iterable):
+        if hasattr(iterable, "__len__"):
+            self.pbar = tqdm(total=len(iterable), desc=self.desc)
+        else:
+            self.pbar = tqdm(desc=self.desc)
+        return super().__call__(iterable)
+
+
 def create_args(dsnames: Optional[List[DatasetName]] = None) -> List[ParallelArgs]:
     # from a random SeedSequence init
     entropy = 298356256812349700484752502215766469641
-    N_reps = 100
+    N_reps = 200
     ss = np.random.SeedSequence(entropy=entropy)
     rngs = [np.random.default_rng(seed) for seed in ss.spawn(N_reps)]
 
@@ -123,17 +190,54 @@ def evaluate(args: ParallelArgs) -> None:
             dimension_reduction=dimension_reduction,
             debug=True,
         )
+        # print(f"Tuning on data {dsname.name} with classifier {kind.name}")
         tuner.tune()
     except Exception as e:
         traceback.print_exc()
         print(f"Got error: {e}")
 
 
+def get_best_params() -> None:
+    TUNING = ROOT / "debug_logs/tuning/debug"
+    accfiles = sorted(TUNING.rglob("accuracy.json"))
+    tunerfiles = [accfile.parent / "tuner.json" for accfile in accfiles]
+    hpfiles = [accfile.parent / "all_hparams.json" for accfile in accfiles]
+    all_accs: Dict[str, Dict[str, List[Dict[str, Union[float, Path]]]]] = {}
+    for accfile, tunerfile, hpfile in zip(accfiles, tunerfiles, hpfiles):
+        tuner = json.loads(tunerfile.read_text())
+        dsname = tuner["dataset_name"]
+        kind = tuner["classifier_kind"]
+        acc = float(accfile.read_text())
+        if dsname not in all_accs:
+            all_accs[dsname] = {}
+        if kind not in all_accs[dsname]:
+            all_accs[dsname][kind] = []
+        all_accs[dsname][kind].append({"acc": acc, "hpfile": hpfile})
+
+    all_bests: Dict[str, Dict[str, Dict[str, Union[float, Path]]]] = {}
+    descs: List[DataFrame] = []
+    for dsname, kind_infos in all_accs.items():
+        if dsname not in all_bests:
+            all_bests[dsname] = {}
+        for kind, info in kind_infos.items():
+            info = sorted(info, key=lambda d: d["acc"], reverse=True)
+            accs = pd.Series([inf["acc"] for inf in info])
+            desc = accs.describe(percentiles=[0.01, 0.99]).to_frame().T
+            desc["data"] = dsname
+            desc["classifier"] = kind
+            all_bests[dsname][kind] = info[0]
+            descs.append(desc)
+    desc = pd.concat(descs, axis=0, ignore_index=True)
+    print(desc.to_markdown(tablefmt="simple", floatfmt="0.4f"))
+
+
 if __name__ == "__main__":
     # 21 600 runs about an hour for Anneal
-    # dsnames = RuntimeClass.very_fasts()
-    dsnames = RuntimeClass.Fast.members()
+    # runtime = RuntimeClass.Fast
+    # runtime = RuntimeClass.Mid
+    runtime = RuntimeClass.Slow
+    n_jobs = 40 if runtime is RuntimeClass.Slow else -1
+    dsnames = runtime.members()
     args = create_args(dsnames=dsnames)
-    process_map(
-        evaluate, args, total=len(args), desc="Tuning", chunksize=1, smoothing=0.08
-    )
+    TQDMParallel(n_jobs=n_jobs, verbose=0)([delayed(evaluate)(arg) for arg in args])
+    get_best_params()
