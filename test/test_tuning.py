@@ -1,9 +1,11 @@
+from itertools import combinations
 from shutil import rmtree
 from typing import Any, Dict
 
 import numpy as np
+import pytest
 
-from src.enumerables import ClassifierKind, RuntimeClass
+from src.enumerables import ClassifierKind, DatasetName, RuntimeClass
 from src.evaluator import Evaluator, Tuner
 from src.hparams.hparams import Hparams
 from src.hparams.logistic import SGDLRHparams
@@ -91,3 +93,17 @@ def test_ckpts() -> None:
             if len(ckpts) > 0:
                 for ckpt in ckpts:
                     ckpt.unlink(missing_ok=True)
+
+
+HPS = [
+    XGBoostHparams,
+    SGDLRHparams,
+    SGDLinearSVMHparams,
+    MLPHparams,
+]
+CASES = [(dsname, hp) for dsname in DatasetName for hp in HPS]
+
+
+@pytest.mark.parametrize("dsname,hps", CASES)
+def test_load_tuned_hps(dsname: DatasetName, hps: Hparams) -> None:
+    hps.tuned(dsname)

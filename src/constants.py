@@ -24,6 +24,7 @@ TUNE_CKPTS = ensure_dir(ROOT / "ckpts/tuning")
 DEBUG_LOGS = ensure_dir(ROOT / "debug_logs")
 
 RESULTS = ensure_dir(ROOT / "results")
+BEST_HPS = ensure_dir(RESULTS / "best_hps")
 PLOTS = ensure_dir(RESULTS / "plots")
 CC_RESULTS = ensure_dir(ROOT / "cc_results")
 TESTING_TEMP = ensure_dir(ROOT / "testing_temp")

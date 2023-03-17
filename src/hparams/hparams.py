@@ -31,7 +31,8 @@ from numpy.random import Generator
 from scipy.stats import loguniform
 from scipy.stats.qmc import Halton
 
-from src.enumerables import DatasetName, HparamPerturbation
+from src.constants import BEST_HPS
+from src.enumerables import ClassifierKind, DatasetName, HparamPerturbation
 from src.perturb import sig_perturb_plus
 from src.serialize import DirJSONable, FileJSONable
 
@@ -723,6 +724,8 @@ class FixedHparam(Hparam, Generic[T]):
 
 
 class Hparams(DirJSONable):
+    kind: ClassifierKind
+
     def __init__(
         self, hparams: Optional[Union[Collection[Hparam], Sequence[Hparam]]] = None
     ) -> None:
@@ -775,8 +778,14 @@ class Hparams(DirJSONable):
         defaulteds = [hp.default() for hp in self.hparams.values()]
         return cls(defaulteds)
 
-    def tuned_dict(self, dsname: DatasetName) -> Hparams:
-        raise ValueError("Cannot get tuned hparams for abstract base class.")
+    @classmethod
+    def tuned(cls, dsname: DatasetName) -> Hparams:
+        file = BEST_HPS / f"{cls.kind.value}/{dsname.value}/all_hparams.json"
+        if not file.exists():
+            raise FileNotFoundError(
+                f"Tuned hparams for {cls.kind.name} on data {dsname.name} not found."
+            )
+        return cls.from_json(file.parent)
 
     def perturbed(
         self,

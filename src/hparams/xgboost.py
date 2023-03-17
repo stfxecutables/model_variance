@@ -10,7 +10,7 @@ sys.path.append(str(ROOT))  # isort: skip
 from pathlib import Path
 from typing import Any, Collection, Dict, List, Optional, Sequence, Union
 
-from src.enumerables import DatasetName
+from src.enumerables import ClassifierKind, DatasetName
 from src.hparams.hparams import (
     ContinuousHparam,
     FixedHparam,
@@ -175,6 +175,8 @@ def xgboost_hparams(
 
 
 class XGBoostHparams(Hparams):
+    kind = ClassifierKind.XGBoost
+
     def __init__(
         self,
         hparams: Optional[Union[Collection[Hparam], Sequence[Hparam]]] = None,
@@ -183,12 +185,6 @@ class XGBoostHparams(Hparams):
         if hparams is None:
             hparams = xgboost_hparams()
         super().__init__(hparams)
-
-    def tuned_dict(self, dsname: DatasetName) -> Dict[str, Any]:
-        hps = TUNED[dsname]
-        if hps is None:
-            return self.defaults().to_dict()
-        return hps
 
 
 if __name__ == "__main__":

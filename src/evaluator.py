@@ -38,7 +38,7 @@ from src.models.dl_model import DLModel
 from src.models.logistic import LRModel, SGDLRModel
 from src.models.mlp import MLPModel
 from src.models.model import ClassifierModel
-from src.models.svc import ClassicSVM, LinearSVCModel, SGDLinearSVCModel
+from src.models.svc import ClassicSVM, LinearSVCModel, NystroemSVM, SGDLinearSVCModel
 from src.models.xgb import XGBoostModel
 from src.seeding import load_run_rng
 from src.serialize import DirJSONable
@@ -115,6 +115,8 @@ def get_model(
         return XGBoostModel(**args)
     elif kind is ClassifierKind.MLP:
         return MLPModel(**args)
+    elif kind is ClassifierKind.NystroemSVM:
+        return NystroemSVM(**args)
     else:
         raise ValueError(f"Unknown model kind: {kind}")
 

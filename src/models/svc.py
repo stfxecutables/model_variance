@@ -8,6 +8,7 @@ sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
 import sys
+from math import ceil
 from pathlib import Path
 from typing import Any, Dict, Mapping, Tuple, Type
 
@@ -89,7 +90,10 @@ class NystroemSVM(ClassifierModel):
     def __init__(
         self,
         hparams: NystroemHparams,
+        dataset: Dataset,
+        logdir: Path,
     ) -> None:
+        super().__init__(hparams=hparams, logdir=logdir, dataset=dataset)
         self.hparams: NystroemHparams = hparams
         self.classifier = SGDClassifier(**self.hparams.sgd_dict())
         self.kernel_approximator: Nystroem
@@ -99,6 +103,10 @@ class NystroemSVM(ClassifierModel):
         n_components = ny_args["n_components"]
         if X.shape[1] < n_components:
             n_components = X.shape[1]
+        # UserWarning: n_components > n_samples. This is not possible.
+        # n_components was set to n_samples, which results in inefficient evaluation of the full kernel.
+        if n_components >= X.shape[0]:
+            n_components = ceil(X.shape[0] // 2)
         self.kernel_approximator = Nystroem(
             kernel="rbf",
             gamma=ny_args["gamma"],
@@ -125,6 +133,6 @@ class NystroemSVM(ClassifierModel):
     def load_fitted(self) -> None:
         self.classifier, self.kernel_approximator = self.from_skops(self.logdir)
 
-    def predict(self, X: ndarray, y: ndarray) -> ndarray:
+    def predict(self, X: ndarray, y: ndarray) -> Tuple[ndarray, ndarray]:
         Xt = self.kernel_approximator.fit_transform(X)
-        return np.ravel(self.classifier.predict(Xt))
+        return np.ravel(self.classifier.predict(Xt)), y

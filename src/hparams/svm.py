@@ -18,7 +18,7 @@ from src.constants import SKLEARN_SGD_LR_DEFAULT as LR_DEFAULT
 from src.constants import SKLEARN_SGD_LR_MAX as LR_MAX
 from src.constants import SKLEARN_SGD_LR_MIN as LR_MIN
 from src.constants import SVM_GAMMA as GAMMA
-from src.enumerables import DatasetName
+from src.enumerables import ClassifierKind, DatasetName
 from src.hparams.hparams import (
     CategoricalHparam,
     ContinuousHparam,
@@ -27,174 +27,6 @@ from src.hparams.hparams import (
     Hparams,
     OrdinalHparam,
 )
-
-TUNED: Dict[DatasetName, Optional[Dict[str, Any]]] = {
-    DatasetName.Arrhythmia: None,
-    DatasetName.Kc1: None,
-    DatasetName.ClickPrediction: None,
-    DatasetName.BankMarketing: None,
-    DatasetName.BloodTransfusion: None,
-    DatasetName.Cnae9: None,
-    DatasetName.Ldpa: None,
-    DatasetName.Nomao: None,
-    DatasetName.Phoneme: None,
-    DatasetName.SkinSegmentation: None,
-    DatasetName.WalkingActivity: None,
-    DatasetName.Adult: None,
-    DatasetName.Higgs: None,
-    DatasetName.Numerai28_6: None,
-    DatasetName.Kr_vs_kp: None,
-    DatasetName.Connect4: None,
-    DatasetName.Shuttle: None,
-    # DevnagariScript = "devnagari-script: None"
-    DatasetName.Car: None,
-    DatasetName.Australian: None,
-    DatasetName.Segment: None,
-    # FashionMnist = "fashion-mnist: None"
-    DatasetName.JungleChess: None,
-    DatasetName.Christine: None,
-    DatasetName.Jasmine: None,
-    DatasetName.Sylvine: None,
-    DatasetName.Miniboone: None,
-    DatasetName.Dilbert: None,
-    DatasetName.Fabert: None,
-    DatasetName.Volkert: None,
-    DatasetName.Dionis: None,
-    DatasetName.Jannis: None,
-    DatasetName.Helena: None,
-    DatasetName.Aloi: None,
-    DatasetName.CreditCardFraud: None,
-    DatasetName.Credit_g: None,
-    DatasetName.Anneal: None,
-    DatasetName.MfeatFactors: None,
-    DatasetName.Vehicle: None,
-}
-
-LINEAR_TUNED: Dict[DatasetName, Optional[Dict[str, Any]]] = {
-    DatasetName.Arrhythmia: None,
-    DatasetName.Kc1: None,
-    DatasetName.ClickPrediction: None,
-    DatasetName.BankMarketing: None,
-    DatasetName.BloodTransfusion: None,
-    DatasetName.Cnae9: None,
-    DatasetName.Ldpa: None,
-    DatasetName.Nomao: None,
-    DatasetName.Phoneme: None,
-    DatasetName.SkinSegmentation: None,
-    DatasetName.WalkingActivity: None,
-    DatasetName.Adult: None,
-    DatasetName.Higgs: None,
-    DatasetName.Numerai28_6: None,
-    DatasetName.Kr_vs_kp: None,
-    DatasetName.Connect4: None,
-    DatasetName.Shuttle: None,
-    # DevnagariScript = "devnagari-script: None"
-    DatasetName.Car: None,
-    DatasetName.Australian: None,
-    DatasetName.Segment: None,
-    # FashionMnist = "fashion-mnist: None"
-    DatasetName.JungleChess: None,
-    DatasetName.Christine: None,
-    DatasetName.Jasmine: None,
-    DatasetName.Sylvine: None,
-    DatasetName.Miniboone: None,
-    DatasetName.Dilbert: None,
-    DatasetName.Fabert: None,
-    DatasetName.Volkert: None,
-    DatasetName.Dionis: None,
-    DatasetName.Jannis: None,
-    DatasetName.Helena: None,
-    DatasetName.Aloi: None,
-    DatasetName.CreditCardFraud: None,
-    DatasetName.Credit_g: None,
-    DatasetName.Anneal: None,
-    DatasetName.MfeatFactors: None,
-    DatasetName.Vehicle: None,
-}
-
-SGD_TUNED: Dict[DatasetName, Optional[Dict[str, Any]]] = {
-    DatasetName.Arrhythmia: None,
-    DatasetName.Kc1: None,
-    DatasetName.ClickPrediction: None,
-    DatasetName.BankMarketing: None,
-    DatasetName.BloodTransfusion: None,
-    DatasetName.Cnae9: None,
-    DatasetName.Ldpa: None,
-    DatasetName.Nomao: None,
-    DatasetName.Phoneme: None,
-    DatasetName.SkinSegmentation: None,
-    DatasetName.WalkingActivity: None,
-    DatasetName.Adult: None,
-    DatasetName.Higgs: None,
-    DatasetName.Numerai28_6: None,
-    DatasetName.Kr_vs_kp: None,
-    DatasetName.Connect4: None,
-    DatasetName.Shuttle: None,
-    # DevnagariScript = "devnagari-script: None"
-    DatasetName.Car: None,
-    DatasetName.Australian: None,
-    DatasetName.Segment: None,
-    # FashionMnist = "fashion-mnist: None"
-    DatasetName.JungleChess: None,
-    DatasetName.Christine: None,
-    DatasetName.Jasmine: None,
-    DatasetName.Sylvine: None,
-    DatasetName.Miniboone: None,
-    DatasetName.Dilbert: None,
-    DatasetName.Fabert: None,
-    DatasetName.Volkert: None,
-    DatasetName.Dionis: None,
-    DatasetName.Jannis: None,
-    DatasetName.Helena: None,
-    DatasetName.Aloi: None,
-    DatasetName.CreditCardFraud: None,
-    DatasetName.Credit_g: None,
-    DatasetName.Anneal: None,
-    DatasetName.MfeatFactors: None,
-    DatasetName.Vehicle: None,
-}
-
-NYSTROEM_TUNED: Dict[DatasetName, Optional[Dict[str, Any]]] = {
-    DatasetName.Arrhythmia: None,
-    DatasetName.Kc1: None,
-    DatasetName.ClickPrediction: None,
-    DatasetName.BankMarketing: None,
-    DatasetName.BloodTransfusion: None,
-    DatasetName.Cnae9: None,
-    DatasetName.Ldpa: None,
-    DatasetName.Nomao: None,
-    DatasetName.Phoneme: None,
-    DatasetName.SkinSegmentation: None,
-    DatasetName.WalkingActivity: None,
-    DatasetName.Adult: None,
-    DatasetName.Higgs: None,
-    DatasetName.Numerai28_6: None,
-    DatasetName.Kr_vs_kp: None,
-    DatasetName.Connect4: None,
-    DatasetName.Shuttle: None,
-    # DevnagariScript = "devnagari-script: None"
-    DatasetName.Car: None,
-    DatasetName.Australian: None,
-    DatasetName.Segment: None,
-    # FashionMnist = "fashion-mnist: None"
-    DatasetName.JungleChess: None,
-    DatasetName.Christine: None,
-    DatasetName.Jasmine: None,
-    DatasetName.Sylvine: None,
-    DatasetName.Miniboone: None,
-    DatasetName.Dilbert: None,
-    DatasetName.Fabert: None,
-    DatasetName.Volkert: None,
-    DatasetName.Dionis: None,
-    DatasetName.Jannis: None,
-    DatasetName.Helena: None,
-    DatasetName.Aloi: None,
-    DatasetName.CreditCardFraud: None,
-    DatasetName.Credit_g: None,
-    DatasetName.Anneal: None,
-    DatasetName.MfeatFactors: None,
-    DatasetName.Vehicle: None,
-}
 
 
 def classic_svm_hparams(
@@ -266,7 +98,7 @@ def sgd_svm_hparams(
 
 def nystroem_hparams(
     gamma: Optional[float] = 0.1,
-    n_components: Optional[int] = 100,
+    n_components: Optional[int] = 20,
     alpha: Optional[float] = 1e-4,
     l1_ratio: Optional[float] = 0.15,
     lr_init: Optional[float] = 1e-3,
@@ -277,7 +109,7 @@ def nystroem_hparams(
     # for a possible tuning range on C, gamma
     return [
         ContinuousHparam("gamma", gamma, max=1e3, min=1e-10, log_scale=True, default=0.1),
-        OrdinalHparam("n_components", n_components, max=1000, min=5, default=100),
+        OrdinalHparam("n_components", n_components, max=50, min=1, default=20),
         ContinuousHparam(
             "alpha", alpha, max=1e-1, min=1e-7, log_scale=True, default=1e-4
         ),
@@ -301,6 +133,8 @@ def nystroem_hparams(
 
 
 class ClassicSVMHparams(Hparams):
+    kind = ClassifierKind.SVM
+
     def __init__(
         self,
         hparams: Optional[Union[Collection[Hparam], Sequence[Hparam]]] = None,
@@ -310,14 +144,11 @@ class ClassicSVMHparams(Hparams):
             hparams = classic_svm_hparams()
         super().__init__(hparams)
 
-    def tuned_dict(self, dsname: DatasetName) -> Dict[str, Any]:
-        hps = TUNED[dsname]
-        if hps is None:
-            return self.defaults().to_dict()
-        return hps
 
 
 class LinearSVMHparams(Hparams):
+    kind = ClassifierKind.LinearSVM
+
     def __init__(
         self,
         hparams: Optional[Union[Collection[Hparam], Sequence[Hparam]]] = None,
@@ -327,11 +158,6 @@ class LinearSVMHparams(Hparams):
             hparams = linear_svm_hparams()
         super().__init__(hparams)
 
-    def tuned_dict(self, dsname: DatasetName) -> Dict[str, Any]:
-        hps = LINEAR_TUNED[dsname]
-        if hps is None:
-            return self.defaults().to_dict()
-        return hps
 
     def random(self, rng: Optional[Generator] = None) -> LinearSVMHparams:
         hps = super().random(rng)
@@ -368,6 +194,8 @@ class LinearSVMHparams(Hparams):
 
 
 class SGDLinearSVMHparams(Hparams):
+    kind = ClassifierKind.SGD_SVM
+
     def __init__(
         self,
         hparams: Optional[Union[Collection[Hparam], Sequence[Hparam]]] = None,
@@ -377,11 +205,6 @@ class SGDLinearSVMHparams(Hparams):
             hparams = sgd_svm_hparams()
         super().__init__(hparams)
 
-    def tuned_dict(self, dsname: DatasetName) -> Dict[str, Any]:
-        hps = SGD_TUNED[dsname]
-        if hps is None:
-            return self.defaults().to_dict()
-        return hps
 
     def random(self, rng: Optional[Generator] = None) -> SGDLinearSVMHparams:
         hps = super().random(rng)
@@ -419,6 +242,8 @@ class SGDLinearSVMHparams(Hparams):
 
 
 class NystroemHparams(Hparams):
+    kind = ClassifierKind.NystroemSVM
+
     def __init__(
         self,
         hparams: Union[Collection[Hparam], Sequence[Hparam], None] = None,
@@ -426,12 +251,6 @@ class NystroemHparams(Hparams):
         if hparams is None:
             hparams = nystroem_hparams()
         super().__init__(hparams)
-
-    def tuned_dict(self, dsname: DatasetName) -> Dict[str, Any]:
-        hps = NYSTROEM_TUNED[dsname]
-        if hps is None:
-            return self.defaults().to_dict()
-        return hps
 
     def set_n_jobs(self, n_jobs: int) -> None:
         self.hparams["n_jobs"].value = n_jobs

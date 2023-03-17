@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from random import shuffle
+from shutil import copyfile
 from typing import (
     Any,
     Callable,
@@ -44,12 +45,13 @@ from sklearn.model_selection import ParameterGrid
 from tqdm import tqdm
 from typing_extensions import Literal
 
+from src.constants import BEST_HPS, ensure_dir
 from src.enumerables import ClassifierKind, DatasetName, RuntimeClass
 from src.evaluator import Tuner, ckpt_file
 from src.hparams.hparams import Hparams
 from src.hparams.logistic import SGDLRHparams
 from src.hparams.mlp import MLPHparams
-from src.hparams.svm import SGDLinearSVMHparams
+from src.hparams.svm import NystroemHparams, SGDLinearSVMHparams
 from src.hparams.xgboost import XGBoostHparams
 
 filterwarnings("ignore", category=PerformanceWarning)
@@ -118,6 +120,7 @@ def create_args(dsnames: Optional[List[DatasetName]] = None) -> List[ParallelArg
         ClassifierKind.SGD_LR,
         ClassifierKind.SGD_SVM,
         ClassifierKind.XGBoost,
+        # ClassifierKind.NystroemSVM,  # trash performance
     ]
     dsnames = RuntimeClass.most_fastest() if dsnames is None else dsnames
     grid = [
@@ -180,6 +183,7 @@ def evaluate(args: ParallelArgs) -> None:
             ClassifierKind.SGD_LR: SGDLRHparams().random(rng=rng),
             ClassifierKind.MLP: MLPHparams().random(rng=rng),
             ClassifierKind.XGBoost: XGBoostHparams().random(rng=rng),
+            # ClassifierKind.NystroemSVM: NystroemHparams().random(rng=rng),  # trash performance
         }[kind]
         tuner = Tuner(
             dataset_name=dsname,
@@ -227,6 +231,15 @@ def get_best_params() -> None:
             desc["classifier"] = kind
             all_bests[dsname][kind] = info[0]
             descs.append(desc)
+
+    for dsname, kind_info in all_bests.items():
+        for kind, info in kind_info.items():
+            hpfile = Path(info["hpfile"])  # type: ignore
+            outdir = ensure_dir(BEST_HPS / f"{kind}/{dsname}")
+            outfile = outdir / "all_hparams.json"
+            copyfile(hpfile, outfile)
+
+
     desc = pd.concat(descs, axis=0, ignore_index=True)
     print(desc.to_markdown(tablefmt="simple", floatfmt="0.4f"))
 
@@ -235,9 +248,10 @@ if __name__ == "__main__":
     # 21 600 runs about an hour for Anneal
     # runtime = RuntimeClass.Fast
     # runtime = RuntimeClass.Mid
-    runtime = RuntimeClass.Slow
-    n_jobs = 40 if runtime is RuntimeClass.Slow else -1
-    dsnames = runtime.members()
-    args = create_args(dsnames=dsnames)
-    TQDMParallel(n_jobs=n_jobs, verbose=0)([delayed(evaluate)(arg) for arg in args])
+    # runtime = RuntimeClass.Slow
+    # n_jobs = 40 if runtime is RuntimeClass.Slow else -1
+    # dsnames = runtime.members()
+    # args = create_args(dsnames=dsnames)
+    # TQDMParallel(n_jobs=n_jobs, verbose=0)([delayed(evaluate)(arg) for arg in args])
+    # TQDMParallel(n_jobs=1, verbose=0)([delayed(evaluate)(arg) for arg in args])
     get_best_params()
