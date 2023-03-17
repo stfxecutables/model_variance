@@ -24,7 +24,7 @@ from src.evaluator import Evaluator
 from src.hparams.hparams import Hparams
 from src.hparams.logistic import LRHparams, SGDLRHparams
 from src.hparams.mlp import MLPHparams
-from src.hparams.svm import LinearSVMHparams, SGDLinearSVMHparams, SVMHparams
+from src.hparams.svm import ClassicSVMHparams, LinearSVMHparams, SGDLinearSVMHparams
 from src.hparams.xgboost import XGBoostHparams
 
 FASTS = RuntimeClass.very_fasts()
@@ -39,7 +39,7 @@ KINDS = [
 def get_evaluator(kind: ClassifierKind, random: bool, i: int) -> Evaluator:
     hp: Hparams = {
         ClassifierKind.XGBoost: XGBoostHparams,
-        ClassifierKind.SVM: SVMHparams,
+        ClassifierKind.SVM: ClassicSVMHparams,
         ClassifierKind.LinearSVM: LinearSVMHparams,
         ClassifierKind.LR: LRHparams,
         ClassifierKind.SGD_LR: SGDLRHparams,

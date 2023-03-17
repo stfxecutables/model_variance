@@ -27,7 +27,7 @@ from src.evaluator import Evaluator, Tuner
 from src.hparams.hparams import CategoricalHparam, ContinuousHparam, OrdinalHparam
 from src.hparams.logistic import LRHparams, SGDLRHparams
 from src.hparams.mlp import MLPHparams
-from src.hparams.svm import LinearSVMHparams, SGDLinearSVMHparams, SVMHparams
+from src.hparams.svm import ClassicSVMHparams, LinearSVMHparams, SGDLinearSVMHparams
 from src.hparams.xgboost import XGBoostHparams
 from src.utils import missing_keys
 from test.helpers import random_categorical, random_continuous, random_ordinal
@@ -109,9 +109,9 @@ def test_hparams_svm() -> None:
         tempdir = Path(mkdtemp(dir=DIR))
         outdir = DIR / f"{tempdir.name}/hps"
         for _ in range(50):
-            hps = SVMHparams().random()
+            hps = ClassicSVMHparams().random()
             hps.to_json(root=outdir)
-            hp = SVMHparams.from_json(root=outdir)
+            hp = ClassicSVMHparams.from_json(root=outdir)
             assert hps - hp < 1e-14
             assert hp - hps < 1e-14
             rmtree(outdir)
@@ -125,7 +125,7 @@ def test_evaluator() -> None:
     for _ in range(100):
         hp_cls = choice(
             [
-                SVMHparams,
+                ClassicSVMHparams,
                 SGDLinearSVMHparams,
                 LinearSVMHparams,
                 XGBoostHparams,
@@ -137,7 +137,7 @@ def test_evaluator() -> None:
         ds = choice([*DatasetName])
         classifier_kind = {
             XGBoostHparams: ClassifierKind.XGBoost,
-            SVMHparams: ClassifierKind.SVM,
+            ClassicSVMHparams: ClassifierKind.SVM,
             SGDLinearSVMHparams: ClassifierKind.SGD_SVM,
             LinearSVMHparams: ClassifierKind.LinearSVM,
             LRHparams: ClassifierKind.LR,
@@ -187,7 +187,7 @@ def test_tuner() -> None:
     for _ in range(100):
         hp_cls = choice(
             [
-                SVMHparams,
+                ClassicSVMHparams,
                 SGDLinearSVMHparams,
                 LinearSVMHparams,
                 XGBoostHparams,
@@ -199,7 +199,7 @@ def test_tuner() -> None:
         ds = choice([*DatasetName])
         classifier_kind = {
             XGBoostHparams: ClassifierKind.XGBoost,
-            SVMHparams: ClassifierKind.SVM,
+            ClassicSVMHparams: ClassifierKind.SVM,
             SGDLinearSVMHparams: ClassifierKind.SGD_SVM,
             LinearSVMHparams: ClassifierKind.LinearSVM,
             LRHparams: ClassifierKind.LR,

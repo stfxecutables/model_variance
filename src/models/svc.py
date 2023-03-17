@@ -9,23 +9,33 @@ sys.path.append(str(ROOT))  # isort: skip
 
 import sys
 from pathlib import Path
-from typing import Any, Dict, Mapping, Type
+from typing import Any, Dict, Mapping, Tuple, Type
 
+import numpy as np
+import skops.io as skio
 from numpy import ndarray
+from sklearn.kernel_approximation import Nystroem
 from sklearn.linear_model import SGDClassifier
 from sklearn.svm import SVC, LinearSVC
 
 from src.dataset import Dataset
 from src.enumerables import ClassifierKind, RuntimeClass
-from src.hparams.svm import LinearSVMHparams, SGDLinearSVMHparams, SVMHparams
+from src.hparams.svm import (
+    ClassicSVMHparams,
+    LinearSVMHparams,
+    NystroemHparams,
+    SGDLinearSVMHparams,
+)
 from src.models.model import ClassifierModel
 
 
-class SVCModel(ClassifierModel):
-    def __init__(self, hparams: SVMHparams, dataset: Dataset, logdir: Path) -> None:
+class ClassicSVM(ClassifierModel):
+    def __init__(
+        self, hparams: ClassicSVMHparams, dataset: Dataset, logdir: Path
+    ) -> None:
         super().__init__(hparams=hparams, logdir=logdir, dataset=dataset)
         self.kind: ClassifierKind = ClassifierKind.SVM
-        self.hparams: SVMHparams
+        self.hparams: ClassicSVMHparams
         self.model_cls: Type[SVC] = SVC
         self.model: SVC
 
@@ -40,7 +50,9 @@ class SVCModel(ClassifierModel):
 
 
 class LinearSVCModel(ClassifierModel):
-    def __init__(self, hparams: SVMHparams, dataset: Dataset, logdir: Path) -> None:
+    def __init__(
+        self, hparams: ClassicSVMHparams, dataset: Dataset, logdir: Path
+    ) -> None:
         super().__init__(hparams=hparams, logdir=logdir, dataset=dataset)
         self.kind: ClassifierKind = ClassifierKind.LinearSVM
         self.hparams: LinearSVMHparams
@@ -52,7 +64,9 @@ class LinearSVCModel(ClassifierModel):
 
 
 class SGDLinearSVCModel(ClassifierModel):
-    def __init__(self, hparams: SVMHparams, dataset: Dataset, logdir: Path) -> None:
+    def __init__(
+        self, hparams: ClassicSVMHparams, dataset: Dataset, logdir: Path
+    ) -> None:
         super().__init__(hparams=hparams, logdir=logdir, dataset=dataset)
         self.kind: ClassifierKind = ClassifierKind.SGD_SVM
         self.hparams: SGDLinearSVMHparams
@@ -69,3 +83,48 @@ class SGDLinearSVCModel(ClassifierModel):
         # if RuntimeClass.from_dataset(self.dataset.name) is not RuntimeClass.Fast:
         #     args["n_jobs"] = -1  # type: ignore
         # return args
+
+
+class NystroemSVM(ClassifierModel):
+    def __init__(
+        self,
+        hparams: NystroemHparams,
+    ) -> None:
+        self.hparams: NystroemHparams = hparams
+        self.classifier = SGDClassifier(**self.hparams.sgd_dict())
+        self.kernel_approximator: Nystroem
+
+    def fit(self, X: ndarray, y: ndarray, save: bool = True) -> None:
+        ny_args = self.hparams.ny_dict()
+        n_components = ny_args["n_components"]
+        if X.shape[1] < n_components:
+            n_components = X.shape[1]
+        self.kernel_approximator = Nystroem(
+            kernel="rbf",
+            gamma=ny_args["gamma"],
+            n_components=n_components,
+        )
+        Xt = self.kernel_approximator.fit_transform(X)
+        self.classifier.fit(Xt, y)
+
+        if save:
+            self.to_skops(self.logdir)
+        self.fitted = True
+
+    def to_skops(self, root: Path) -> None:
+        model_out = root / "model.skops"
+        ny_out = root / "nystroem.skos"
+        skio.dump(self.classifier, model_out)
+        skio.dump(self.kernel_approximator, ny_out)
+
+    def from_skops(self, root: Path) -> Tuple[SGDClassifier, Nystroem]:
+        model_out = root / "model.skops"
+        ny_out = root / "nystroem.skos"
+        return skio.load(model_out, trusted=True), skio.load(ny_out, trusted=True)
+
+    def load_fitted(self) -> None:
+        self.classifier, self.kernel_approximator = self.from_skops(self.logdir)
+
+    def predict(self, X: ndarray, y: ndarray) -> ndarray:
+        Xt = self.kernel_approximator.fit_transform(X)
+        return np.ravel(self.classifier.predict(Xt))

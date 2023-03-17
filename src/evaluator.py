@@ -38,7 +38,7 @@ from src.models.dl_model import DLModel
 from src.models.logistic import LRModel, SGDLRModel
 from src.models.mlp import MLPModel
 from src.models.model import ClassifierModel
-from src.models.svc import LinearSVCModel, SGDLinearSVCModel, SVCModel
+from src.models.svc import ClassicSVM, LinearSVCModel, SGDLinearSVCModel
 from src.models.xgb import XGBoostModel
 from src.seeding import load_run_rng
 from src.serialize import DirJSONable
@@ -106,7 +106,7 @@ def get_model(
     elif kind is ClassifierKind.SGD_LR:
         return SGDLRModel(**args)
     elif kind is ClassifierKind.SVM:
-        return SVCModel(**args)
+        return ClassicSVM(**args)
     elif kind is ClassifierKind.LinearSVM:
         return LinearSVCModel(**args)
     elif kind is ClassifierKind.SGD_SVM:

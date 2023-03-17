@@ -19,7 +19,7 @@ from src.evaluator import Evaluator
 from src.hparams.hparams import Hparams
 from src.hparams.logistic import LRHparams, SGDLRHparams
 from src.hparams.mlp import MLPHparams
-from src.hparams.svm import LinearSVMHparams, SGDLinearSVMHparams, SVMHparams
+from src.hparams.svm import ClassicSVMHparams, LinearSVMHparams, SGDLinearSVMHparams
 from src.hparams.xgboost import XGBoostHparams
 
 # rename prevents recursive pytest discovery
@@ -58,7 +58,7 @@ def get_evaluator(targs: TimingArgs) -> Evaluator:
         ClassifierKind.XGBoost: XGBoostHparams,
         ClassifierKind.SGD_SVM: SGDLinearSVMHparams,
         ClassifierKind.LinearSVM: LinearSVMHparams,
-        ClassifierKind.SVM: SVMHparams,
+        ClassifierKind.SVM: ClassicSVMHparams,
         ClassifierKind.LR: LRHparams,
         ClassifierKind.SGD_LR: SGDLRHparams,
         ClassifierKind.MLP: MLPHparams,

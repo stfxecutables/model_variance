@@ -25,7 +25,7 @@ from src.enumerables import ClassifierKind, DatasetName
 from src.evaluator import get_model
 from src.hparams.logistic import LRHparams, SGDLRHparams
 from src.hparams.mlp import MLPHparams
-from src.hparams.svm import LinearSVMHparams, SGDLinearSVMHparams, SVMHparams
+from src.hparams.svm import ClassicSVMHparams, LinearSVMHparams, SGDLinearSVMHparams
 from src.hparams.xgboost import XGBoostHparams
 from src.models.dl_model import DLModel
 from src.models.model import ClassifierModel
@@ -41,7 +41,7 @@ CATS = [chr(i) for i in (list(range(97, 123)) + list(range(65, 91)))]
 def random_classifier(logdir: Path) -> ClassifierModel:
     hp_cls = choice(
         [
-            SVMHparams,
+            ClassicSVMHparams,
             SGDLinearSVMHparams,
             LinearSVMHparams,
             XGBoostHparams,
@@ -60,7 +60,7 @@ def random_classifier(logdir: Path) -> ClassifierModel:
     )
     classifier_kind = {
         XGBoostHparams: ClassifierKind.XGBoost,
-        SVMHparams: ClassifierKind.SVM,
+        ClassicSVMHparams: ClassifierKind.SVM,
         SGDLinearSVMHparams: ClassifierKind.SGD_SVM,
         LinearSVMHparams: ClassifierKind.LinearSVM,
         SGDLRHparams: ClassifierKind.SGD_LR,
