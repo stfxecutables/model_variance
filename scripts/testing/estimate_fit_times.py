@@ -15,7 +15,6 @@ from warnings import filterwarnings
 
 from pandas.errors import PerformanceWarning
 from sklearn.model_selection import ParameterGrid
-from tqdm.contrib.concurrent import process_map
 
 from src.enumerables import (
     CatPerturbLevel,
@@ -31,6 +30,7 @@ from src.hparams.logistic import SGDLRHparams
 from src.hparams.mlp import MLPHparams
 from src.hparams.svm import SGDLinearSVMHparams
 from src.hparams.xgboost import XGBoostHparams
+from src.parallelize import joblib_map
 
 filterwarnings("ignore", category=PerformanceWarning)
 
@@ -72,6 +72,7 @@ def create_grid(dsnames: Optional[List[DatasetName]] = None) -> List[Dict[str, A
                 # train_downsample=[None, 25, 50, 75],
                 train_downsample=[None, 50, 75],
                 categorical_perturb_level=[CatPerturbLevel.Sample],
+                label=["tuned"],
                 debug=[True],
             )
         )
@@ -98,13 +99,14 @@ def evaluate(args: Dict[str, Any]) -> None:
         ckpt = ckpt_file(**ckpt_args)
         if ckpt.exists():
             return
+        dsname: DatasetName = args["dataset_name"]
         kind: ClassifierKind = args["classifier_kind"]
         hps: Hparams = {
-            ClassifierKind.SGD_SVM: SGDLinearSVMHparams().defaults(),
-            ClassifierKind.SGD_LR: SGDLRHparams().defaults(),
-            ClassifierKind.MLP: MLPHparams().defaults(),
-            ClassifierKind.XGBoost: XGBoostHparams().defaults(),
-        }[kind]
+            ClassifierKind.SGD_SVM: lambda: SGDLinearSVMHparams.tuned(dsname),
+            ClassifierKind.SGD_LR: lambda: SGDLRHparams.tuned(dsname),
+            ClassifierKind.MLP: lambda: MLPHparams.tuned(dsname),
+            ClassifierKind.XGBoost: lambda: XGBoostHparams.tuned(dsname),
+        }[kind]()
         evaluator = Evaluator(**args, base_hps=hps)
         evaluator.evaluate()
     except Exception as e:
@@ -115,6 +117,4 @@ def evaluate(args: Dict[str, Any]) -> None:
 if __name__ == "__main__":
     # 21 600 runs about an hour for Anneal
     grid = create_grid(dsnames=[DatasetName.Anneal])
-    process_map(
-        evaluate, grid, total=len(grid), desc="Evaluating", chunksize=10, smoothing=0.08
-    )
+    joblib_map(evaluate, grid, desc="Evaluating")

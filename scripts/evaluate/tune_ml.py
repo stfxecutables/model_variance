@@ -194,21 +194,20 @@ def get_best_params() -> None:
             hpfile = Path(info["hpfile"])  # type: ignore
             outdir = ensure_dir(BEST_HPS / f"{kind}/{dsname}")
             outfile = outdir / "all_hparams.json"
+            acc_out = outdir / "accuracy.json"
             copyfile(hpfile, outfile)
+            acc_out.write_text(f"{info['acc']:0.20f}")
 
     desc = pd.concat(descs, axis=0, ignore_index=True)
     print(desc.to_markdown(tablefmt="simple", floatfmt="0.4f"))
 
 
 if __name__ == "__main__":
-    # 21 600 runs about an hour for Anneal
-    runtime = RuntimeClass.Fast
+    # runtime = RuntimeClass.Fast
     # runtime = RuntimeClass.Mid
     # runtime = RuntimeClass.Slow
-    n_jobs = 40 if runtime is RuntimeClass.Slow else -1
-    dsnames = runtime.members()
-    args = create_args(dsnames=dsnames)
-    joblib_map(evaluate, args, max_workers=n_jobs, desc="Tuning")
-    # TQDMParallel(n_jobs=n_jobs, verbose=0)([delayed(evaluate)(arg) for arg in args])
-    # TQDMParallel(n_jobs=1, verbose=0)([delayed(evaluate)(arg) for arg in args])
+    # n_jobs = 40 if runtime is RuntimeClass.Slow else -1
+    # dsnames = runtime.members()
+    # args = create_args(dsnames=dsnames)
+    # joblib_map(evaluate, args, max_workers=n_jobs, desc="Tuning")
     get_best_params()
