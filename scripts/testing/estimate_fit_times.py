@@ -26,6 +26,7 @@ from src.enumerables import (
 )
 from src.evaluator import Evaluator, ckpt_file
 from src.hparams.hparams import Hparams
+from src.hparams.light import LightGBMHparams
 from src.hparams.logistic import SGDLRHparams
 from src.hparams.mlp import MLPHparams
 from src.hparams.svm import SGDLinearSVMHparams
@@ -34,12 +35,17 @@ from src.parallelize import joblib_map
 
 filterwarnings("ignore", category=PerformanceWarning)
 
+"""
+Need to rethink this a bit. Using the full data makes
+"""
+
 
 def create_grid(dsnames: Optional[List[DatasetName]] = None) -> List[Dict[str, Any]]:
     classifiers = [
         ClassifierKind.SGD_LR,
         ClassifierKind.SGD_SVM,
         ClassifierKind.XGBoost,
+        ClassifierKind.LightGBM,
     ]
     data_perturbs = [
         None,
@@ -72,7 +78,7 @@ def create_grid(dsnames: Optional[List[DatasetName]] = None) -> List[Dict[str, A
                 # train_downsample=[None, 25, 50, 75],
                 train_downsample=[None, 50, 75],
                 categorical_perturb_level=[CatPerturbLevel.Sample],
-                label=["tuned"],
+                label=["prelim"],
                 debug=[True],
             )
         )
@@ -106,6 +112,7 @@ def evaluate(args: Dict[str, Any]) -> None:
             ClassifierKind.SGD_LR: lambda: SGDLRHparams.tuned(dsname),
             ClassifierKind.MLP: lambda: MLPHparams.tuned(dsname),
             ClassifierKind.XGBoost: lambda: XGBoostHparams.tuned(dsname),
+            ClassifierKind.LightGBM: lambda: LightGBMHparams.tuned(dsname),
         }[kind]()
         evaluator = Evaluator(**args, base_hps=hps)
         evaluator.evaluate()

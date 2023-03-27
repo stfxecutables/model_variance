@@ -419,6 +419,13 @@ class Dataset:
             X = X.reshape(-1, 1)
         return X
 
+    def get_encoded_y(
+        self,
+    ) -> ndarray:
+        t = self.data["__target"]
+        y: ndarray = LabelEncoder().fit_transform(t).astype(np.float64)  # type: ignore
+        return y
+
     def get_X_y(
         self,
         cont_perturb: Optional[DataPerturbation] = None,
@@ -457,7 +464,7 @@ class Dataset:
             rng=rng,
         )
         t = self.data["__target"]
-        y: ndarray = LabelEncoder().fit_transform(t).astype(np.float64)  # type: ignore
+        y = self.get_encoded_y()
         X: ndarray
         if X_cat is None and X_cont is None:
             raise ValueError("No data for dataset.")

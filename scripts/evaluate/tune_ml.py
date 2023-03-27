@@ -49,6 +49,7 @@ from src.constants import BEST_HPS, ensure_dir
 from src.enumerables import ClassifierKind, DatasetName, RuntimeClass
 from src.evaluator import Tuner, ckpt_file
 from src.hparams.hparams import Hparams
+from src.hparams.light import LightGBMHparams
 from src.hparams.logistic import SGDLRHparams
 from src.hparams.mlp import MLPHparams
 from src.hparams.svm import NystroemHparams, SGDLinearSVMHparams
@@ -74,9 +75,10 @@ def create_args(dsnames: Optional[List[DatasetName]] = None) -> List[ParallelArg
     rngs = [np.random.default_rng(seed) for seed in ss.spawn(N_reps)]
 
     classifiers = [
-        ClassifierKind.SGD_LR,
-        ClassifierKind.SGD_SVM,
-        ClassifierKind.XGBoost,
+        # ClassifierKind.SGD_LR,
+        # ClassifierKind.SGD_SVM,
+        # ClassifierKind.XGBoost,
+        ClassifierKind.LightGBM,
         # ClassifierKind.NystroemSVM,  # trash performance
     ]
     dsnames = RuntimeClass.most_fastest() if dsnames is None else dsnames
@@ -140,6 +142,7 @@ def evaluate(args: ParallelArgs) -> None:
             ClassifierKind.SGD_LR: SGDLRHparams().random(rng=rng),
             ClassifierKind.MLP: MLPHparams().random(rng=rng),
             ClassifierKind.XGBoost: XGBoostHparams().random(rng=rng),
+            ClassifierKind.LightGBM: LightGBMHparams().random(rng=rng),
             # ClassifierKind.NystroemSVM: NystroemHparams().random(rng=rng),  # trash performance
         }[kind]
         tuner = Tuner(
@@ -203,11 +206,11 @@ def get_best_params() -> None:
 
 
 if __name__ == "__main__":
-    # runtime = RuntimeClass.Fast
+    runtime = RuntimeClass.Fast
     # runtime = RuntimeClass.Mid
     # runtime = RuntimeClass.Slow
-    # n_jobs = 40 if runtime is RuntimeClass.Slow else -1
-    # dsnames = runtime.members()
-    # args = create_args(dsnames=dsnames)
-    # joblib_map(evaluate, args, max_workers=n_jobs, desc="Tuning")
-    get_best_params()
+    n_jobs = 40 if runtime is RuntimeClass.Slow else -1
+    dsnames = runtime.members()
+    args = create_args(dsnames=dsnames)
+    joblib_map(evaluate, args, max_workers=n_jobs, desc="Tuning")
+    # get_best_params()

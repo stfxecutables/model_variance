@@ -345,6 +345,7 @@ class ClassifierKind(Indexable):
     SGD_LR = "lr-sgd"
     LR = "lr"  # MLP with one linear layer, mathematically identical
     NystroemSVM = "svm-nystroem"
+    LightGBM = "light-gbm"
 
     def index(self) -> int:
         return [*ClassifierKind].index(self) + 1
@@ -356,6 +357,7 @@ class ClassifierKind(Indexable):
             ClassifierKind.SGD_SVM,
             ClassifierKind.MLP,
             ClassifierKind.XGBoost,
+            ClassifierKind.LightGBM,
         ]
 
     # def model(self) -> ClassifierModel:

@@ -35,6 +35,7 @@ from src.enumerables import (
 )
 from src.hparams.hparams import Hparams
 from src.models.dl_model import DLModel
+from src.models.light import LightGBMModel
 from src.models.logistic import LRModel, SGDLRModel
 from src.models.mlp import MLPModel
 from src.models.model import ClassifierModel
@@ -117,6 +118,8 @@ def get_model(
         return MLPModel(**args)
     elif kind is ClassifierKind.NystroemSVM:
         return NystroemSVM(**args)
+    elif kind is ClassifierKind.LightGBM:
+        return LightGBMModel(**args)
     else:
         raise ValueError(f"Unknown model kind: {kind}")
 
@@ -203,6 +206,7 @@ class Evaluator(DirJSONable):
                 ClassifierKind.SGD_SVM,
                 ClassifierKind.LinearSVM,
                 ClassifierKind.XGBoost,
+                ClassifierKind.LightGBM,
             ]
             else self.dl_dir
         )
