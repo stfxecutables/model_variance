@@ -8,22 +8,67 @@ sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
 import sys
-from pathlib import Path
-from typing import Callable, Literal
+from typing import Any, Callable, List, Literal, Protocol, Union
 
 import numpy as np
 from numba import njit, prange
 from numpy import ndarray
 from numpy.typing import NDArray
 
-from src.results import PredTarg
+from src.results import PredTarg, PredTargIdx
 
 RunComputer = Callable[[tuple[ndarray, ndarray]], float]
 RunPairComputer = Callable[[tuple[PredTarg, PredTarg]], float]
 
 
+class ConsistencyClassPairwiseComputer(Protocol):
+    def __call__(
+        self,
+        preds: List[ndarray],
+        targs: List[ndarray],
+        idx: NDArray[np.int64],
+        **kwargs: Any,
+    ) -> ndarray:
+        ...
+
+
+class ConsistencyClassPairwiseErrorComputer(Protocol):
+    def __call__(
+        self,
+        y_errs: NDArray[np.bool_],
+        idx: NDArray[np.int64],
+        **kwargs: Any,
+    ) -> ndarray:
+        ...
+
+
+ConsistencyClassRunComputer = Callable[[tuple[PredTarg, NDArray[np.int64]]], float]
+ConsistencyClassComputer = Union[
+    ConsistencyClassPairwiseComputer, ConsistencyClassRunComputer
+]
+
+
 def _default(preds_targs: tuple[ndarray, ndarray]) -> float:
     raise NotImplementedError("Must implement a `computer`!")
+
+
+def _cc_pairwise_default(
+    preds: List[ndarray], targs: List[ndarray], idx: NDArray[np.int64], **kwargs: Any
+) -> ndarray:
+    raise NotImplementedError("Must implement a `computer`!")
+
+
+def _cc_pairwise_error_default(
+    y_errs: NDArray[np.bool_], idx: NDArray[np.int64], **kwargs: Any
+) -> ndarray:
+    raise NotImplementedError("Must implement a `computer`!")
+
+
+def inconsistent_set(rep_preds: List[ndarray]) -> NDArray[np.int64]:
+    idx = np.ones_like(rep_preds[0], dtype=np.bool_)
+    for preds in rep_preds:
+        idx &= preds == rep_preds[0]
+    return np.where(~idx)[0]
 
 
 @njit(parallel=True)
@@ -120,6 +165,18 @@ def _ec(
     empty_unions: Literal["nan", "0", "1"] = "nan",
     local_norm: bool = False,
 ) -> ndarray:
+    matrix = _ecs(y_errs, empty_unions, local_norm)
+    return matrix[np.triu_indices_from(matrix, k=1)]
+
+
+def _cc_ec(
+    y_errs: NDArray[np.bool_],
+    idx: NDArray[np.int64],
+    empty_unions: Literal["nan", "0", "1"] = "nan",
+    local_norm: bool = False,
+    **kwargs: Any,
+) -> ndarray:
+    y_errs = y_errs[:, idx]  # y_ers.shape == (N_rep, n_samples)
     matrix = _ecs(y_errs, empty_unions, local_norm)
     return matrix[np.triu_indices_from(matrix, k=1)]
 

@@ -18,6 +18,7 @@ from typing import Any, List, Literal, Optional, Type, Union
 import numpy as np
 import pandas as pd
 from numpy import ndarray
+from numpy.typing import NDArray
 from pandas import DataFrame
 from tqdm import tqdm
 from typing_extensions import Literal
@@ -58,6 +59,13 @@ class PredTarg:
     targs: ndarray
 
 
+@dataclass
+class PredTargIdx:
+    preds: ndarray
+    targs: ndarray
+    idx: NDArray[np.int64]
+
+
 class Results:
     ALL_COLS = [
         "dataset_name",
@@ -78,12 +86,14 @@ class Results:
         hps: List[Hparams],
         preds: List[ndarray],
         targs: List[ndarray],
+        root: Optional[Path] = None,
     ) -> None:
         # indexed by repeat, run?
         self.evaluators: DataFrame = evaluators
         self.hps: List[Hparams] = hps
         self.preds: List[ndarray] = preds
         self.targs: List[ndarray] = targs
+        self.root: Optional[Path] = root
 
     def select(
         self,
@@ -254,7 +264,9 @@ class Results:
         print("Loading targs")
         targs_dict = np.load(targs_out)
         all_targs = [targs_dict[str(i)] for i in range(len(targs_dict))]
-        return cls(evaluators=evals, hps=all_hps, preds=all_preds, targs=all_targs)
+        return cls(
+            evaluators=evals, hps=all_hps, preds=all_preds, targs=all_targs, root=root
+        )
 
     @classmethod
     def from_test_cached(cls: Type[Results]) -> Results:
