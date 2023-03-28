@@ -39,7 +39,7 @@ class ClassifierModel(SKOPable):
         self.model_cls: Type[Any]
         self.model: Optional[ThirdPartyClassifierModel] = None
 
-    def fit(self, X: ndarray, y: ndarray, save: bool = True) -> None:
+    def fit(self, X: ndarray, y: ndarray, save: bool = False) -> None:
         # constant (non-perturbable) constructor args and fit args
 
         fargs = (X, y)
