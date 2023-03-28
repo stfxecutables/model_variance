@@ -124,7 +124,15 @@ def evaluate(args: Dict[str, Any]) -> None:
 
 if __name__ == "__main__":
     # 21 600 runs about an hour for Anneal
-    grid = create_grid(dsnames=[DatasetName.Anneal])
+    grid = create_grid(
+        dsnames=[
+            # DatasetName.Anneal,
+            DatasetName.Arrhythmia,
+            DatasetName.Christine,
+            DatasetName.Credit_g,
+            DatasetName.Vehicle,
+        ]
+    )
     cluster = os.environ.get("CC_CLUSTER")
     if cluster == "niagara":
         max_workers = 80
