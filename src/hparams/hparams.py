@@ -537,8 +537,8 @@ class CategoricalHparam(Hparam):
         method: HparamPerturbation = HparamPerturbation.AbsPercent10,
         rng: Optional[Generator] = None,
     ) -> Hparam:
-        if self.value is None:
-            raise ValueError("Cannot perturb categorical hparam with value None.")
+        # if self.value is None:
+        #     raise ValueError(f"Cannot perturb categorical hparam `{self.name}` with value None.")
         if method in [HparamPerturbation.SigOne, HparamPerturbation.SigZero]:
             # No coherent definition for this, also sig dig perturbation
             # is supposed to be "invisible", so perhaps leaving no impact on

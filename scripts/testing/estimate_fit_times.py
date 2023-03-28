@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent  # isort: skip
 sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
+import os
 import sys
 import traceback
 from pathlib import Path
@@ -124,4 +125,11 @@ def evaluate(args: Dict[str, Any]) -> None:
 if __name__ == "__main__":
     # 21 600 runs about an hour for Anneal
     grid = create_grid(dsnames=[DatasetName.Anneal])
-    joblib_map(evaluate, grid, desc="Evaluating")
+    cluster = os.environ.get("CC_CLUSTER")
+    if cluster == "niagara":
+        max_workers = 80
+    elif cluster == "cedar":
+        max_workers = 32
+    else:
+        max_workers = 8
+    joblib_map(evaluate, grid, desc="Evaluating", max_workers=max_workers)

@@ -22,7 +22,7 @@ from pandas import DataFrame
 from tqdm import tqdm
 from typing_extensions import Literal
 
-from src.archival import parse_tar_gz
+from src.archival import parse_tar_gz, unarchive_tar_gz
 from src.constants import TESTING_TEMP
 from src.enumerables import (
     CatPerturbLevel,
@@ -32,6 +32,7 @@ from src.enumerables import (
     HparamPerturbation,
 )
 from src.hparams.hparams import Hparams
+from src.parallelize import joblib_map
 
 TEST_TAR = TESTING_TEMP / "test_logs.tar"
 TEST_EVALS_DF = TESTING_TEMP / "evals_test.parquet"
@@ -195,6 +196,64 @@ class Results:
             print(
                 f"Failed to read {read_fails} archives. Run `find_bad_tars.py` to find."
             )
+        return cls(evaluators=evals, hps=all_hps, preds=all_preds, targs=all_targs)
+
+    @classmethod
+    def from_tar_gzs(cls: Type[Results], root: Path, cache: bool = False) -> Results:
+        tars = root.rglob("*.tar.gz")
+        results = joblib_map(unarchive_tar_gz, tars, desc="Reading archived results")
+        good = [r for r in results if r is not None]
+        n_problems = len(results) - len(good)
+        if n_problems > 0:
+            print("Ran into problems trying to extract archives:")
+            for result, path in zip(results, tars):
+                if result is None:
+                    print(path)
+        all_evals, all_hps, all_preds, all_targs = [], [], [], []
+        for ev, hp, preds, targs in good:
+            all_evals.append(ev)
+            all_hps.append(hp)
+            all_preds.append(preds)
+            all_targs.append(targs)
+        evals = pd.concat(all_evals, axis=0, ignore_index=True)
+
+        if cache:
+            evals_out = root / "all_evals.parquet"
+            hps_out = root / "all_hps.pickle"
+            preds_out = root / "all_preds.npz"
+            targs_out = root / "all_targs.npz"
+
+            evals.to_parquet(evals_out)
+            print(f"Saved cached evals to {evals_out}")
+            with open(hps_out, "wb") as fp:
+                pickle.dump(all_hps, fp)
+            print(f"Saved cached hps to {hps_out}")
+            np.savez(preds_out, **{str(i): arr for i, arr in enumerate(all_preds)})
+            print(f"Saved cached preds to {preds_out}")
+            np.savez(targs_out, **{str(i): arr for i, arr in enumerate(all_targs)})
+            print(f"Saved cached targs to {targs_out}")
+        return cls(evaluators=evals, hps=all_hps, preds=all_preds, targs=all_targs)
+
+    @classmethod
+    def from_cached(cls: Type[Results], root: Path) -> Results:
+        evals_out = root / "all_evals.parquet"
+        hps_out = root / "all_hps.pickle"
+        preds_out = root / "all_preds.npz"
+        targs_out = root / "all_targs.npz"
+
+        print("Loading evals df")
+        evals = pd.read_parquet(evals_out)
+        print("Loading hparams")
+        with open(hps_out, "rb") as fp:
+            all_hps = pickle.load(fp)
+
+        print("Loading preds")
+        preds_dict = np.load(preds_out)
+        all_preds = [preds_dict[str(i)] for i in range(len(preds_dict))]
+
+        print("Loading targs")
+        targs_dict = np.load(targs_out)
+        all_targs = [targs_dict[str(i)] for i in range(len(targs_dict))]
         return cls(evaluators=evals, hps=all_hps, preds=all_preds, targs=all_targs)
 
     @classmethod
