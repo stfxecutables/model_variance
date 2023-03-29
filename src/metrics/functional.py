@@ -14,11 +14,33 @@ import numpy as np
 from numba import njit, prange
 from numpy import ndarray
 from numpy.typing import NDArray
+from scipy.stats.contingency import association, crosstab
+from scipy.stats.distributions import uniform
+from sklearn.metrics import cohen_kappa_score as kappa
+from sklearn.metrics import confusion_matrix as confusion
 
 from src.results import PredTarg, PredTargIdx
 
-RunComputer = Callable[[tuple[ndarray, ndarray]], float]
 RunPairComputer = Callable[[tuple[PredTarg, PredTarg]], float]
+
+
+class PairwiseComputer(Protocol):
+    def __call__(
+        self,
+        preds: List[ndarray],
+        **kwargs: Any,
+    ) -> ndarray:
+        ...
+
+
+class PairwiseErrorComputer(Protocol):
+    def __call__(
+        self,
+        preds: List[ndarray],
+        targs: List[ndarray],
+        **kwargs: Any,
+    ) -> ndarray:
+        ...
 
 
 class ConsistencyClassPairwiseComputer(Protocol):
@@ -42,9 +64,15 @@ class ConsistencyClassPairwiseErrorComputer(Protocol):
         ...
 
 
-ConsistencyClassRunComputer = Callable[[tuple[PredTarg, NDArray[np.int64]]], float]
+MetricComputer = Union[
+    PairwiseComputer,
+    PairwiseErrorComputer,
+    ConsistencyClassPairwiseComputer,
+    ConsistencyClassPairwiseErrorComputer,
+]
 ConsistencyClassComputer = Union[
-    ConsistencyClassPairwiseComputer, ConsistencyClassRunComputer
+    ConsistencyClassPairwiseComputer,
+    ConsistencyClassPairwiseErrorComputer,
 ]
 
 
@@ -69,6 +97,11 @@ def inconsistent_set(rep_preds: List[ndarray]) -> NDArray[np.int64]:
     for preds in rep_preds:
         idx &= preds == rep_preds[0]
     return np.where(~idx)[0]
+
+
+def cramer_v(y1: ndarray, y2: ndarray) -> float:
+    ct = crosstab(y1, y2).count
+    return float(association(observed=ct, correction=False))
 
 
 @njit(parallel=True)
@@ -115,11 +148,7 @@ def _ecs(
 
 
 @njit(parallel=True)
-def _ecs_accs(
-    y_errs: NDArray[np.bool_],
-    empty_unions: Literal["nan", "0", "1"] = "nan",
-    local_norm: bool = False,
-) -> ndarray:
+def _error_accs(y_errs: NDArray[np.bool_]) -> ndarray:
     """
     Parameters
     ----------
@@ -131,33 +160,20 @@ def _ecs_accs(
     matrix = np.full((L, L), np.nan)
     for i in prange(L):
         err_i = y_errs[i]
-        acc_i = 1 - np.mean(err_i)
-        for j in range(L):
+        for j in range(i + 1, L):
             err_j = y_errs[j]
-            acc_j = 1 - np.mean(err_j)
-            acc = np.sqrt(acc_i * acc_j)
-            if i == j:
-                # matrix[i, j] = acc
-                continue
-            if i > j:
-                continue
-            if local_norm is True:
-                union = err_i | err_j
-                local_union = np.sum(union)
-                if local_union == 0:
-                    if empty_unions == "nan":
-                        continue
-                    elif empty_unions == "0":
-                        matrix[i, j] = matrix[j, i] = 0.0
-                        continue
-                    elif empty_unions == "1":
-                        matrix[i, j] = matrix[j, i] = 1.0
-                        continue
-            else:
-                local_union = len(err_i)
-            score = acc * np.sum(err_i & err_j) / local_union
-            matrix[i, j] = matrix[j, i] = np.sqrt(score)
+            ec = np.mean(err_i == err_j)
+            matrix[i, j] = matrix[j, i] = ec
     return matrix
+
+
+def _pairwise_accs(preds: List[ndarray], targs: List[ndarray], **kwargs: Any) -> ndarray:
+    ...
+
+
+# def _cramer_vs(
+
+# )
 
 
 def _ec(
@@ -181,12 +197,11 @@ def _cc_ec(
     return matrix[np.triu_indices_from(matrix, k=1)]
 
 
-def _ec_acc(
-    y_errs: NDArray[np.bool_],
-    empty_unions: Literal["nan", "0", "1"] = "nan",
-    local_norm: bool = False,
+def _pairwise_error_acc(
+    y_errs: NDArray[np.bool_], idx: NDArray[np.int64], **kwargs: Any
 ) -> ndarray:
-    matrix = _ecs_accs(y_errs, empty_unions, local_norm)
+    y_errs = y_errs[:, idx]  # y_ers.shape == (N_rep, n_samples)
+    matrix = _error_accs(y_errs)
     return matrix[np.triu_indices_from(matrix, k=1)]
 
 
