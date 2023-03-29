@@ -255,6 +255,9 @@ if __name__ == "__main__":
 
     simplefilter("error")
 
+    # NOTE: Need to find where ckpt present but tar maybe missing, or just
+    # issing tars
+
     # results = Results.from_tar_gz(ROOT / "hperturb.tar", save_test=True)
     PRELIM_DIR = ROOT / "debug_logs/prelim"
     FORCE = False

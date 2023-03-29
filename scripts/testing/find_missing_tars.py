@@ -64,4 +64,4 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     root = args.root
-    find_bad_tars(root)
+    print_bugged_ckpts(root)
