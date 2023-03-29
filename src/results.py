@@ -261,11 +261,11 @@ class Results:
 
         print("Loading preds")
         preds_dict = np.load(preds_out)
-        all_preds = [preds_dict[str(i)] for i in range(len(preds_dict))]
+        all_preds = [preds_dict[str(i)] for i in tqdm(range(len(preds_dict)))]
 
         print("Loading targs")
         targs_dict = np.load(targs_out)
-        all_targs = [targs_dict[str(i)] for i in range(len(targs_dict))]
+        all_targs = [targs_dict[str(i)] for i in tqdm(range(len(targs_dict)))]
         return cls(
             evaluators=evals, hps=all_hps, preds=all_preds, targs=all_targs, root=root
         )

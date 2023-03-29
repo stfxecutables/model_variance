@@ -260,8 +260,8 @@ if __name__ == "__main__":
 
     # results = Results.from_tar_gz(ROOT / "hperturb.tar", save_test=True)
     PRELIM_DIR = ROOT / "debug_logs/prelim"
-    FORCE = False
-    results = Results.from_cached(root=PRELIM_DIR)
+    FORCE = True
+    results = Results.from_tar_gzs(root=PRELIM_DIR, cache=False)
     dfs = []
     for metric in tqdm(ALL_METRICS, desc="Computing metrics"):
         if metric in EC_UNION_METRICS:
