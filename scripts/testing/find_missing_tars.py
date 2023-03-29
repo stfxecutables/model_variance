@@ -62,7 +62,8 @@ def is_bugged_ckpt(ckpt: Path) -> Optional[Path]:
             return tarfile
         return None
     except IOError:
-        return None
+        traceback.print_exc()
+        return ckpt
 
 
 def print_bugged_ckpts(root: Path = CKPTS) -> List[Path]:
