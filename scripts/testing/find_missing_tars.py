@@ -13,23 +13,34 @@ import tarfile
 from argparse import ArgumentParser
 from pathlib import Path
 from tarfile import ReadError, TarFile
-from typing import List, Union
+from typing import List, Optional, Union
 
+from tqdm import tqdm
 from tqdm.contrib.concurrent import process_map
 
 from src.constants import CKPTS
+from src.parallelize import joblib_map
+
+
+def is_bugged_ckpt(ckpt: Path) -> Optional[Path]:
+    try:
+        with open(ckpt, "r") as fp:
+            tarfile = Path(f"{fp.readline()[:-1]}.tar.gz").resolve()  # trailing newline
+        if not tarfile.exists():
+            return tarfile
+        return None
+    except IOError:
+        return None
 
 
 def print_bugged_ckpts(root: Path = CKPTS) -> List[Path]:
     ckptfiles = root.rglob("*.ckpt")
-    missing = []
-    for ckpt in ckptfiles:
-        with open(ckpt, "r") as fp:
-            tarfile = Path(f"{fp.readline()[:-1]}.tar.gz").resolve()  # trailing newline
-        if not tarfile.exists():
-            print(tarfile.parent)
-            missing.append(tarfile.parent)
-    return missing
+    ckpts = [ckpt for ckpt in tqdm(ckptfiles, desc="Globbing .ckpts")]
+    results = joblib_map(is_bugged_ckpt, ckpts, desc="Checking for missing .tar.gz files")
+    missings = [r for r in results if r is not None]
+    for missing in missings:
+        print(missing)
+    return missings
 
 
 def is_bad_tar(tarpath: Path) -> Union[Path, None]:
