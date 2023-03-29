@@ -8,6 +8,7 @@ sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
 import sys
+from itertools import combinations
 from typing import Any, Callable, List, Literal, Protocol, Union
 
 import numpy as np
@@ -47,7 +48,6 @@ class ConsistencyClassPairwiseComputer(Protocol):
     def __call__(
         self,
         preds: List[ndarray],
-        targs: List[ndarray],
         idx: NDArray[np.int64],
         **kwargs: Any,
     ) -> ndarray:
@@ -97,6 +97,10 @@ def inconsistent_set(rep_preds: List[ndarray]) -> NDArray[np.int64]:
     for preds in rep_preds:
         idx &= preds == rep_preds[0]
     return np.where(~idx)[0]
+
+
+def acc(y1: ndarray, y2: ndarray) -> float:
+    return np.mean(y1 == y2)
 
 
 def cramer_v(y1: ndarray, y2: ndarray) -> float:
@@ -176,16 +180,7 @@ def _pairwise_accs(preds: List[ndarray], targs: List[ndarray], **kwargs: Any) ->
 # )
 
 
-def _ec(
-    y_errs: NDArray[np.bool_],
-    empty_unions: Literal["nan", "0", "1"] = "nan",
-    local_norm: bool = False,
-) -> ndarray:
-    matrix = _ecs(y_errs, empty_unions, local_norm)
-    return matrix[np.triu_indices_from(matrix, k=1)]
-
-
-def _cc_ec(
+def _pairwise_error_consistency(
     y_errs: NDArray[np.bool_],
     idx: NDArray[np.int64],
     empty_unions: Literal["nan", "0", "1"] = "nan",
@@ -205,8 +200,56 @@ def _pairwise_error_acc(
     return matrix[np.triu_indices_from(matrix, k=1)]
 
 
-def _accuracy(preds_targs: tuple[ndarray, ndarray]) -> float:
-    preds, targs = preds_targs
-    if preds.ndim == 2:  # MLP
-        return float(np.mean(np.argmax(preds, axis=1) == targs))
-    return float(np.mean(preds == targs))
+def _pairwise_percent_agreement(
+    preds: List[ndarray],
+    idx: NDArray[np.int64],
+    **kwargs: Any,
+) -> ndarray:
+    ys = [pred[idx] for pred in preds]
+    y_combs = list(combinations(ys, r=2))
+    pas = [acc(*comb) for comb in y_combs]  # Percent Agreement
+    return np.array(pas)
+
+
+def _pairwise_cramer_v(
+    preds: List[ndarray],
+    idx: NDArray[np.int64],
+    **kwargs: Any,
+) -> ndarray:
+    ys = [pred[idx] for pred in preds]
+    y_combs = list(combinations(ys, r=2))
+    pas = [cramer_v(*comb) for comb in y_combs]
+    return np.array(pas)
+
+def _pairwise_kappa(
+    preds: List[ndarray],
+    idx: NDArray[np.int64],
+    **kwargs: Any,
+) -> ndarray:
+    ys = [pred[idx] for pred in preds]
+    y_combs = list(combinations(ys, r=2))
+    pas = [kappa(*comb) for comb in y_combs]
+    return np.array(pas)
+
+
+def _pairwise_error_phi(
+    y_errs: NDArray[np.bool_],
+    idx: NDArray[np.int64],
+    **kwargs: Any,
+) -> ndarray:
+    # see https://en.wikipedia.org/wiki/Phi_coefficient, which is just
+    # Pearson correlation of two binary / booleans
+    ys = [err[idx] for err in y_errs]
+    y_combs = list(combinations(ys, r=2))
+    pas = [np.corrcoef(*comb)[0, 1] for comb in y_combs]
+    return np.array(pas)
+
+
+pairwise_error_acc: ConsistencyClassPairwiseErrorComputer = _pairwise_error_acc
+pairwise_error_consistency: ConsistencyClassPairwiseErrorComputer = (
+    _pairwise_error_consistency
+)
+pairwise_percent_agreement: ConsistencyClassPairwiseComputer = _pairwise_percent_agreement
+pairwise_cramer_v: ConsistencyClassPairwiseComputer = _pairwise_cramer_v
+pairwise_kappa: ConsistencyClassPairwiseComputer = _pairwise_kappa
+pairwise_error_phi: ConsistencyClassPairwiseErrorComputer = _pairwise_error_phi

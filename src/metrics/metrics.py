@@ -8,7 +8,7 @@ sys.path.append(str(ROOT))  # isort: skip
 # fmt: on
 
 import sys
-from typing import List, Literal, Optional
+from typing import Any, List, Literal, Optional
 
 import pandas as pd
 from numpy import ndarray
@@ -23,7 +23,11 @@ from src.enumerables import (
 )
 from src.metrics.base.cclass import ConsistencyClassPairwiseErrorMetric
 from src.metrics.base.total import TotalPairwiseErrorMetric
-from src.metrics.functional import _accuracy, _cc_ec, _pairwise_error_acc
+from src.metrics.functional import (
+    _accuracy,
+    pairwise_error_acc,
+    pairwise_error_consistency,
+)
 from src.results import Results
 
 """We need to distinguish between metrics that rely on the computation of
@@ -93,20 +97,20 @@ summarizes within a repeat, but we cou
 #         return self.computed
 
 
-class ErrorConsistency(TotalPairwiseErrorMetric):
+class TotalErrorConsistency(TotalPairwiseErrorMetric):
+    """The classic / original EC definition"""
+
     def __init__(
         self,
         results: Optional[Results],
         local_norm: bool = False,
         empty_unions: Literal["nan", "0", "1"] = "nan",
     ) -> None:
-        self.results = results
+        super().__init__(results)
         self.local_norm = local_norm
         self.empty_unions: Literal["nan", "0", "1"] = empty_unions
         self.kwargs = dict(local_norm=local_norm, empty_unions=empty_unions)
-        # self.computed: Optional[tuple[List[DataFrame], List[ndarray]]] = None
-        self.computed: Optional[DataFrame] = None
-        self.computer = _cc_ec
+        self.computer = pairwise_error_consistency
         loc = "l" if local_norm else "g"
         un = {"nan": "_NA", "1": "_1", "0": ""}[empty_unions]
         self.name = f"ec_{loc}{un}"
@@ -122,28 +126,32 @@ class ErrorConsistency(TotalPairwiseErrorMetric):
 
 
 class TotalPairwiseErrorAcc(TotalPairwiseErrorMetric):
+    """The average accuracy of pairwise errors"""
+
     def __init__(
         self,
         results: Results,
     ) -> None:
         super().__init__(results)
-        self.computer = _pairwise_error_acc
-        self.kwargs = {}
+        self.computer = pairwise_error_acc
+        self.kwargs: Any = {}
         self.name = "tp_acc"
 
 
-class CCPairwiseErrorAcc(ConsistencyClassPairwiseErrorMetric):
+class SubsetPairwiseErrorAcc(ConsistencyClassPairwiseErrorMetric):
+    """The average accuracy of pairwise errors on the inconsistent set"""
+
     def __init__(
         self,
         results: Results,
     ) -> None:
         super().__init__(results)
-        self.computer = _pairwise_error_acc
-        self.kwargs = {}
+        self.computer = pairwise_error_acc
+        self.kwargs: Any = {}
         self.name = "cc_acc"
 
 
-class CCErrorConsistency(ConsistencyClassPairwiseErrorMetric):
+class SubsetErrorConsistency(ConsistencyClassPairwiseErrorMetric):
     def __init__(
         self,
         results: Optional[Results] = None,
@@ -155,14 +163,7 @@ class CCErrorConsistency(ConsistencyClassPairwiseErrorMetric):
         loc = "l" if local_norm else "g"
         un = {"nan": "_NA", "1": "_1", "0": ""}[empty_unions]
         self.name = f"cc_ec_{loc}{un}"
-        self.computer = _cc_ec
-
-
-class Accuracy(RunMetric):
-    def __init__(self, results: Results) -> None:
-        super().__init__(results)
-        self.computer = _accuracy
-        self.name = "acc"
+        self.computer = pairwise_error_consistency
 
 
 def compute_effect_sizes(dummy_df: DataFrame) -> float:
@@ -194,15 +195,17 @@ if __name__ == "__main__":
     results = Results.from_cached(root=PRELIM_DIR)
 
     # sys.exit()
-    df = ErrorConsistency(results, local_norm=False, empty_unions="0").compute(force=True)
-    df = CCErrorConsistency(results, local_norm=True, empty_unions="0").compute(
+    df = TotalErrorConsistency(results, local_norm=False, empty_unions="0").compute(
+        force=True
+    )
+    df = SubsetErrorConsistency(results, local_norm=True, empty_unions="0").compute(
         force=True
     )
     sys.exit()
     df = ECAcc(results, local_norm=False).compute()
     df = ECAcc(results, local_norm=True, empty_unions="0").compute()
-    df = ErrorConsistency(results, local_norm=False).compute()
-    df = ErrorConsistency(results, local_norm=True, empty_unions="0").compute()
+    df = TotalErrorConsistency(results, local_norm=False).compute()
+    df = TotalErrorConsistency(results, local_norm=True, empty_unions="0").compute()
     acc = Accuracy(results).compute()
     sys.exit()
 
