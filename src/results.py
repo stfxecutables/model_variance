@@ -250,6 +250,8 @@ class Results:
         hps_out = root / "all_hps.pickle"
         preds_out = root / "all_preds.npz"
         targs_out = root / "all_targs.npz"
+        if not evals_out.exists():
+            return cls.from_tar_gzs(root=root, cache=True)
 
         print("Loading evals df")
         evals = pd.read_parquet(evals_out)
