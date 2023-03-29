@@ -9,10 +9,12 @@ sys.path.append(str(ROOT))  # isort: skip
 
 import sys
 from typing import Any, List, Literal, Optional
+from warnings import simplefilter
 
 import pandas as pd
 from numpy import ndarray
 from pandas import DataFrame
+from tqdm import tqdm
 from tqdm.contrib.concurrent import process_map
 
 from src.enumerables import (
@@ -21,13 +23,17 @@ from src.enumerables import (
     DatasetName,
     HparamPerturbation,
 )
-from src.metrics.base.cclass import ConsistencyClassPairwiseErrorMetric
-from src.metrics.base.total import TotalPairwiseErrorMetric
+from src.metrics.base import PairwiseMetric
 from src.metrics.functional import (
-    _accuracy,
-    pairwise_error_acc,
-    pairwise_error_consistency,
+    cramer_v,
+    error_acc,
+    error_consistency,
+    error_phi,
+    kappa,
+    mean_acc,
+    percent_agreement,
 )
+from src.metrics.total import TotalPairwiseMetric
 from src.results import Results
 
 """We need to distinguish between metrics that rely on the computation of
@@ -47,111 +53,81 @@ Likewise, there can be metrics that summarize within or across repeats. E.g. EC
 summarizes within a repeat, but we cou
 """
 
-
-# class RunMetric(ABC):
-#     """Abstract base class for metrics that need access to run predictions"""
-
-#     def __init__(self, results: Optional[Results] = None) -> None:
-#         super().__init__()
-#         self.results: Optional[Results] = results
-#         self.computed: Optional[DataFrame] = None
-#         self.computer: MetricComputer
-#         self.name: str = "default"
-
-#     @property
-#     def cached(self) -> Path:
-#         """Is property so inherited classes can use overridden name"""
-#         if self.results is None:
-#             root: Path = ROOT
-#         else:
-#             root = self.results.root or ROOT
-#         return root / f"{self.name}.parquet"
-
-#     def compute(self, show_progress: bool = False, force: bool = False) -> DataFrame:
-#         if self.cached.exists() and not force:
-#             return pd.read_parquet(self.cached)
-
-#         if self.computed is not None:
-#             return self.computed
-#         if self.results is None:
-#             raise ValueError("Cannot compute metrics when `self.results` is None.")
-
-#         args = list(zip(self.results.preds, self.results.targs))
-#         if len(args) < 1:
-#             raise RuntimeError(
-#                 f"Insufficient predictions / targets to compute {self.name} metric."
-#             )
-#         vals = process_map(
-#             self.computer,
-#             args,
-#             total=len(args),
-#             desc=f"Computing {self.name}",
-#             chunksize=10,
-#             disable=not show_progress,
-#         )
-#         self.computed = Series(
-#             data=vals, index=self.results.evaluators.index, dtype=float, name=self.name
-#         ).to_frame()
-#         self.computed.to_parquet(self.cached)
-#         print(f"Saved computed {self.name} metric to {self.cached}")
-#         return self.computed
+#
+# Prediction-based
+#
 
 
-class TotalErrorConsistency(TotalPairwiseErrorMetric):
-    """The classic / original EC definition"""
-
-    def __init__(
-        self,
-        results: Optional[Results],
-        local_norm: bool = False,
-        empty_unions: Literal["nan", "0", "1"] = "nan",
-    ) -> None:
+class PairedMeanAcc(PairwiseMetric):
+    def __init__(self, results: Optional[Results] = None) -> None:
         super().__init__(results)
-        self.local_norm = local_norm
-        self.empty_unions: Literal["nan", "0", "1"] = empty_unions
-        self.kwargs = dict(local_norm=local_norm, empty_unions=empty_unions)
-        self.computer = pairwise_error_consistency
-        loc = "l" if local_norm else "g"
-        un = {"nan": "_NA", "1": "_1", "0": ""}[empty_unions]
-        self.name = f"ec_{loc}{un}"
-
-    @property
-    def cached(self) -> Path:
-        """Is property so inherited classes can use overridden name"""
-        if self.results is None:
-            root: Path = ROOT
-        else:
-            root = self.results.root or ROOT
-        return root / f"{self.name}.parquet"
-
-
-class TotalPairwiseErrorAcc(TotalPairwiseErrorMetric):
-    """The average accuracy of pairwise errors"""
-
-    def __init__(
-        self,
-        results: Results,
-    ) -> None:
-        super().__init__(results)
-        self.computer = pairwise_error_acc
+        self.computer = mean_acc
         self.kwargs: Any = {}
-        self.name = "tp_acc"
+        self.name = "acc"
 
 
-class SubsetPairwiseErrorAcc(ConsistencyClassPairwiseErrorMetric):
-    """The average accuracy of pairwise errors on the inconsistent set"""
-
-    def __init__(
-        self,
-        results: Results,
-    ) -> None:
+class TotalPairedMeanAcc(TotalPairwiseMetric):
+    def __init__(self, results: Optional[Results] = None) -> None:
         super().__init__(results)
-        self.computer = pairwise_error_acc
+        self.computer = mean_acc
         self.kwargs: Any = {}
-        self.name = "cc_acc"
+        self.name = "acc_t"
 
 
-class SubsetErrorConsistency(ConsistencyClassPairwiseErrorMetric):
+class PercentAgreement(PairwiseMetric):
+    def __init__(self, results: Optional[Results] = None) -> None:
+        super().__init__(results)
+        self.computer = percent_agreement
+        self.kwargs: Any = {}
+        self.name = "pa"
+
+
+class TotalPercentAgreement(TotalPairwiseMetric):
+    def __init__(self, results: Optional[Results] = None) -> None:
+        super().__init__(results)
+        self.computer = percent_agreement
+        self.kwargs: Any = {}
+        self.name = "pa_t"
+
+
+class CramerV(PairwiseMetric):
+    def __init__(self, results: Optional[Results] = None) -> None:
+        super().__init__(results)
+        self.computer = cramer_v
+        self.kwargs: Any = {}
+        self.name = "v"
+
+
+class TotalCramerV(TotalPairwiseMetric):
+    def __init__(self, results: Optional[Results] = None) -> None:
+        super().__init__(results)
+        self.computer = cramer_v
+        self.kwargs: Any = {}
+        self.name = "v_t"
+
+
+class Kappa(PairwiseMetric):
+    def __init__(self, results: Optional[Results] = None) -> None:
+        super().__init__(results)
+        self.computer = kappa
+        self.kwargs: Any = {}
+        self.name = "k"
+
+
+class TotalKappa(TotalPairwiseMetric):
+    def __init__(self, results: Optional[Results] = None) -> None:
+        super().__init__(results)
+        self.computer = kappa
+        self.kwargs: Any = {}
+        self.name = "k_t"
+
+
+#
+# Error-based
+#
+
+
+class ErrorConsistency(PairwiseMetric):
     def __init__(
         self,
         results: Optional[Results] = None,
@@ -162,12 +138,70 @@ class SubsetErrorConsistency(ConsistencyClassPairwiseErrorMetric):
         self.kwargs = dict(local_norm=local_norm, empty_unions=empty_unions)
         loc = "l" if local_norm else "g"
         un = {"nan": "_NA", "1": "_1", "0": ""}[empty_unions]
-        self.name = f"cc_ec_{loc}{un}"
-        self.computer = pairwise_error_consistency
+        self.name = f"ec_{loc}{un}"
+        self.computer = error_consistency
 
 
-def compute_effect_sizes(dummy_df: DataFrame) -> float:
-    raise NotImplementedError()
+# Classic EC
+class TotalErrorConsistency(TotalPairwiseMetric):
+    def __init__(
+        self,
+        results: Optional[Results],
+        local_norm: bool = False,
+        empty_unions: Literal["nan", "0", "1"] = "nan",
+    ) -> None:
+        super().__init__(results)
+        self.local_norm = local_norm
+        self.empty_unions: Literal["nan", "0", "1"] = empty_unions
+        self.kwargs = dict(local_norm=local_norm, empty_unions=empty_unions)
+        self.computer = error_consistency
+        loc = "l" if local_norm else "g"
+        un = {"nan": "_NA", "1": "_1", "0": ""}[empty_unions]
+        self.name = f"ec_{loc}{un}_t"
+
+
+class ErrorAccuracy(PairwiseMetric):
+    def __init__(
+        self,
+        results: Results,
+    ) -> None:
+        super().__init__(results)
+        self.computer = error_acc
+        self.kwargs: Any = {}
+        self.name = "e_acc"
+
+
+class TotalErrorAccuracy(TotalPairwiseMetric):
+    def __init__(
+        self,
+        results: Results,
+    ) -> None:
+        super().__init__(results)
+        self.computer = error_acc
+        self.kwargs: Any = {}
+        self.name = "e_acc_t"
+
+
+class ErrorPhi(PairwiseMetric):
+    def __init__(
+        self,
+        results: Results,
+    ) -> None:
+        super().__init__(results)
+        self.computer = error_phi
+        self.kwargs: Any = {}
+        self.name = "e_phi"
+
+
+class TotalErrorPhi(TotalPairwiseMetric):
+    def __init__(
+        self,
+        results: Results,
+    ) -> None:
+        super().__init__(results)
+        self.computer = error_phi
+        self.kwargs: Any = {}
+        self.name = "e_phi_t"
 
 
 def get_describe(arr: ndarray) -> DataFrame:
@@ -188,79 +222,60 @@ def get_describes_df(
     return df
 
 
+SUBSET_METRICS = [
+    PairedMeanAcc,
+    PercentAgreement,
+    CramerV,
+    Kappa,
+]
+SUBSET_ERROR_METRICS = [
+    ErrorConsistency,
+    ErrorAccuracy,
+    ErrorPhi,
+]
+TOTAL_METRICS = [
+    TotalPairedMeanAcc,
+    TotalPercentAgreement,
+    TotalCramerV,
+    TotalKappa,
+]
+TOTAL_ERROR_METRICS = [
+    TotalErrorConsistency,
+    TotalErrorAccuracy,
+    TotalErrorPhi,
+]
+ALL_SUBSET_METRICS = SUBSET_METRICS + SUBSET_ERROR_METRICS
+ALL_TOTAL_METRICS = TOTAL_METRICS + TOTAL_ERROR_METRICS
+ALL_METRICS = ALL_SUBSET_METRICS + ALL_TOTAL_METRICS
+# below needed because they require args
+EC_UNION_METRICS = [ErrorConsistency, TotalErrorConsistency]
+
+
 if __name__ == "__main__":
+
+    simplefilter("error")
 
     # results = Results.from_tar_gz(ROOT / "hperturb.tar", save_test=True)
     PRELIM_DIR = ROOT / "debug_logs/prelim"
+    FORCE = False
     results = Results.from_cached(root=PRELIM_DIR)
+    dfs = []
+    for metric in tqdm(ALL_METRICS, desc="Computing metrics"):
+        if metric in EC_UNION_METRICS:
+            dfl = metric(results, local_norm=True, empty_unions="0").compute(force=FORCE)
+            dfg = metric(results, local_norm=False, empty_unions="0").compute(force=FORCE)
+            dfs.append(dfl)
+            dfs.append(dfg)
+        else:
+            dfs.append(metric(results).compute(force=FORCE))
 
-    # sys.exit()
-    df = TotalErrorConsistency(results, local_norm=False, empty_unions="0").compute(
-        force=True
-    )
-    df = SubsetErrorConsistency(results, local_norm=True, empty_unions="0").compute(
-        force=True
-    )
+    df_init = dfs[0]
+    on_cols = df_init.columns[:-3]
+    drop_cols = df_init.columns[:-3].to_list() + df_init.columns[-2:].to_list()
+    metrics = [df.drop(columns=drop_cols) for df in dfs[1:]]
+    df = pd.concat([df_init, *metrics], axis=1)
+    df.to_parquet(PRELIM_DIR / "all_computed_metrics.parquet")
     sys.exit()
-    df = ECAcc(results, local_norm=False).compute()
-    df = ECAcc(results, local_norm=True, empty_unions="0").compute()
-    df = TotalErrorConsistency(results, local_norm=False).compute()
-    df = TotalErrorConsistency(results, local_norm=True, empty_unions="0").compute()
-    acc = Accuracy(results).compute()
-    sys.exit()
-
-    descs = []
-    for name in [DatasetName.Anneal]:
-        for kind in [
-            ClassifierKind.XGBoost,
-            ClassifierKind.SGD_SVM,
-            ClassifierKind.SGD_LR,
-            ClassifierKind.LightGBM,
-        ]:
-            for dat_pert in [
-                DataPerturbation.DoubleNeighbor,
-                DataPerturbation.FullNeighbor,
-                DataPerturbation.RelPercent20,
-                DataPerturbation.Percentile20,
-                DataPerturbation.SigDigZero,
-                None,
-            ]:
-                for hp_pert in [
-                    HparamPerturbation.SigZero,
-                    HparamPerturbation.RelPercent20,
-                    HparamPerturbation.AbsPercent20,
-                    None,
-                ]:
-                    for tdown in [None, 50, 75]:
-                        res = results.select(
-                            dsnames=[name],
-                            classifier_kinds=[kind],
-                            reductions=[None],
-                            cont_perturb=[dat_pert],
-                            cat_perturb=[0.0],
-                            hp_perturb=[hp_pert],
-                            train_downsample=[tdown],
-                        )
-                        acc = Accuracy(res)
-                        desc = acc.compute().describe()
-                        info = {
-                            "data": name.name,
-                            "classifier": kind.value,
-                            "cont_pert": "None" if dat_pert is None else dat_pert.value,
-                            "cat_pert": float("nan") if cat_pert is None else cat_pert,
-                            "hp_pert": "None" if hp_pert is None else hp_pert.value,
-                            "tdown": str(tdown),
-                        }
-                        info.update(desc.to_dict())  # type: ignore
-                        df = pd.DataFrame(info, index=[0])
-                        descs.append(df)
-                        print(df)
-    df = pd.concat(descs, axis=0, ignore_index=True)
-    OUT = ROOT / "prelim_results.parquet"
-    df.to_parquet(OUT)
-    print(f"Saved prelim df results to {OUT}")
-    print(df)
-
     df_orig = df.copy()
     df["range"] = df["max"] - df["min"]
     df.drop(

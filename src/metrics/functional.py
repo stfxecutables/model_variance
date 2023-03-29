@@ -16,78 +16,23 @@ from numba import njit, prange
 from numpy import ndarray
 from numpy.typing import NDArray
 from scipy.stats.contingency import association, crosstab
-from scipy.stats.distributions import uniform
-from sklearn.metrics import cohen_kappa_score as kappa
+from sklearn.metrics import cohen_kappa_score as _kappa
 from sklearn.metrics import confusion_matrix as confusion
 
-from src.results import PredTarg, PredTargIdx
 
-RunPairComputer = Callable[[tuple[PredTarg, PredTarg]], float]
-
-
-class PairwiseComputer(Protocol):
-    def __call__(
-        self,
-        preds: List[ndarray],
-        **kwargs: Any,
-    ) -> ndarray:
-        ...
-
-
-class PairwiseErrorComputer(Protocol):
+class MetricComputer(Protocol):
     def __call__(
         self,
         preds: List[ndarray],
         targs: List[ndarray],
-        **kwargs: Any,
-    ) -> ndarray:
-        ...
-
-
-class ConsistencyClassPairwiseComputer(Protocol):
-    def __call__(
-        self,
-        preds: List[ndarray],
         idx: NDArray[np.int64],
         **kwargs: Any,
     ) -> ndarray:
         ...
 
 
-class ConsistencyClassPairwiseErrorComputer(Protocol):
-    def __call__(
-        self,
-        y_errs: NDArray[np.bool_],
-        idx: NDArray[np.int64],
-        **kwargs: Any,
-    ) -> ndarray:
-        ...
-
-
-MetricComputer = Union[
-    PairwiseComputer,
-    PairwiseErrorComputer,
-    ConsistencyClassPairwiseComputer,
-    ConsistencyClassPairwiseErrorComputer,
-]
-ConsistencyClassComputer = Union[
-    ConsistencyClassPairwiseComputer,
-    ConsistencyClassPairwiseErrorComputer,
-]
-
-
-def _default(preds_targs: tuple[ndarray, ndarray]) -> float:
-    raise NotImplementedError("Must implement a `computer`!")
-
-
-def _cc_pairwise_default(
+def _pairwise_default(
     preds: List[ndarray], targs: List[ndarray], idx: NDArray[np.int64], **kwargs: Any
-) -> ndarray:
-    raise NotImplementedError("Must implement a `computer`!")
-
-
-def _cc_pairwise_error_default(
-    y_errs: NDArray[np.bool_], idx: NDArray[np.int64], **kwargs: Any
 ) -> ndarray:
     raise NotImplementedError("Must implement a `computer`!")
 
@@ -103,9 +48,25 @@ def acc(y1: ndarray, y2: ndarray) -> float:
     return np.mean(y1 == y2)
 
 
-def cramer_v(y1: ndarray, y2: ndarray) -> float:
-    ct = crosstab(y1, y2).count
+def _cramer_v(y1: ndarray, y2: ndarray) -> float:
+    if len(np.unique(y1)) == 1 or len(np.unique(y2)) == 1:
+        # can't correlate constants...
+        return float("nan")
+    ct = crosstab(y1, y2)[1]
     return float(association(observed=ct, correction=False))
+
+
+def _pearson_r(y1: ndarray, y2: ndarray) -> float:
+    if len(np.unique(y1)) == 1 or len(np.unique(y2)) == 1:
+        # can't correlate constants...
+        return float("nan")
+    return float(np.corrcoef(y1, y1)[0, 1])
+
+
+def _cohen_kappa(y1: ndarray, y2: ndarray) -> float:
+    if (y1 == y2).all():
+        return float("nan")
+    return _kappa(y1, y2)
 
 
 @njit(parallel=True)
@@ -181,30 +142,66 @@ def _pairwise_accs(preds: List[ndarray], targs: List[ndarray], **kwargs: Any) ->
 
 
 def _pairwise_error_consistency(
-    y_errs: NDArray[np.bool_],
+    preds: List[ndarray],
+    targs: List[ndarray],
     idx: NDArray[np.int64],
     empty_unions: Literal["nan", "0", "1"] = "nan",
     local_norm: bool = False,
     **kwargs: Any,
 ) -> ndarray:
-    y_errs = y_errs[:, idx]  # y_ers.shape == (N_rep, n_samples)
-    matrix = _ecs(y_errs, empty_unions, local_norm)
+    if len(idx) == 0:
+        k = len(preds)
+        N = k * (k - 1) // 2
+        return np.full((N,), fill_value=np.nan)
+    y_errs = [pred[idx] != targ[idx] for pred, targ in zip(preds, targs)]
+    matrix = _ecs(np.array(y_errs), empty_unions, local_norm)
     return matrix[np.triu_indices_from(matrix, k=1)]
 
 
-def _pairwise_error_acc(
-    y_errs: NDArray[np.bool_], idx: NDArray[np.int64], **kwargs: Any
+def _pairwise_mean_acc(
+    preds: List[ndarray],
+    targs: List[ndarray],
+    idx: NDArray[np.int64],
+    **kwargs: Any,
 ) -> ndarray:
-    y_errs = y_errs[:, idx]  # y_ers.shape == (N_rep, n_samples)
-    matrix = _error_accs(y_errs)
+    if len(idx) == 0:
+        k = len(preds)
+        N = k * (k - 1) // 2
+        return np.full((N,), fill_value=np.nan)
+    accs = []
+    for i, pred in enumerate(preds):
+        for j, targ in enumerate(targs):
+            if i >= j:
+                continue
+            accs.append(np.mean(pred[idx] == targ[idx]))
+    return np.array(accs)
+
+
+def _pairwise_error_acc(
+    preds: List[ndarray],
+    targs: List[ndarray],
+    idx: NDArray[np.int64],
+    **kwargs: Any,
+) -> ndarray:
+    if len(idx) == 0:
+        k = len(preds)
+        N = k * (k - 1) // 2
+        return np.full((N,), fill_value=np.nan)
+    y_errs = [pred[idx] != targ[idx] for pred, targ in zip(preds, targs)]
+    matrix = _error_accs(np.array(y_errs))
     return matrix[np.triu_indices_from(matrix, k=1)]
 
 
 def _pairwise_percent_agreement(
     preds: List[ndarray],
+    targs: List[ndarray],
     idx: NDArray[np.int64],
     **kwargs: Any,
 ) -> ndarray:
+    if len(idx) == 0:
+        k = len(preds)
+        N = k * (k - 1) // 2
+        return np.full((N,), fill_value=np.nan)
     ys = [pred[idx] for pred in preds]
     y_combs = list(combinations(ys, r=2))
     pas = [acc(*comb) for comb in y_combs]  # Percent Agreement
@@ -213,43 +210,62 @@ def _pairwise_percent_agreement(
 
 def _pairwise_cramer_v(
     preds: List[ndarray],
+    targs: List[ndarray],
     idx: NDArray[np.int64],
     **kwargs: Any,
 ) -> ndarray:
+    if len(idx) <= 1:  # can't get a correlation for single values
+        k = len(preds)
+        N = k * (k - 1) // 2
+        return np.full((N,), fill_value=np.nan)
     ys = [pred[idx] for pred in preds]
     y_combs = list(combinations(ys, r=2))
-    pas = [cramer_v(*comb) for comb in y_combs]
+    pas = [_cramer_v(*comb) for comb in y_combs]
     return np.array(pas)
+
 
 def _pairwise_kappa(
     preds: List[ndarray],
+    targs: List[ndarray],
     idx: NDArray[np.int64],
     **kwargs: Any,
 ) -> ndarray:
+    if len(idx) <= 1:
+        k = len(preds)
+        N = k * (k - 1) // 2
+        return np.full((N,), fill_value=np.nan)
     ys = [pred[idx] for pred in preds]
     y_combs = list(combinations(ys, r=2))
-    pas = [kappa(*comb) for comb in y_combs]
+    pas = [_cohen_kappa(*comb) for comb in y_combs]
     return np.array(pas)
 
 
 def _pairwise_error_phi(
-    y_errs: NDArray[np.bool_],
+    preds: List[ndarray],
+    targs: List[ndarray],
     idx: NDArray[np.int64],
     **kwargs: Any,
 ) -> ndarray:
     # see https://en.wikipedia.org/wiki/Phi_coefficient, which is just
     # Pearson correlation of two binary / booleans
+    if len(idx) <= 1:  # can't get a correlation for single values
+        k = len(preds)
+        N = k * (k - 1) // 2
+        return np.full((N,), fill_value=np.nan)
+    y_errs = [pred != targ for pred, targ in zip(preds, targs)]
     ys = [err[idx] for err in y_errs]
     y_combs = list(combinations(ys, r=2))
-    pas = [np.corrcoef(*comb)[0, 1] for comb in y_combs]
+    pas = [_pearson_r(*comb) for comb in y_combs]
     return np.array(pas)
 
 
-pairwise_error_acc: ConsistencyClassPairwiseErrorComputer = _pairwise_error_acc
-pairwise_error_consistency: ConsistencyClassPairwiseErrorComputer = (
-    _pairwise_error_consistency
-)
-pairwise_percent_agreement: ConsistencyClassPairwiseComputer = _pairwise_percent_agreement
-pairwise_cramer_v: ConsistencyClassPairwiseComputer = _pairwise_cramer_v
-pairwise_kappa: ConsistencyClassPairwiseComputer = _pairwise_kappa
-pairwise_error_phi: ConsistencyClassPairwiseErrorComputer = _pairwise_error_phi
+# Prediction-based
+mean_acc: MetricComputer = _pairwise_mean_acc
+percent_agreement: MetricComputer = _pairwise_percent_agreement
+cramer_v: MetricComputer = _pairwise_cramer_v
+kappa: MetricComputer = _pairwise_kappa
+
+# Error-based
+error_consistency: MetricComputer = _pairwise_error_consistency
+error_acc: MetricComputer = _pairwise_error_acc
+error_phi: MetricComputer = _pairwise_error_phi
